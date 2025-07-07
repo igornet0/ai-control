@@ -1,0 +1,28 @@
+
+.dashboardItem {
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    /* padding: 10px; */
+    display: flex;
+    align-items: center;
+    background-color: rgb(2, 13, 13);
+}
+
+.dashboardImage {
+    width: 250px;
+    height: 250px;
+    justify-items: center;
+}
+
+.dashboardLink {
+    display: block;
+}
+
+.dashboardName {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #ccc;
+    padding: 20px;
+    margin: 0;
+    background-color: rgb(2, 13, 13);
+}
