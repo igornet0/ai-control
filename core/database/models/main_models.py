@@ -66,6 +66,7 @@ class Organization(Base):
     # Отношения
     users: Mapped[List["User"]] = relationship("User", back_populates="organization")
     departments: Mapped[List["Department"]] = relationship("Department", back_populates="organization")
+    dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="organization")
 
 class Department(Base):
     """Модель департамента"""
@@ -84,6 +85,7 @@ class Department(Base):
     organization: Mapped["Organization"] = relationship("Organization", back_populates="departments")
     manager: Mapped[Optional["User"]] = relationship("User", foreign_keys=[manager_id])
     users: Mapped[List["User"]] = relationship("User", back_populates="department", foreign_keys="User.department_id")
+    dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="department")
 
 class Permission(Base):
     """Модель разрешений"""
