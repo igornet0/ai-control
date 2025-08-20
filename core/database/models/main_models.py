@@ -34,6 +34,11 @@ class User(Base):
     # Отношения
     dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="user")
     users_groups: Mapped[List["UserGroup"]] = relationship("UserGroup", back_populates="users")
+    kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="created_by_user")
+    kpi_calculations: Mapped[List["KPICalculation"]] = relationship("KPICalculation", back_populates="calculated_by_user")
+    kpi_templates: Mapped[List["KPITemplate"]] = relationship("KPITemplate", back_populates="created_by_user")
+    kpi_notifications: Mapped[List["KPINotification"]] = relationship("KPINotification", back_populates="user")
+    kpi_schedules: Mapped[List["KPISchedule"]] = relationship("KPISchedule", back_populates="created_by_user")
     
     # Иерархические отношения
     subordinates: Mapped[List["User"]] = relationship("User", back_populates="manager", foreign_keys=[manager_id])
@@ -67,6 +72,7 @@ class Organization(Base):
     users: Mapped[List["User"]] = relationship("User", back_populates="organization")
     departments: Mapped[List["Department"]] = relationship("Department", back_populates="organization")
     dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="organization")
+    kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="organization")
 
 class Department(Base):
     """Модель департамента"""
@@ -86,6 +92,7 @@ class Department(Base):
     manager: Mapped[Optional["User"]] = relationship("User", foreign_keys=[manager_id])
     users: Mapped[List["User"]] = relationship("User", back_populates="department", foreign_keys="User.department_id")
     dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="department")
+    kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="department")
 
 class Permission(Base):
     """Модель разрешений"""
