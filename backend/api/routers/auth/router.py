@@ -10,7 +10,9 @@ from core import settings
 from core.database import (orm_get_user, orm_add_user, orm_get_user_by_id, orm_update_user, 
                           orm_get_users_by_role, orm_get_subordinates, orm_get_user_hierarchy,
                           orm_add_organization, orm_get_organization_by_id, orm_get_organizations,
-                          orm_add_department, orm_get_department_by_id, orm_get_departments_by_organization)
+                          orm_add_department, orm_get_department_by_id, orm_get_departments_by_organization,
+                          orm_add_permission, orm_get_permissions_by_role, orm_get_permission_by_id,
+                          orm_add_role_permission)
 
 from backend.api.configuration import (Server, 
                                        get_password_hash,
@@ -21,7 +23,8 @@ from backend.api.configuration import (Server,
                                        Token,
                                        verify_password, is_email,
                                        create_access_token,
-                                       verify_authorization, require_role, require_roles)
+                                       verify_authorization, require_role, require_roles,
+                                       PermissionResponse, RolePermissionResponse)
 
 import logging
 
@@ -306,3 +309,113 @@ async def get_department(
     if not department:
         raise HTTPException(status_code=404, detail="Department not found")
     return department
+
+@router.post("/permissions/", response_model=PermissionResponse)
+async def create_permission(
+    permission_data: dict,
+    user = Depends(require_role("admin")),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Создание нового разрешения (только для админов)"""
+    permission = await orm_add_permission(
+        session,
+        name=permission_data["name"],
+        description=permission_data.get("description"),
+        resource=permission_data["resource"],
+        action=permission_data["action"]
+    )
+    return PermissionResponse(
+        id=permission.id,
+        name=permission.name,
+        description=permission.description,
+        resource=permission.resource,
+        action=permission.action,
+        created_at=permission.created_at,
+        updated_at=permission.updated_at
+    )
+
+@router.get("/permissions/", response_model=List[PermissionResponse])
+async def get_permissions(
+    user = Depends(require_role("admin")),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Получение списка всех разрешений (только для админов)"""
+    permissions = await orm_get_permissions_by_role(session, user.role)
+    return [
+        PermissionResponse(
+            id=perm.id,
+            name=perm.name,
+            description=perm.description,
+            resource=perm.resource,
+            action=perm.action,
+            created_at=perm.created_at,
+            updated_at=perm.updated_at
+        )
+        for perm in permissions
+    ]
+
+@router.get("/permissions/{permission_id}/", response_model=PermissionResponse)
+async def get_permission_by_id(
+    permission_id: int,
+    user = Depends(require_role("admin")),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Получение разрешения по ID (только для админов)"""
+    permission = await orm_get_permission_by_id(session, permission_id)
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    
+    return PermissionResponse(
+        id=permission.id,
+        name=permission.name,
+        description=permission.description,
+        resource=permission.resource,
+        action=permission.action,
+        created_at=permission.created_at,
+        updated_at=permission.updated_at
+    )
+
+@router.post("/role-permissions/", response_model=RolePermissionResponse)
+async def assign_permission_to_role(
+    role_permission_data: dict,
+    user = Depends(require_role("admin")),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Назначение разрешения роли (только для админов)"""
+    role_permission = await orm_add_role_permission(
+        session,
+        role_id=role_permission_data["role_id"],
+        permission_id=role_permission_data["permission_id"]
+    )
+    return RolePermissionResponse(
+        id=role_permission.id,
+        role_id=role_permission.role_id,
+        permission_id=role_permission.permission_id,
+        created_at=role_permission.created_at
+    )
+
+@router.get("/users/{user_id}/permissions/", response_model=List[PermissionResponse])
+async def get_user_permissions(
+    user_id: int,
+    current_user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Получение разрешений пользователя"""
+    # Пользователь может получить свои разрешения или админ может получить разрешения любого пользователя
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем разрешения пользователя на основе его роли
+    permissions = await orm_get_permissions_by_role(session, current_user.role)
+    return [
+        PermissionResponse(
+            id=perm.id,
+            name=perm.name,
+            description=perm.description,
+            resource=perm.resource,
+            action=perm.action,
+            created_at=perm.created_at,
+            updated_at=perm.updated_at
+        )
+        for perm in permissions
+    ]

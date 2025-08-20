@@ -11,6 +11,7 @@ from starlette.responses import HTMLResponse
 
 from backend.api.configuration.server import Server
 from backend.api.configuration.lifespan import app_lifespan as lifespan
+from backend.api.middleware.auth_middleware import setup_auth_middleware
 
 import logging
 
@@ -53,11 +54,14 @@ def create_app(
         redoc_url=None if create_custom_static_urls else "/redoc",
     )
 
+    # Настраиваем middleware для аутентификации и авторизации
+    setup_auth_middleware(app)
+
     # app.mount("/static", StaticFiles(directory="backend/app/front/static"), name="static")
 
     if create_custom_static_urls:
         register_static_docs_routes(app)
 
-    logger.info("App created")
+    logger.info("App created with auth middleware")
 
     return Server(app).get_app()
