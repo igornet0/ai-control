@@ -2,6 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
+.vscode
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 

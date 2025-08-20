@@ -1,5 +1,5 @@
 # модели для БД
-from typing import Literal, List
+from typing import Literal, List, Optional
 from sqlalchemy import DateTime, ForeignKey, Float, String, BigInteger, func, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,10 @@ class Task(Base):
     
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     executor_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)  # Может быть None, если задача не назначена
+    
+    # Отношения
+    owner: Mapped["User"] = relationship("User", back_populates="owned_tasks", foreign_keys=[owner_id])
+    executor: Mapped[Optional["User"]] = relationship("User", back_populates="executed_tasks", foreign_keys=[executor_id])
 
 class TaskStatus(Base):
     """Модель для хранения статусов задач."""

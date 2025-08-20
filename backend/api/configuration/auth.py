@@ -201,3 +201,63 @@ async def verify_authorization_admin(token: str = Depends(Server.oauth2_scheme),
         status_code=status.HTTP_403_FORBIDDEN,
         detail="inactive user",
     )
+
+# Новые функции для проверки разрешений
+async def verify_authorization_with_permission(
+    resource: str,
+    action: str,
+    token: str = Depends(Server.oauth2_scheme),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Проверка авторизации с проверкой разрешений"""
+    user = await verify_authorization(token, session)
+    
+    # Проверяем разрешения
+    from core.database import orm_check_user_permission
+    has_permission = await orm_check_user_permission(session, user.id, resource, action)
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Insufficient permissions for {action} on {resource}"
+        )
+    
+    return user
+
+def require_role(required_role: str):
+    """Декоратор для проверки роли пользователя"""
+    async def role_checker(
+        user = Depends(verify_authorization),
+        session: AsyncSession = Depends(Server.get_db)
+    ):
+        if user.role != required_role and user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role {required_role} required"
+            )
+        return user
+    return role_checker
+
+def require_roles(required_roles: list[str]):
+    """Декоратор для проверки одной из ролей пользователя"""
+    async def roles_checker(
+        user = Depends(verify_authorization),
+        session: AsyncSession = Depends(Server.get_db)
+    ):
+        if user.role not in required_roles and user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"One of roles {required_roles} required"
+            )
+        return user
+    return roles_checker
+
+async def get_current_user_id(token: str = Depends(Server.oauth2_scheme)) -> int:
+    """Получить ID текущего пользователя"""
+    try:
+        payload = decode_access_token(token)
+        user_id: int = payload.get("user_id")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user_id
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")

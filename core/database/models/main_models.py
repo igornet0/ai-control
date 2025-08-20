@@ -1,19 +1,108 @@
 # модели для БД
-from typing import Literal, List
-from sqlalchemy import DateTime, ForeignKey, Float, String, BigInteger, func, Integer, Boolean
+from typing import Literal, List, Optional
+from sqlalchemy import DateTime, ForeignKey, Float, String, BigInteger, func, Integer, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
 
 from core.database.base import Base
 
 class User(Base):
-
+    """Модель пользователя с иерархией ролей"""
+    
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     login: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     username: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    role: Mapped[Literal["admin","CEO", "manager", "employee"]] = mapped_column(String(50), nullable=False, default="employee")
-
+    role: Mapped[Literal["admin", "CEO", "manager", "employee"]] = mapped_column(String(50), nullable=False, default="employee")
+    
+    # Новые поля для иерархии
+    manager_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(ForeignKey("organizations.id"), nullable=True)
+    position: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Временные метки
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    # Отношения
     dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="user")
     users_groups: Mapped[List["UserGroup"]] = relationship("UserGroup", back_populates="users")
+    
+    # Иерархические отношения
+    subordinates: Mapped[List["User"]] = relationship("User", back_populates="manager", foreign_keys=[manager_id])
+    manager: Mapped[Optional["User"]] = relationship("User", back_populates="subordinates", foreign_keys=[manager_id], remote_side=[id])
+    
+    # Организационные отношения
+    organization: Mapped[Optional["Organization"]] = relationship("Organization", back_populates="users", foreign_keys=[organization_id])
+    department: Mapped[Optional["Department"]] = relationship("Department", back_populates="users", foreign_keys=[department_id])
+    
+    # Задачи
+    owned_tasks: Mapped[List["Task"]] = relationship("Task", back_populates="owner", foreign_keys="Task.owner_id")
+    executed_tasks: Mapped[List["Task"]] = relationship("Task", back_populates="executor", foreign_keys="Task.executor_id")
+
+class Organization(Base):
+    """Модель организации"""
+    
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    logo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
+    # Настройки организации
+    settings: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON настройки
+    
+    # Временные метки
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Отношения
+    users: Mapped[List["User"]] = relationship("User", back_populates="organization")
+    departments: Mapped[List["Department"]] = relationship("Department", back_populates="organization")
+
+class Department(Base):
+    """Модель департамента"""
+    
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), nullable=False)
+    manager_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    
+    # Временные метки
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Отношения
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="departments")
+    manager: Mapped[Optional["User"]] = relationship("User", foreign_keys=[manager_id])
+    users: Mapped[List["User"]] = relationship("User", back_populates="department", foreign_keys="User.department_id")
+
+class Permission(Base):
+    """Модель разрешений"""
+    
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    resource: Mapped[str] = mapped_column(String(255), nullable=False)  # Ресурс (dashboard, task, user, etc.)
+    action: Mapped[str] = mapped_column(String(255), nullable=False)    # Действие (create, read, update, delete)
+    
+    # Временные метки
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+class RolePermission(Base):
+    """Связь ролей и разрешений"""
+    
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
+    permission_id: Mapped[int] = mapped_column(ForeignKey("permissions.id"), nullable=False)
+    
+    # Отношения
+    permission: Mapped["Permission"] = relationship("Permission")

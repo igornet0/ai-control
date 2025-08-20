@@ -3,6 +3,7 @@ Pytest configuration and fixtures for the AI Control code execution system tests
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 import os
 import sys
@@ -18,6 +19,15 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest_asyncio.fixture
+async def session():
+    """Create a database session for testing"""
+    from core.database import db_helper
+    
+    async with db_helper.get_session() as session:
+        yield session
 
 
 @pytest.fixture
