@@ -51,6 +51,11 @@ class User(Base):
     # Задачи
     owned_tasks: Mapped[List["Task"]] = relationship("Task", back_populates="owner", foreign_keys="Task.owner_id")
     executed_tasks: Mapped[List["Task"]] = relationship("Task", back_populates="executor", foreign_keys="Task.executor_id")
+    reviewed_tasks: Mapped[List["Task"]] = relationship("Task", back_populates="reviewer", foreign_keys="Task.reviewer_id")
+    task_comments: Mapped[List["TaskComment"]] = relationship("TaskComment", back_populates="author")
+    task_time_logs: Mapped[List["TaskTimeLog"]] = relationship("TaskTimeLog", back_populates="user")
+    task_watchers: Mapped[List["TaskWatcher"]] = relationship("TaskWatcher", back_populates="user")
+    task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="created_by_user")
 
 class Organization(Base):
     """Модель организации"""
@@ -73,6 +78,8 @@ class Organization(Base):
     departments: Mapped[List["Department"]] = relationship("Department", back_populates="organization")
     dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="organization")
     kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="organization")
+    tasks: Mapped[List["Task"]] = relationship("Task", back_populates="organization")
+    task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="organization")
 
 class Department(Base):
     """Модель департамента"""
@@ -93,6 +100,8 @@ class Department(Base):
     users: Mapped[List["User"]] = relationship("User", back_populates="department", foreign_keys="User.department_id")
     dashboards: Mapped[List["Dashboard"]] = relationship("Dashboard", back_populates="department")
     kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="department")
+    tasks: Mapped[List["Task"]] = relationship("Task", back_populates="department")
+    task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="department")
 
 class Permission(Base):
     """Модель разрешений"""

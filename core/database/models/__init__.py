@@ -1,4 +1,5 @@
-__all__ = ('User', 'Task',
+__all__ = ('User', 'Task', 'TaskComment', 'TaskTimeLog', 'TaskDependency', 'TaskWatcher', 'TaskLabel', 'TaskTemplate',
+           'TaskStatus', 'TaskPriority', 'TaskType', 'TaskVisibility',
            'Dashboard', 'Widget', 'DashboardWidget', 'DashboardDataSource',
            'WidgetTemplate', 'DashboardShare', 'DashboardVersion',
            'AccessDashboard', 'Flow', 'FlowDashboard',
@@ -8,7 +9,10 @@ __all__ = ('User', 'Task',
            'KPIType', 'KPITrend', 'KPIStatus')
 
 from .main_models import (User, Organization, Department, Permission, RolePermission)
-from .task_model import (Task, TaskStatus, TaskPriority, TaskType)
+from .task_model import (
+    Task, TaskComment, TaskTimeLog, TaskDependency, TaskWatcher, TaskLabel, TaskTemplate,
+    TaskStatus, TaskPriority, TaskType, TaskVisibility
+)
 from .dashboard_model import (
     Dashboard, Widget, DashboardWidget, DashboardDataSource,
     WidgetTemplate, DashboardShare, DashboardVersion
