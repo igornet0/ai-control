@@ -1,3 +1,6 @@
-__all__ = ("UserLoginResponse", "UserResponse", "Token", "TokenData")
+__all__ = ("UserLoginResponse", "UserResponse", "UserRegisterResponse", 
+           "Token", "TokenData", "UserEmailResponse")
 
-from .user import UserLoginResponse, UserResponse, Token, TokenData
+from .user import (UserLoginResponse, UserResponse, 
+                   UserRegisterResponse, UserEmailResponse,
+                   Token, TokenData)

@@ -1,0 +1,15 @@
+local basePath = getcwd()
+
+for i, file in enum(list_files(basePath / 'data_train' / '*4a.csv')) do
+    global table = read_file(basePath / 'data_train' /file)
+    show_table(table)
+    print(table[0])
+    print(table[-1])
+    """
+    for data in table do
+        local last_row = data
+    forend
+    """
+forend
+
+print(last_row)

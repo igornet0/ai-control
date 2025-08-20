@@ -1,0 +1,60 @@
+try
+local f = {
+    name: ['Igor', 'Ivan'],
+    age: [25, 30]}
+
+for key, data in f do
+    print(key, data)
+forend
+
+catch e
+    print(e)
+endtry
+
+f = {name: ['Igor', 'Ivan'],age: [25, 30]}
+
+for key, data in f do
+    print(key, data)
+forend
+
+"""
+global data = [[1, 2], [3, 4]]
+for _,b in data do
+    print(_, b)
+forend
+
+global csv_path = getcwd() / 'test_data' / 'sample.csv'
+global csv_data = read_file(csv_path)
+
+# Подсчитываем количество строк
+global row_count = len(csv_data)
+
+# Получаем заголовки таблицы
+global headers = table_headers(csv_data)
+
+# Получаем первую строку данных
+# global first_row = csv_data[0]
+
+for data in csv_data do
+    print(data)
+forend
+
+try
+f = {
+    name: ['Igor', 'Ivan'],
+    age: [25, 30]}
+
+for key, data in f do
+    print(key, data)
+forend
+
+catch e
+    print(e)
+endtry
+
+f = {name: ['Igor', 'Ivan'],age: [25, 30]}
+
+for key, data in f do
+    print(key, data)
+forend
+"""

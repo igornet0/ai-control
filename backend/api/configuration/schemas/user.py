@@ -3,26 +3,46 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import datetime
 
 class UserLoginResponse(BaseModel):
-    login: Optional[str] = None
-    email: Optional[str] = None
+    model_config = ConfigDict(strict=True)
+
+    login: str
     password: str
+
+class UserEmailResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    login: EmailStr
+    password: str
+
+class UserRegisterResponse(BaseModel):
+    login: str
+    username: str
+    email: EmailStr
+    password: str
+    # role: Optional[str] = "manager"  # Default role can be set here
+    # is_active: Optional[bool] = True  # Default to active user
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(strict=True)
 
     id: int
     login: str
+    username: str
     email: Optional[EmailStr] = None
-    password: str
-    balance: float
+    # password_hash: str
+    role: str
     created: datetime
-    active: Optional[bool] = True
+    is_active: Optional[bool] = True
 
 class TokenData(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     email: Optional[str] = None
     login: Optional[str] = None
 
 class Token(BaseModel):
+    model_config = ConfigDict(strict=True)
+    
     access_token: str
     refresh_token: Optional[str] = None
     token_type: Optional[str] = "Bearer"

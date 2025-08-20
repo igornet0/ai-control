@@ -6,11 +6,12 @@ from fastapi.security import (HTTPBearer,
 from datetime import timedelta
 
 from core import settings
-from core.database import orm_get_user_by_email, orm_get_user_by_login, orm_add_user
+from core.database import (orm_get_user, orm_add_user)
 
 from backend.api.configuration import (Server, 
                                        get_password_hash,
                                        UserResponse, UserLoginResponse,
+                                       UserRegisterResponse, UserEmailResponse,
                                        Token,
                                        verify_password, is_email,
                                        create_access_token,
@@ -26,23 +27,25 @@ logger = logging.getLogger("app_fastapi.auth")
 
 
 @router.post("/register/", response_model=Token)
-async def register(user: UserLoginResponse = Body(), session: AsyncSession = Depends(Server.get_db)):
+async def register(user: UserRegisterResponse, session: AsyncSession = Depends(Server.get_db)):
 
-    db_user = await orm_get_user_by_email(session, user)
+    db_user = await orm_get_user(session, UserEmailResponse(login=user.email, password=user.password))
 
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    db_user = await orm_get_user_by_login(session, user)
+    db_user = await orm_get_user(session, UserLoginResponse(login=user.login, password=user.password))
 
     if db_user:
         raise HTTPException(status_code=400, detail="Login already registered")
     
     hashed_password = get_password_hash(user.password)
 
-    await orm_add_user(session, login=user.login,
-                              hashed_password=hashed_password,
-                              email=user.email)
+    await orm_add_user(session, 
+                        username=user.username,
+                       login=user.login,
+                       hashed_password=hashed_password,
+                       email=user.email)
     
     access_token_expires = timedelta(minutes=settings.security.access_token_expire_minutes)
 
@@ -62,23 +65,24 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    identifier_type = "email" if is_email(form_data.username) else "login"
 
-    if identifier_type == "email":
-        user = await orm_get_user_by_email(session, UserLoginResponse(email=form_data.username, password=form_data.password))
+    if is_email(form_data.username):
+        respont = UserEmailResponse
     else:
-        user = await orm_get_user_by_login(session, UserLoginResponse(login=form_data.username, password=form_data.password))
+        respont = UserLoginResponse
+
+    user = await orm_get_user(session, respont(login=form_data.username, password=form_data.password))
 
     if not user:
         raise unauthed_exc
     
     if not verify_password(
         plain_password=form_data.password,
-        hashed_password=user.password,
+        hashed_password=user.password_hash,
     ):
         raise unauthed_exc
     
-    if not user.active:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="user inactive",

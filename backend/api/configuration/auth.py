@@ -136,7 +136,7 @@ async def validate_auth_user(
     ):
         raise unauthed_exc
 
-    if not user.active:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="user inactive",
@@ -178,7 +178,7 @@ async def verify_authorization(token: str = Depends(Server.oauth2_scheme),
 
     user = await get_user_by_token_sub(payload, session)
     
-    if user.active:
+    if user.is_active:
         return user
     
     raise HTTPException(
@@ -194,7 +194,7 @@ async def verify_authorization_admin(token: str = Depends(Server.oauth2_scheme),
 
     user = await get_user_by_token_sub(payload, session)
     
-    if user.active and user.role == "admin":
+    if user.is_active and user.role == "admin":
         return user
     
     raise HTTPException(

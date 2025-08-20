@@ -47,7 +47,7 @@ class Server:
                 settings.run.frontend_url,   
                 settings.run.https_frontend_url,  
                 settings.run.http_domain_frontend_url,
-                settings.run.https_domain_frontend_url
+                settings.run.https_domain_frontend_url,
             ],
             allow_credentials=True,
             allow_methods=["*"],

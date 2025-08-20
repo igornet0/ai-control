@@ -1,0 +1,40 @@
+@top Script { Statement* }
+
+Statement {
+  ExprStmt { Expr } |
+  GlobalStmt { "global" Identifier "=" Expr } |
+  LocalStmt { "local" Identifier "=" Expr }
+}
+
+Expr {
+  Identifier |
+  Number |
+  String |
+  "true" |
+  "false" |
+  "null"
+}
+
+@tokens {
+  whitespace { $[ \t\n\r]+ }
+  LineComment { "#" ![\n\r]* }
+  BlockComment { '"""' (!["] | '"' !["] | '""' !["])* '"""' }
+  Number { $[0-9]+ ("." $[0-9]+)? }
+  String { "'" (!['\\\n] | "\\" _)* "'" | '"' (!["\\\n] | "\\" _)* '"' }
+
+  @precedence { "global", "local", "true", "false", "null", Identifier }
+
+  "global" "local" "function" "endfunction"
+  "if" "else" "endif" "for" "forend" "in" "do"
+  "try" "catch" "endtry" "finally" "return"
+  "and" "or" "not"
+  "true" "false" "null"
+  Identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
+  "==" "!=" "<=" ">=" "<" ">"
+  "+" "-" "*" "/" "%" "**"
+  "=" "+=" "-=" "*=" "/=" "**=" "%="
+  "(" ")" "[" "]" "{" "}" "," ":" ";"
+}
+
+@skip { whitespace | LineComment | BlockComment }
+

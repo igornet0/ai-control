@@ -12,7 +12,8 @@ class GroupUser(Base):
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    usera: Mapped[List["User"]] = relationship("User", back_populates="users_groups")
+    # users: Mapped[List["User"]] = relationship("User", back_populates="users_groups")
+    # users: Mapped[List["User"]] = relationship("User", back_populates="users_groups")
 
 class UserGroup(Base):
     """Модель для хранения информации о пользователях в группах."""
@@ -21,5 +22,6 @@ class UserGroup(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     group_id: Mapped[int] = mapped_column(ForeignKey("group_users.id"), nullable=False)
     
-    user: Mapped["User"] = relationship("User", back_populates="user_groups")
-    group: Mapped["GroupUser"] = relationship("GroupUser", back_populates="users")
+    # user: Mapped["User"] = relationship("User", back_populates="user_groups")
+    # group: Mapped["GroupUser"] = relationship("GroupUser", back_populates="users")
+    users: Mapped[List["User"]] = relationship("User", back_populates="users_groups")

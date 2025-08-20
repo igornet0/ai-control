@@ -1,0 +1,231 @@
+# DataCode Syntax Highlighting Test File
+# This file tests all DataCode language features for proper syntax highlighting
+
+"""
+Multi-line comment block
+This should be highlighted as a comment
+with proper block comment styling
+"""
+
+# Variable declarations with different scopes
+global name = 'DataCode Language Test'
+local version = 2.5
+global active = true
+global items = null
+
+# Data type examples
+global num_int = 42              # integer
+global num_float = 3.14159       # float  
+global text = 'Hello World'      # string with single quotes
+global text2 = "Double quotes"   # string with double quotes
+global flag = false              # boolean
+global empty = null              # null value
+
+# Array literals with mixed types
+global numbers = [1, 2, 3, 4, 5]
+global strings = ['hello', 'world', 'datacode']
+global mixed = [1, 'hello', true, 3.14, null]
+global nested = [[1, 2], [3, 4], [5, 6]]
+global trailing_comma = [1, 2, 3,]
+
+# Object literals
+global config = {
+    name: 'DataCode',
+    version: 2.5,
+    features: ['arrays', 'tables', 'functions'],
+    active: true
+}
+
+# Arithmetic operations with all operators
+global sum = 10 + 20
+global diff = 30 - 15
+global product = 5 * 6
+global quotient = 100 / 4
+global power = 2 ** 8
+global remainder = 17 % 5
+
+# Comparison operators
+global equal = (5 == 5)
+global not_equal = (3 != 7)
+global less = (2 < 10)
+global greater = (15 > 8)
+global less_equal = (4 <= 4)
+global greater_equal = (9 >= 6)
+
+# Logical operators
+global and_result = true and false
+global or_result = true or false
+global not_result = not true
+
+# Assignment operators
+global counter = 0
+counter += 5
+counter -= 2
+counter *= 3
+counter /= 2
+counter **= 2
+counter %= 10
+
+# Conditional statements
+if counter > 5 do
+    print('Counter is greater than 5')
+else
+    print('Counter is 5 or less')
+endif
+
+# Nested conditionals
+if isinstance(counter, 'number') do
+    if counter > 0 do
+        print('Positive number')
+    else
+        print('Non-positive number')
+    endif
+endif
+
+# For loops
+for number in numbers do
+    print('Number:', number)
+    local squared = number * number
+    print('Squared:', squared)
+forend
+
+# Loop with array literal
+for item in ['apple', 'banana', 'cherry'] do
+    print('Fruit:', item)
+forend
+
+# Function definitions
+global function greet(name) do
+    return 'Hello, ' + name + '!'
+endfunction
+
+global function factorial(n) do
+    if n <= 1 do
+        return 1
+    endif
+    return n * factorial(n - 1)
+endfunction
+
+# Exception handling
+try
+    global result = 10 / 0
+catch error
+    print('Error occurred:', error)
+finally
+    print('Cleanup completed')
+endtry
+
+# Built-in function examples by category
+
+# System functions
+print('Current time:', now())
+print('Current directory:', getcwd())
+print('Type check:', isinstance(42, 'number'))
+print('Variable set:', isset(name))
+print('String conversion:', str(123))
+
+# File operations
+global file_path = path('data.csv')
+global files = list_files(file_path)
+global content = read_file(file_path)
+global csv_info = analyze_csv(file_path)
+global safe_data = read_csv_safe(file_path)
+
+# Math functions
+global absolute = abs(-15)
+global square_root = sqrt(16)
+global power_result = pow(2, 3)
+global minimum = min([1, 5, 3, 9, 2])
+global maximum = max([1, 5, 3, 9, 2])
+global rounded = round(3.14159, 2)
+global division = div(10, 3)
+
+# Array operations
+global length = len(numbers)
+push(numbers, 6)
+append(numbers, 7)
+global last = pop(numbers)
+sort(numbers)
+global unique_items = unique([1, 2, 2, 3, 3, 3])
+global total = sum(numbers)
+global avg = average(numbers)
+global count_items = count(numbers)
+global number_range = range(1, 10, 2)
+global new_array = array(1, 2, 3, 4, 5)
+global repeated = bulk_create(5, "hello")
+extend(numbers, [8, 9, 10])
+
+# Functional array operations
+global doubled = map(numbers, double_function)
+global evens = filter(numbers, is_even_function)
+global sum_all = reduce(numbers, add_function, 0)
+global generated = array_builder(5, random_function)
+
+# String functions
+global words = split('hello world datacode', ' ')
+global joined = join(words, '-')
+global trimmed = trim('  spaced  ')
+global uppercase = upper('lowercase')
+global lowercase = lower('UPPERCASE')
+global contains_result = contains('hello world', 'world')
+
+# Table operations
+global data = table([
+    ['Name', 'Age', 'City'],
+    ['Alice', 25, 'New York'],
+    ['Bob', 30, 'London'],
+    ['Charlie', 35, 'Tokyo']
+], ['Name', 'Age', 'City'])
+
+show_table(data)
+global info = table_info(data)
+global head_data = table_head(data, 2)
+global tail_data = table_tail(data, 2)
+global headers = table_headers(data)
+global selected = table_select(data, ['Name', 'Age'])
+global sorted_data = table_sort(data, 'Age', true)
+global filtered = table_where(data, 'Age', '>', 25)
+
+# Advanced table operations
+global joined_tables = table_join(data, other_table, 'Name', 'Name', 'inner')
+global combined = table_union(data, more_data)
+global subtracted = table_subtract(all_data, excluded_data)
+global intersected = table_intersect(set1, set2)
+global unique_data = table_unique(data, ['Name'])
+global no_duplicates = table_drop_duplicates(data, ['Name', 'City'])
+global grouped = table_group_by(data, ['City'], {Age: 'avg'})
+
+# Table filtering functions
+global custom_filtered = table_filter(data, 'Age > 25 AND City == "New York"')
+global query_result = table_query(data, 'Age BETWEEN 20 AND 40')
+global distinct_cities = table_distinct(data, 'City')
+global sample_data = table_sample(data, 2)
+global age_range = table_between(data, 'Age', 25, 35)
+global city_filter = table_in(data, 'City', ['New York', 'London'])
+global null_emails = table_is_null(data, 'Email')
+global valid_emails = table_not_null(data, 'Email')
+
+# Iteration utilities
+for i, name in enum(['Alice', 'Bob', 'Charlie']) do
+    print('Index:', i, 'Name:', name)
+forend
+
+# Table column access
+global names = data['Name']
+global ages = data['Age']
+
+# Complex expressions with proper operator precedence
+global complex_calc = (sum([1, 2, 3]) * 2 + pow(2, 3)) / (max([4, 5, 6]) - 1)
+global logical_expr = (x > 5) and (y < 30) or flag1
+global assignment_chain = a = b = c = 10
+
+# Function calls with various arguments
+global greeting = greet('DataCode User')
+global fact_5 = factorial(5)
+
+# Path operations (DataCode specific)
+global base_path = getcwd()
+global data_path = base_path / 'data' / 'files'
+global file_name = 'image' + '001.jpg'
+
+print('DataCode syntax highlighting test completed successfully!')

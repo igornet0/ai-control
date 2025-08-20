@@ -6,6 +6,8 @@ from sqlalchemy import select, update, delete, desc, asc, Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
+from backend.api.configuration.schemas import (UserLoginResponse, UserEmailResponse)
+
 # from core import data_manager
 from core.database.models import (User)
 
@@ -13,38 +15,55 @@ from core.database.models import (User)
 
 async def orm_add_user(
         session: AsyncSession,
+        username: str,
         login: str,
         hashed_password: str,
-        email: str | None = None,
-        user_telegram_id: int | None = None
+        email: str | None = None
 ) -> User:
     
     query = select(User).where(User.login == login)
     result = await session.execute(query)
 
     if result.first() is None:
-        session.add(
-            User(login=login,
-                 password=hashed_password,
-                 user_telegram_id=user_telegram_id,
-                 email=email)
-        )
-        await session.commit()
+        user = User(
+                username=username,
+                login=login,
+                password_hash=hashed_password,
+                email=email)
 
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
     else:
         return result.scalars().first()
     
-async def orm_get_user_by_login(session: AsyncSession, response) -> Tuple[User, Dict[str, str]] | None:
+async def orm_get_user(session: AsyncSession, response: UserLoginResponse | UserEmailResponse) -> User | None:
     if not response.login:
         return None
     
-    query = select(User).where(User.login == response.login).options(joinedload(User.portfolio))
+    query = select(User)
+    
+    if isinstance(response, UserEmailResponse):
+        query = query.where(User.email == response.login)
+    else:
+        query = query.where(User.login == response.login)
+     
+    result = await session.execute(query)
+
+    return result.scalars().first()
+    
+async def orm_get_user_by_login(session: AsyncSession, response) -> User | None:
+    if not response.login:
+        return None
+    
+    query = select(User).where(User.login == response.login)
      
     result = await session.execute(query)
 
     return result.scalars().first()
 
-async def orm_get_user_by_email(session: AsyncSession, response) -> Tuple[User, Dict[str, str]] | None:
+async def orm_get_user_by_email(session: AsyncSession, response) -> User | None:
     if not response.email:
         return None
     
