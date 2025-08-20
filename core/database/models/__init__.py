@@ -6,7 +6,9 @@ __all__ = ('User', 'Task', 'TaskComment', 'TaskTimeLog', 'TaskDependency', 'Task
            'GroupUser', 'UserGroup',
            'Organization', 'Department', 'Permission', 'RolePermission',
            'KPI', 'KPICalculation', 'KPITemplate', 'KPINotification', 'KPISchedule',
-           'KPIType', 'KPITrend', 'KPIStatus')
+           'KPIType', 'KPITrend', 'KPIStatus',
+           'Document', 'DocumentWorkflowStep', 'DocumentSignature', 'DocumentComment', 'DocumentAttachment', 'DocumentWatcher', 'DocumentTemplate',
+           'DocumentStatus', 'DocumentType', 'DocumentPriority', 'DocumentVisibility')
 
 from .main_models import (User, Organization, Department, Permission, RolePermission)
 from .task_model import (
@@ -22,4 +24,8 @@ from .group_model import (GroupUser, UserGroup)
 from .kpi_model import (
     KPI, KPICalculation, KPITemplate, KPINotification, KPISchedule,
     KPIType, KPITrend, KPIStatus
+)
+from .document_model import (
+    Document, DocumentWorkflowStep, DocumentSignature, DocumentComment, DocumentAttachment, DocumentWatcher, DocumentTemplate,
+    DocumentStatus, DocumentType, DocumentPriority, DocumentVisibility
 )

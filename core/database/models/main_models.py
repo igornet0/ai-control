@@ -56,6 +56,16 @@ class User(Base):
     task_time_logs: Mapped[List["TaskTimeLog"]] = relationship("TaskTimeLog", back_populates="user")
     task_watchers: Mapped[List["TaskWatcher"]] = relationship("TaskWatcher", back_populates="user")
     task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="created_by_user")
+    
+    # Документы
+    authored_documents: Mapped[List["Document"]] = relationship("Document", back_populates="author", foreign_keys="Document.author_id")
+    owned_documents: Mapped[List["Document"]] = relationship("Document", back_populates="owner", foreign_keys="Document.owner_id")
+    reviewed_documents: Mapped[List["Document"]] = relationship("Document", back_populates="reviewer", foreign_keys="Document.reviewer_id")
+    document_signatures: Mapped[List["DocumentSignature"]] = relationship("DocumentSignature", back_populates="signer")
+    document_comments: Mapped[List["DocumentComment"]] = relationship("DocumentComment", back_populates="author")
+    document_attachments: Mapped[List["DocumentAttachment"]] = relationship("DocumentAttachment", back_populates="user")
+    document_watchers: Mapped[List["DocumentWatcher"]] = relationship("DocumentWatcher", back_populates="user")
+    document_templates: Mapped[List["DocumentTemplate"]] = relationship("DocumentTemplate", back_populates="created_by_user")
 
 class Organization(Base):
     """Модель организации"""
@@ -80,6 +90,10 @@ class Organization(Base):
     kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="organization")
     tasks: Mapped[List["Task"]] = relationship("Task", back_populates="organization")
     task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="organization")
+    
+    # Документы
+    documents: Mapped[List["Document"]] = relationship("Document", back_populates="organization")
+    document_templates: Mapped[List["DocumentTemplate"]] = relationship("DocumentTemplate", back_populates="organization")
 
 class Department(Base):
     """Модель департамента"""
@@ -102,6 +116,10 @@ class Department(Base):
     kpis: Mapped[List["KPI"]] = relationship("KPI", back_populates="department")
     tasks: Mapped[List["Task"]] = relationship("Task", back_populates="department")
     task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="department")
+    
+    # Документы
+    documents: Mapped[List["Document"]] = relationship("Document", back_populates="department")
+    document_templates: Mapped[List["DocumentTemplate"]] = relationship("DocumentTemplate", back_populates="department")
 
 class Permission(Base):
     """Модель разрешений"""
