@@ -8,7 +8,10 @@ __all__ = ('User', 'Task', 'TaskComment', 'TaskTimeLog', 'TaskDependency', 'Task
            'KPI', 'KPICalculation', 'KPITemplate', 'KPINotification', 'KPISchedule',
            'KPIType', 'KPITrend', 'KPIStatus',
            'Document', 'DocumentWorkflowStep', 'DocumentSignature', 'DocumentComment', 'DocumentAttachment', 'DocumentWatcher', 'DocumentTemplate',
-           'DocumentStatus', 'DocumentType', 'DocumentPriority', 'DocumentVisibility')
+           'DocumentStatus', 'DocumentType', 'DocumentPriority', 'DocumentVisibility',
+           'PersonalDashboard', 'PersonalWidget', 'PersonalDashboardSettings', 'WidgetPermission',
+           'WidgetPlugin', 'WidgetInstallation', 'QuickAction', 'UserPreference',
+           'WidgetCategory', 'WidgetType')
 
 from .main_models import (User, Organization, Department, Permission, RolePermission)
 from .task_model import (
@@ -28,4 +31,9 @@ from .kpi_model import (
 from .document_model import (
     Document, DocumentWorkflowStep, DocumentSignature, DocumentComment, DocumentAttachment, DocumentWatcher, DocumentTemplate,
     DocumentStatus, DocumentType, DocumentPriority, DocumentVisibility
+)
+from .personal_dashboard_model import (
+    PersonalDashboard, PersonalWidget, PersonalDashboardSettings, WidgetPermission,
+    WidgetPlugin, WidgetInstallation, QuickAction, UserPreference,
+    WidgetCategory, WidgetType
 )

@@ -161,7 +161,7 @@ class TaskDependency(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     
     # Отношения
-    task: Mapped["Task"] = relationship("Task", back_populates="dependencies")
+    task: Mapped["Task"] = relationship("Task", back_populates="dependencies", foreign_keys=[task_id])
     depends_on_task: Mapped["Task"] = relationship("Task", foreign_keys=[depends_on_task_id])
 
 

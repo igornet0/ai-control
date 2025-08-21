@@ -66,6 +66,12 @@ class User(Base):
     document_attachments: Mapped[List["DocumentAttachment"]] = relationship("DocumentAttachment", back_populates="user")
     document_watchers: Mapped[List["DocumentWatcher"]] = relationship("DocumentWatcher", back_populates="user")
     document_templates: Mapped[List["DocumentTemplate"]] = relationship("DocumentTemplate", back_populates="created_by_user")
+    
+    # Личный кабинет
+    personal_dashboard: Mapped[Optional["PersonalDashboard"]] = relationship("PersonalDashboard", back_populates="user", uselist=False)
+    user_preferences: Mapped[Optional["UserPreference"]] = relationship("UserPreference", back_populates="user", uselist=False)
+    quick_actions: Mapped[List["QuickAction"]] = relationship("QuickAction", back_populates="user")
+    widget_installations: Mapped[List["WidgetInstallation"]] = relationship("WidgetInstallation", back_populates="user")
 
 class Organization(Base):
     """Модель организации"""
