@@ -106,7 +106,8 @@ class Task(Base):
     # Дополнительные отношения
     comments: Mapped[List["TaskComment"]] = relationship("TaskComment", back_populates="task", cascade="all, delete-orphan")
     time_logs: Mapped[List["TaskTimeLog"]] = relationship("TaskTimeLog", back_populates="task", cascade="all, delete-orphan")
-    dependencies: Mapped[List["TaskDependency"]] = relationship("TaskDependency", back_populates="task", cascade="all, delete-orphan")
+    dependencies: Mapped[List["TaskDependency"]] = relationship("TaskDependency", back_populates="task", cascade="all, delete-orphan", foreign_keys="TaskDependency.task_id")
+    dependencies_reverse: Mapped[List["TaskDependency"]] = relationship("TaskDependency", back_populates="depends_on_task", cascade="all, delete-orphan", foreign_keys="TaskDependency.depends_on_task_id")
     watchers: Mapped[List["TaskWatcher"]] = relationship("TaskWatcher", back_populates="task", cascade="all, delete-orphan")
     labels: Mapped[List["TaskLabel"]] = relationship("TaskLabel", back_populates="task", cascade="all, delete-orphan")
 
@@ -162,7 +163,7 @@ class TaskDependency(Base):
     
     # Отношения
     task: Mapped["Task"] = relationship("Task", back_populates="dependencies", foreign_keys=[task_id])
-    depends_on_task: Mapped["Task"] = relationship("Task", foreign_keys=[depends_on_task_id])
+    depends_on_task: Mapped["Task"] = relationship("Task", foreign_keys=[depends_on_task_id], back_populates="dependencies_reverse")
 
 
 class TaskWatcher(Base):
