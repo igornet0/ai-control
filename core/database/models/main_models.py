@@ -72,6 +72,12 @@ class User(Base):
     user_preferences: Mapped[Optional["UserPreference"]] = relationship("UserPreference", back_populates="user", uselist=False)
     quick_actions: Mapped[List["QuickAction"]] = relationship("QuickAction", back_populates="user")
     widget_installations: Mapped[List["WidgetInstallation"]] = relationship("WidgetInstallation", back_populates="user")
+    
+    # Календарь
+    calendars: Mapped[List["Calendar"]] = relationship("Calendar", back_populates="owner")
+    event_attendances: Mapped[List["EventAttendee"]] = relationship("EventAttendee", back_populates="user")
+    event_reminders: Mapped[List["EventReminder"]] = relationship("EventReminder", back_populates="user")
+    shared_calendars: Mapped[List["CalendarShare"]] = relationship("CalendarShare", back_populates="user")
 
 class Organization(Base):
     """Модель организации"""
