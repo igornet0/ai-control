@@ -50,7 +50,7 @@ services:
   backend:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: aic_docker/Dockerfile.backend
       target: production
     container_name: ai-control-backend-prod
     environment:
@@ -75,7 +75,7 @@ services:
   frontend:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.frontend
+      dockerfile: aic_docker/Dockerfile.frontend
       target: production
     container_name: ai-control-frontend-prod
     environment:
@@ -93,7 +93,7 @@ services:
   celery_worker:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: aic_docker/Dockerfile.backend
       target: production
     container_name: ai-control-celery-worker-prod
     environment:
@@ -114,7 +114,7 @@ services:
   celery_beat:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: aic_docker/Dockerfile.backend
       target: production
     container_name: ai-control-celery-beat-prod
     environment:
@@ -135,7 +135,7 @@ services:
   flower:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: aic_docker/Dockerfile.backend
       target: production
     container_name: ai-control-flower-prod
     environment:

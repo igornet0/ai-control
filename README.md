@@ -19,8 +19,8 @@
 
 2. **Настройте переменные окружения:**
    ```bash
-   cp docker/env.example docker/.env
-   # Отредактируйте docker/.env при необходимости
+   cp aic_docker/env.example aic_docker/.env
+# Отредактируйте aic_docker/.env при необходимости
    ```
 
 3. **Запустите проект:**
@@ -30,7 +30,7 @@
    
    Или без Make:
    ```bash
-   docker-compose -f docker/docker-compose.dev.yml up -d
+   docker-compose -f aic_docker/docker-compose.dev.yml up -d
    ```
 
 4. **Откройте в браузере:**
@@ -58,7 +58,7 @@ ai-control/
 │   ├── database/          # Модели БД и миграции
 │   └── config/            # Конфигурация
 ├── frontend/              # React frontend
-├── docker/                # Docker конфигурации
+├── aic_docker/            # Docker конфигурации
 │   ├── docker-compose.dev.yml
 │   ├── docker-compose.prod.yml
 │   ├── Dockerfile.backend
@@ -149,7 +149,7 @@ make health       # Проверка здоровья сервисов
 
 ### Переменные окружения
 
-Основные переменные в `docker/.env`:
+Основные переменные в `aic_docker/.env`:
 
 ```bash
 # База данных

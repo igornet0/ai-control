@@ -3,9 +3,9 @@
 
 # Variables
 PROJECT_NAME = ai-control
-DOCKER_COMPOSE_DEV = docker/docker-compose.dev.yml
-DOCKER_COMPOSE_PROD = docker/docker-compose.prod.yml
-ENV_FILE = docker/.env
+DOCKER_COMPOSE_DEV = aic_docker/docker-compose.dev.yml
+DOCKER_COMPOSE_PROD = aic_docker/docker-compose.prod.yml
+ENV_FILE = aic_docker/.env
 
 # Colors for output
 RED = \033[0;31m
@@ -174,7 +174,7 @@ restore:
 check-env:
 	@if [ ! -f $(ENV_FILE) ]; then \
 		echo "$(RED)Error: $(ENV_FILE) file not found!$(NC)"; \
-		echo "$(YELLOW)Please copy docker/env.example to docker/.env and configure it.$(NC)"; \
+		echo "$(YELLOW)Please copy aic_docker/env.example to aic_docker/.env and configure it.$(NC)"; \
 		exit 1; \
 	fi
 

@@ -1,11 +1,11 @@
 # Multi-stage build for frontend
-FROM node:18-alpine as base
+FROM node:20-alpine as base
 
 # Set work directory
 WORKDIR /app
 
 # Copy package files
-COPY frontend/package*.json ./
+COPY front-ai-control/package*.json ./
 
 # Development stage
 FROM base as development
@@ -13,11 +13,11 @@ FROM base as development
 # Install dependencies
 RUN npm install
 
-# Copy application code
-COPY frontend/ .
-
 # Expose port
 EXPOSE 3000
+
+# Start development server
+CMD ["npx", "vite", "--host", "0.0.0.0", "--port", "3000"]
 
 # Production build stage
 FROM base as build
@@ -26,7 +26,7 @@ FROM base as build
 RUN npm ci --only=production
 
 # Copy application code
-COPY frontend/ .
+COPY front-ai-control/ .
 
 # Build application
 RUN npm run build
@@ -38,7 +38,7 @@ FROM nginx:alpine as production
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY docker/nginx/nginx.prod.conf /etc/nginx/nginx.conf
+COPY aic_docker/nginx/nginx.prod.conf /etc/nginx/nginx.conf
 
 # Expose port
 EXPOSE 80
