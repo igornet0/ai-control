@@ -116,5 +116,27 @@ async def initialize_db_helper():
         max_overflow=settings.db.max_overflow
     )
 
-loop = asyncio.get_event_loop()
-db_helper = loop.run_until_complete(initialize_db_helper())
+# Ленивая инициализация db_helper
+_db_helper = None
+
+def get_db_helper():
+    global _db_helper
+    if _db_helper is None:
+        # Отложенная инициализация - создаем простой объект без подключения к БД
+        _db_helper = Database(
+            url=settings.db.get_url(),
+            echo=settings.db.echo,
+            echo_pool=settings.db.echo_pool,
+            pool_size=settings.db.pool_size,
+            max_overflow=settings.db.max_overflow
+        )
+    return _db_helper
+
+# Создаем простой экземпляр без инициализации
+db_helper = Database(
+    url=settings.db.get_url(),
+    echo=settings.db.echo,
+    echo_pool=settings.db.echo_pool,
+    pool_size=settings.db.pool_size,
+    max_overflow=settings.db.max_overflow
+)
