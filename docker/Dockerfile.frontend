@@ -1,0 +1,48 @@
+# Multi-stage build for frontend
+FROM node:18-alpine as base
+
+# Set work directory
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Development stage
+FROM base as development
+
+# Install dependencies
+RUN npm install
+
+# Copy application code
+COPY frontend/ .
+
+# Expose port
+EXPOSE 3000
+
+# Production build stage
+FROM base as build
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY frontend/ .
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine as production
+
+# Copy built application
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY docker/nginx/nginx.prod.conf /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1

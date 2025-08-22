@@ -1,0 +1,193 @@
+# Docker Compose file for development environment
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-control-postgres-dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - ai-control-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ai-control-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - ai-control-network
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ai-control-rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data_dev:/var/lib/rabbitmq
+    networks:
+      - ai-control-network
+
+  # Backend API
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: development
+    container_name: ai-control-backend-dev
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/app/backend
+      - ../core:/app/core
+      - ../tests:/app/tests
+      - ../alembic.ini:/app/alembic.ini
+      - ../pyproject.toml:/app/pyproject.toml
+      - ../poetry.lock:/app/poetry.lock
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - ai-control-network
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      target: development
+    container_name: ai-control-frontend-dev
+    env_file:
+      - .env
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - REACT_APP_WS_URL=${REACT_APP_WS_URL}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - ai-control-network
+    command: npm start
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: development
+    container_name: ai-control-celery-worker-dev
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/
+    volumes:
+      - ../backend:/app/backend
+      - ../core:/app/core
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - ai-control-network
+    command: celery -A backend.celery_app worker --loglevel=info
+
+  # Celery Beat Scheduler
+  celery_beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: development
+    container_name: ai-control-celery-beat-dev
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/
+    volumes:
+      - ../backend:/app/backend
+      - ../core:/app/core
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - ai-control-network
+    command: celery -A backend.celery_app beat --loglevel=info
+
+  # Flower (Celery Monitoring)
+  flower:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: development
+    container_name: ai-control-flower-dev
+    environment:
+      - FLOWER_BASIC_AUTH=admin:admin123
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - ai-control-network
+    command: celery -A backend.celery_app flower --port=5555
+
+  # Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: ai-control-nginx-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - ai-control-network
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+  rabbitmq_data_dev:
+
+networks:
+  ai-control-network:
+    driver: bridge

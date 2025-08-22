@@ -1,133 +1,16 @@
+# AI Control System - Main Docker Compose
+# This file provides a convenient way to run the development environment
+# For production, use: docker-compose -f docker/docker-compose.prod.yml up
+
+version: '3.8'
+
+# Include the development configuration
+# Usage: docker-compose up -d
+# This will use the development configuration by default
+
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: ai_control
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # RabbitMQ Message Broker
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"       # AMQP protocol
-      - "15672:15672"     # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # Backend API Service
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    ports:
-      - "8000:8000"
-    environment:
-      # Database settings
-      DB__HOST: postgres
-      DB__PORT: 5432
-      DB__USER: postgres
-      DB__PASSWORD: postgres
-      DB__DB_NAME: ai_control
-
-      # RabbitMQ settings
-      RABBITMQ__HOST: rabbitmq
-      RABBITMQ__PORT: 5672
-      RABBITMQ__USER: guest
-      RABBITMQ__PASSWORD: guest
-
-      # Security settings
-      SECURITY__SECRET_KEY: your-secret-key-here
-      SECURITY__REFRESH_SECRET_KEY: your-refresh-secret-key-here
-
-      # Runtime settings
-      RUN__HOST: 0.0.0.0
-      RUN__PORT: 8000
-      RUN__FRONTEND_HOST: frontend
-      RUN__FRONTEND_PORT: 3000
-
-      # Celery settings (if needed)
-      RUN__CELERY_BROKER_URL: redis://redis:6379/0
-      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app/backend
-      - ./core:/app/core
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/code-execution/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Frontend Service
-  frontend:
-    build:
-      context: ./front-ai-control
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      REACT_APP_API_URL: http://localhost:8000
-      REACT_APP_WS_URL: ws://localhost:8000
-    depends_on:
-      - backend
-    volumes:
-      - ./front-ai-control/src:/app/src
-      - ./front-ai-control/public:/app/public
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Redis (for caching and Celery if needed)
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # DataCode Rust Service (existing)
-  rust-app:
-    build: ./backend/DataCode/
-    depends_on:
-      - rabbitmq
-    environment:
-      RABBITMQ_ADDR: "amqp://guest:guest@rabbitmq:5672"
-
-volumes:
-  postgres_data:
-  rabbitmq_data:
-  redis_data:
-
-networks:
-  default:
-    driver: bridge
+  # This file serves as a convenience wrapper
+  # The actual services are defined in docker/docker-compose.dev.yml
+  _placeholder:
+    image: alpine:latest
+    command: ["echo", "Please use: make dev or docker-compose -f docker/docker-compose.dev.yml up"]

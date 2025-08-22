@@ -26,6 +26,7 @@ prod.env
 .env.test.local
 .env.production.local
 ssl/privkey.pem
+docker/.env
 
 npm-debug.log*
 yarn-debug.log*
