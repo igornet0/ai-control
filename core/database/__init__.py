@@ -1,7 +1,7 @@
-__all__ = ("Database", "db_helper",
+__all__ = ("Database", "get_db_helper",
            "Base",)
 
-from core.database.engine import Database, db_helper
+from core.database.engine import Database, get_db_helper
 from core.database.base import Base
 
 from core.database.models import *

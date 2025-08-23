@@ -10,7 +10,7 @@ from typing import AsyncGenerator
 
 from backend.api.configuration.routers import Routers
 from core import settings
-from core.database import db_helper
+from core.database import get_db_helper
 
 class Server:
 
@@ -28,7 +28,7 @@ class Server:
 
     @staticmethod
     async def get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with db_helper.get_session() as session:
+        async with get_db_helper().get_session() as session:
             yield session
 
     def get_app(self) -> FastAPI:

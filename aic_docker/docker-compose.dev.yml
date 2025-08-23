@@ -74,7 +74,7 @@ services:
       - rabbitmq
     networks:
       - ai-control-network
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "sleep 5 && uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
 
   # Frontend React App
   frontend:
@@ -97,7 +97,7 @@ services:
       - backend
     networks:
       - ai-control-network
-    command: sh -c "npm install && npm run dev"
+    # Using CMD from Dockerfile
 
   # Celery Worker
   celery_worker:

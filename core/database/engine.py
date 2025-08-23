@@ -62,24 +62,38 @@ class Database:
                 pool_size: int = 5,
                 max_overflow: int = 10,
     ) -> None:
-        self.engine: AsyncEngine = create_async_engine(
-            url=url,
-            echo=echo,
-            echo_pool=echo_pool,
-            pool_size=pool_size,
-            max_overflow=max_overflow,
-            future=True
-        )
-        
-        self.async_session: AsyncSession = async_sessionmaker(
-            bind=self.engine,
-            class_=AsyncSession,
-            autoflush=False,
-            autocommit=False,
-            expire_on_commit=False
-        )
-
         self._url = url
+        self._echo = echo
+        self._echo_pool = echo_pool
+        self._pool_size = pool_size
+        self._max_overflow = max_overflow
+        self._engine = None
+        self._async_session = None
+
+    @property
+    def engine(self) -> AsyncEngine:
+        if self._engine is None:
+            self._engine = create_async_engine(
+                url=self._url,
+                echo=self._echo,
+                echo_pool=self._echo_pool,
+                pool_size=self._pool_size,
+                max_overflow=self._max_overflow,
+                future=True
+            )
+        return self._engine
+
+    @property
+    def async_session(self) -> AsyncSession:
+        if self._async_session is None:
+            self._async_session = async_sessionmaker(
+                bind=self.engine,
+                class_=AsyncSession,
+                autoflush=False,
+                autocommit=False,
+                expire_on_commit=False
+            )
+        return self._async_session
 
     def get_url(self) -> str:
         return self._url
@@ -117,26 +131,17 @@ async def initialize_db_helper():
     )
 
 # Ленивая инициализация db_helper
-_db_helper = None
+db_helper = None
 
 def get_db_helper():
-    global _db_helper
-    if _db_helper is None:
+    global db_helper
+    if db_helper is None:
         # Отложенная инициализация - создаем простой объект без подключения к БД
-        _db_helper = Database(
+        db_helper = Database(
             url=settings.db.get_url(),
             echo=settings.db.echo,
             echo_pool=settings.db.echo_pool,
             pool_size=settings.db.pool_size,
             max_overflow=settings.db.max_overflow
         )
-    return _db_helper
-
-# Создаем простой экземпляр без инициализации
-db_helper = Database(
-    url=settings.db.get_url(),
-    echo=settings.db.echo,
-    echo_pool=settings.db.echo_pool,
-    pool_size=settings.db.pool_size,
-    max_overflow=settings.db.max_overflow
-)
+    return db_helper

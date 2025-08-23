@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 # from .tasks import tasks
 from .rabbitmq_server import rabbit
-from core.database import db_helper
+from core.database import get_db_helper
 from backend.api.services.rabbitmq_consumer import start_code_execution_consumer, stop_code_execution_consumer
 
 import logging
@@ -18,7 +18,7 @@ async def app_lifespan(app: FastAPI):
     consumer_task = None
     try:
         logger.info("Initializing database...")
-        await db_helper.init_db()
+        await get_db_helper().init_db()
         logger.info("Starting application...")
 
         # Setup RabbitMQ
@@ -43,6 +43,6 @@ async def app_lifespan(app: FastAPI):
                 pass
 
         await stop_code_execution_consumer()
-        await db_helper.dispose()
+        await get_db_helper().dispose()
         await rabbit.close()
         logger.info("Application shutdown complete")

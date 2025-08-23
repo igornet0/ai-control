@@ -24,9 +24,9 @@ def event_loop():
 @pytest_asyncio.fixture
 async def session():
     """Create a database session for testing"""
-    from core.database import db_helper
+    from core.database import get_db_helper
     
-    async with db_helper.get_session() as session:
+    async with get_db_helper().get_session() as session:
         yield session
 
 

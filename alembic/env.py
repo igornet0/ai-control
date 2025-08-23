@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-from core.database import Base, db_helper
+from core.database import Base, get_db_helper
 
 config = context.config
 section = config.config_ini_section
-config.set_section_option(section, "sqlalchemy.url", db_helper.get_url())
+config.set_section_option(section, "sqlalchemy.url", get_db_helper().get_url())
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

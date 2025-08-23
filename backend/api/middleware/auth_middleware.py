@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.configuration.auth import verify_authorization, verify_authorization_with_permission
-from core.database import db_helper
+from core.database import get_db_helper
 
 
 class AuthMiddleware:
