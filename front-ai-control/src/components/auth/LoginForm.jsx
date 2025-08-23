@@ -13,15 +13,18 @@ const LoginForm = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Login form submitted with data:', formData);
     setIsLoading(true);
     setError('');
     
     try {
+      console.log('Attempting to login...');
       const access_token = await login(formData);
+      console.log('Login successful, token received');
       localStorage.setItem('access_token', access_token);
       onLogin();
     } catch (err) {
-      console.log(err);
+      console.error('Login error:', err);
       setError('Неверное имя пользователя или пароль');
     } finally {
       setIsLoading(false);
@@ -62,6 +65,7 @@ const LoginForm = ({ onLogin }) => {
 
       <button
         type="submit"
+        onClick={() => console.log('Login button clicked')}
         className={`w-full flex justify-center items-center py-3 px-4 rounded-lg text-white font-medium transition ${
           isLoading 
             ? 'bg-blue-400 cursor-not-allowed' 

@@ -54,6 +54,7 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Register form submitted with data:', formData);
     
     if (!validate()) return;
     
@@ -61,6 +62,7 @@ const RegisterPage = () => {
     setErrors({});
     
     try {
+      console.log('Attempting to register...');
       await register({
         username: formData.username,
         email: formData.email,
@@ -68,13 +70,14 @@ const RegisterPage = () => {
         password: formData.password
       });
       
+      console.log('Registration successful');
       setSuccessMessage('Регистрация прошла успешно! Теперь вы можете войти в систему.');
       
       // Очищаем форму после успешной регистрации
       setFormData({ email: '', login: '', password: '', confirmPassword: '', username: '' });
       
     } catch (error) {
-        console.error('Registration error:', error.response);
+        console.error('Registration error:', error);
         if (error.response && error.response.data) {
             const apiErrors = error.response.data;
             
@@ -83,20 +86,20 @@ const RegisterPage = () => {
                 if (typeof apiErrors.detail === 'string') {
                     // Ошибка в формате строки
                     if (apiErrors.detail.includes("Email")) {
-                    setErrors({ email: apiErrors.detail });
+                        setErrors({ email: apiErrors.detail });
                     } else if (apiErrors.detail.includes("Login")) {
-                    setErrors({ login: apiErrors.detail });
+                        setErrors({ login: apiErrors.detail });
                     } else {
-                    setErrors({ general: apiErrors.detail });
+                        setErrors({ general: apiErrors.detail });
                     }
                 } else if (Array.isArray(apiErrors.detail)) {
                     // Ошибка в формате массива объектов
                     const fieldErrors = {};
                     apiErrors.detail.forEach(err => {
-                    if (err.loc && err.msg) {
-                        const field = err.loc[err.loc.length - 1];
-                        fieldErrors[field] = err.msg;
-                    }
+                        if (err.loc && err.msg) {
+                            const field = err.loc[err.loc.length - 1];
+                            fieldErrors[field] = err.msg;
+                        }
                     });
                     setErrors(fieldErrors);
                 }
@@ -165,6 +168,7 @@ const RegisterPage = () => {
 
               <button
                 type="submit"
+                onClick={() => console.log('Register button clicked')}
                 className={`w-full flex justify-center items-center py-3 px-4 rounded-lg text-white font-medium transition ${
                   isLoading
                     ? 'bg-blue-400 cursor-not-allowed'

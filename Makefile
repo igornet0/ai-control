@@ -48,6 +48,7 @@ help:
 	@echo "  make migrate      - Run database migrations"
 	@echo "  make migrate-create - Create new migration"
 	@echo "  make db-reset     - Reset database"
+	@echo "  make clear-tests  - Clear test tasks from database"
 	@echo ""
 	@echo "$(GREEN)Utilities:$(NC)"
 	@echo "  make clean        - Clean up containers and volumes"
@@ -147,6 +148,10 @@ db-reset:
 	@echo "$(RED)Resetting database...$(NC)"
 	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic downgrade base
 	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic upgrade head
+
+clear-tests:
+	@echo "$(YELLOW)Clearing test tasks from database...$(NC)"
+	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python backend/scripts/clear_test_tasks.py
 
 # Utility commands
 clean:

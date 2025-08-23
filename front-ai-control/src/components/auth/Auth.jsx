@@ -7,6 +7,8 @@ import RegisterForm from './RegisterForm';
 const Auth = ({ login }) => {
   const [activeTab, setActiveTab] = useState('login');
 
+  console.log('Auth component rendered, activeTab:', activeTab);
+
   return (
     <div className={styles.authContainer}>
       <a href="/" className={styles.logoContainer}>
@@ -16,20 +18,36 @@ const Auth = ({ login }) => {
       <div className={styles.tabs}>
         <button
           className={activeTab === 'login' ? styles.active : ''}
-          onClick={() => setActiveTab('login')}
+          onClick={() => {
+            console.log('Login tab clicked');
+            setActiveTab('login');
+          }}
         >
           Login
         </button>
         <button
           className={activeTab === 'register' ? styles.active : ''}
-          onClick={() => setActiveTab('register')}
+          onClick={() => {
+            console.log('Register tab clicked');
+            setActiveTab('register');
+          }}
         >
           Sign Up
         </button>
       </div>
 
       <div className={styles.formContainer}>
-        {activeTab === 'login' ? <LoginForm onLogin={login} /> : <RegisterForm />}
+        {activeTab === 'login' ? (
+          <div>
+            {console.log('Rendering LoginForm')}
+            <LoginForm onLogin={login} />
+          </div>
+        ) : (
+          <div>
+            {console.log('Rendering RegisterForm')}
+            <RegisterForm />
+          </div>
+        )}
       </div>
     </div>
   );

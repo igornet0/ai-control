@@ -31,9 +31,9 @@ class TaskCreateRequest(BaseModel):
     """Запрос на создание задачи"""
     title: str = Field(..., min_length=1, max_length=255, description="Название задачи")
     description: Optional[str] = Field(None, description="Описание задачи")
-    task_type: TaskType = Field(default=TaskType.TASK, description="Тип задачи")
-    priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="Приоритет")
-    visibility: TaskVisibility = Field(default=TaskVisibility.TEAM, description="Видимость")
+    task_type: str = Field(default="task", description="Тип задачи")
+    priority: str = Field(default="medium", description="Приоритет")
+    visibility: str = Field(default="team", description="Видимость")
     
     # Иерархия
     parent_id: Optional[int] = Field(None, description="ID родительской задачи")
@@ -60,10 +60,10 @@ class TaskUpdateRequest(BaseModel):
     """Запрос на обновление задачи"""
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None)
-    task_type: Optional[TaskType] = Field(None)
-    priority: Optional[TaskPriority] = Field(None)
-    visibility: Optional[TaskVisibility] = Field(None)
-    status: Optional[TaskStatus] = Field(None)
+    task_type: Optional[str] = Field(None)
+    priority: Optional[str] = Field(None)
+    visibility: Optional[str] = Field(None)
+    status: Optional[str] = Field(None)
     
     # Иерархия
     parent_id: Optional[int] = Field(None)
@@ -272,6 +272,10 @@ async def create_task(
             if not epic_task:
                 raise HTTPException(status_code=404, detail="Epic task not found")
         
+        # Преобразуем даты в naive datetime
+        due_date = request.due_date.replace(tzinfo=None) if request.due_date and hasattr(request.due_date, 'tzinfo') and request.due_date.tzinfo else request.due_date
+        start_date = request.start_date.replace(tzinfo=None) if request.start_date and hasattr(request.start_date, 'tzinfo') and request.start_date.tzinfo else request.start_date
+        
         # Создаем задачу
         task = Task(
             title=request.title,
@@ -281,8 +285,8 @@ async def create_task(
             visibility=request.visibility,
             parent_id=request.parent_id,
             epic_id=request.epic_id,
-            due_date=request.due_date,
-            start_date=request.start_date,
+            due_date=due_date,
+            start_date=start_date,
             estimated_hours=request.estimated_hours,
             executor_id=request.executor_id,
             reviewer_id=request.reviewer_id,
@@ -297,12 +301,44 @@ async def create_task(
         await session.commit()
         await session.refresh(task)
         
-        # Получаем связанные данные для ответа
-        response_data = await _get_task_response_data(task, session)
-        
         logger.info(f"Task created: {task.id} by user {user.id}")
         
-        return response_data
+        # Возвращаем простой ответ без дополнительных данных
+        return {
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "status": str(task.status),
+            "priority": str(task.priority),
+            "task_type": str(task.task_type),
+            "visibility": str(task.visibility),
+            "parent_id": task.parent_id,
+            "epic_id": task.epic_id,
+            "created_at": task.created_at,
+            "updated_at": task.updated_at,
+            "due_date": task.due_date,
+            "start_date": task.start_date,
+            "completed_at": task.completed_at,
+            "estimated_hours": task.estimated_hours,
+            "actual_hours": task.actual_hours,
+            "progress_percentage": task.progress_percentage,
+            "owner_id": task.owner_id,
+            "executor_id": task.executor_id,
+            "reviewer_id": task.reviewer_id,
+            "organization_id": task.organization_id,
+            "department_id": task.department_id,
+            "tags": task.tags,
+            "custom_fields": task.custom_fields,
+            "attachments": task.attachments,
+            "owner_name": None,
+            "executor_name": None,
+            "reviewer_name": None,
+            "organization_name": None,
+            "department_name": None,
+            "subtasks_count": 0,
+            "comments_count": 0,
+            "watchers_count": 0
+        }
         
     except HTTPException:
         raise
@@ -314,9 +350,9 @@ async def create_task(
 async def list_tasks(
     user = Depends(verify_authorization),
     session: AsyncSession = Depends(Server.get_db),
-    status: Optional[TaskStatus] = Query(None, description="Фильтр по статусу"),
-    priority: Optional[TaskPriority] = Query(None, description="Фильтр по приоритету"),
-    task_type: Optional[TaskType] = Query(None, description="Фильтр по типу"),
+    status: Optional[str] = Query(None, description="Фильтр по статусу"),
+    priority: Optional[str] = Query(None, description="Фильтр по приоритету"),
+    task_type: Optional[str] = Query(None, description="Фильтр по типу"),
     executor_id: Optional[int] = Query(None, description="Фильтр по исполнителю"),
     owner_id: Optional[int] = Query(None, description="Фильтр по владельцу"),
     organization_id: Optional[int] = Query(None, description="Фильтр по организации"),
@@ -530,8 +566,11 @@ async def delete_task(
     Удаление задачи
     """
     try:
-        # Получаем задачу
-        task = await session.get(Task, task_id)
+        # Получаем задачу с подзадачами
+        query = select(Task).options(selectinload(Task.subtasks)).where(Task.id == task_id)
+        result = await session.execute(query)
+        task = result.scalar_one_or_none()
+        
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         
@@ -567,10 +606,10 @@ async def _get_task_response_data(task: Task, session: AsyncSession) -> TaskResp
         id=task.id,
         title=task.title,
         description=task.description,
-        status=task.status.value,
-        priority=task.priority.value,
-        task_type=task.task_type.value,
-        visibility=task.visibility.value,
+        status=task.status.value if hasattr(task.status, 'value') else str(task.status),
+        priority=task.priority.value if hasattr(task.priority, 'value') else str(task.priority),
+        task_type=task.task_type.value if hasattr(task.task_type, 'value') else str(task.task_type),
+        visibility=task.visibility.value if hasattr(task.visibility, 'value') else str(task.visibility),
         parent_id=task.parent_id,
         epic_id=task.epic_id,
         created_at=task.created_at,
@@ -614,18 +653,18 @@ async def _can_access_task(task: Task, user: User, session: AsyncSession) -> boo
         return True
     
     # Проверяем видимость
-    if task.visibility == TaskVisibility.PUBLIC:
+    if task.visibility == "public":
         return True
     
-    if task.visibility == TaskVisibility.TEAM:
+    if task.visibility == "team":
         # TODO: Проверка команды
         return True
     
-    if task.visibility == TaskVisibility.DEPARTMENT:
+    if task.visibility == "department":
         if task.department_id and user.department_id == task.department_id:
             return True
     
-    if task.visibility == TaskVisibility.ORGANIZATION:
+    if task.visibility == "organization":
         if task.organization_id and user.organization_id == task.organization_id:
             return True
     

@@ -56,6 +56,7 @@ class AuthMiddleware:
         public_paths = [
             "/auth/register/",
             "/auth/login_user/",
+            "/auth/health/",
             "/docs",
             "/redoc",
             "/openapi.json",

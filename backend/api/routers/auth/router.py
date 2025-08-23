@@ -30,7 +30,7 @@ import logging
 
 http_bearer = HTTPBearer(auto_error=False)
 
-router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(http_bearer)])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 logger = logging.getLogger("app_fastapi.auth")
 
@@ -131,6 +131,14 @@ async def refresh_token(refresh_token: str):
         # "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
+
+@router.get("/health/")
+async def health_check():
+    return {"status": "healthy", "message": "Auth service is running"}
+
+@router.get("/test-token/")
+async def test_token(user: str = Depends(verify_authorization)):
+    return {"message": "Token is valid", "user": user.login}
 
 @router.get("/user/me/", response_model=UserResponse)
 async def auth_user_check_self_info(

@@ -148,7 +148,7 @@ class SecurityCongig(BaseSettings):
 
     secret_key: str = Field(default="dev-secret-key-change-in-production")
     refresh_secret_key: str = Field(default="dev-refresh-secret-key-change-in-production")
-    algorithm: str = Field(default="RS256")
+    algorithm: str = Field(default="HS256")
 
     access_token_expire_minutes: int = Field(default=120)
     refresh_token_expire_days:int = Field(default=7)

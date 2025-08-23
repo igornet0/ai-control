@@ -1,13 +1,13 @@
 import asyncio
 from typing import Optional, Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, Depends, status, Form
+from fastapi import HTTPException, Depends, status, Form, Request
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 import re
 
 from core.settings import settings
-from core.database import User, orm_get_user_by_login
+from core.database import User, orm_get_user_by_login, get_db_helper
 
 from backend.api.configuration import TokenData, Server, UserResponse, UserLoginResponse
 
@@ -28,7 +28,7 @@ def get_password_hash(password) -> str:
     return Server.pwd_context.hash(password)
 
 def create_access_token(payload: dict,
-                        private_key: str = settings.security.private_key_path.read_text(),
+                        secret_key: str = settings.security.secret_key,
                         algorithm: str = settings.security.algorithm,
                         expires_delta: Optional[timedelta] = None):
     to_encode = payload.copy()
@@ -40,12 +40,12 @@ def create_access_token(payload: dict,
 
     to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc), TOKEN_TYPE_FIELD: ACCESS_TOKEN_TYPE})
 
-    return jwt.encode(to_encode, private_key, algorithm=algorithm)
+    return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
-def decode_access_token(token: str | bytes, public_key: str = settings.security.public_key_path.read_text(),
+def decode_access_token(token: str | bytes, secret_key: str = settings.security.secret_key,
                         algorithm: str = settings.security.algorithm):
     
-    return jwt.decode(token, public_key, algorithms=[algorithm])
+    return jwt.decode(token, secret_key, algorithms=[algorithm])
 
 def get_current_token_payload(
     token: str = Depends(Server.oauth2_scheme),
@@ -58,6 +58,11 @@ def get_current_token_payload(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"invalid token error: {e}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"token processing error: {e}",
         )
     
     return payload
@@ -77,7 +82,7 @@ def validate_token_type(
         detail=f"invalid token type {current_token_type!r} expected {token_type!r}",
     )
 
-async def get_user_by_token_sub(payload: dict, session: Annotated[AsyncSession, Depends(Server.get_db)]) -> User:
+async def get_user_by_token_sub(payload: dict, session: AsyncSession) -> User:
 
     username: str | None = payload.get("sub")
 
@@ -170,21 +175,35 @@ async def get_current_user(token: Annotated[str, Depends(Server.oauth2_scheme)],
     
     return user
 
-async def verify_authorization(token: str = Depends(Server.oauth2_scheme), 
-                               session: AsyncSession = Depends(Server.get_db)):
+async def verify_authorization(request: Request):
     
-    payload = get_current_token_payload(token)
-    validate_token_type(payload, "access")
+    try:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No valid token provided",
+            )
+        
+        token = auth_header.split(" ")[1]
+        payload = decode_access_token(token)
+        validate_token_type(payload, "access")
 
-    user = await get_user_by_token_sub(payload, session)
-    
-    if user.is_active:
-        return user
-    
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="inactive user",
-    )
+        async with get_db_helper().get_session() as session:
+            user = await get_user_by_token_sub(payload, session)
+            
+            if user.is_active:
+                return user
+            
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="inactive user",
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Authentication failed: {str(e)}",
+        )
 
 async def verify_authorization_admin(token: str = Depends(Server.oauth2_scheme), 
                                session: AsyncSession = Depends(Server.get_db)):
