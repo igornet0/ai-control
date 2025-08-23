@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database.database import get_session
+from core.database import get_session
 from core.database.models.search_model import SearchIndexType, SearchResultType
 from backend.api.services.search_service import SearchService
 

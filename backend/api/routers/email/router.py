@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database.database import get_session
+from core.database import get_session
 from core.database.models.email_model import (
     EmailStatus, EmailPriority, EmailCategory, EmailFilterType, EmailFilterAction
 )

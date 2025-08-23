@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.database.database import get_session
+from core.database import get_session
 from core.database.models.calendar_model import (
     EventType, EventPriority, EventStatus, RecurrenceType
 )

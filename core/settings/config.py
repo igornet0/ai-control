@@ -67,14 +67,14 @@ class LoggingConfig(BaseSettings):
 class DatabaseConfig(BaseSettings):
 
     model_config = SettingsConfigDict(**AppBaseConfig.__dict__, 
-                                      env_prefix="DB__")
+                                      env_prefix="POSTGRES_")
     
-    user: str = Field(default=...)
-    password: str = Field(default=...)
-    host: str = Field(default="localhost")
-    host_alt: str = Field(default="localhost")
-    db_name: str = Field(default="db_name")
-    port: int = Field(default=5432)
+    user: str = Field(alias="USER", default="ai_control_user")
+    password: str = Field(alias="PASSWORD", default="ai_control_password")
+    host: str = Field(alias="HOST", default="postgres")
+    host_alt: str = Field(alias="HOST_ALT", default="postgres")
+    db_name: str = Field(alias="DB", default="ai_control_dev")
+    port: int = Field(alias="PORT", default=5432)
 
     echo: bool = Field(default=False)
     echo_pool: bool = Field(default=False)

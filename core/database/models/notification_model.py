@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from core.database.database import Base
+from core.database.base import Base
 
 
 class NotificationType(str, Enum):
