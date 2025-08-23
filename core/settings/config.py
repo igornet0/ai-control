@@ -12,14 +12,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 class AppBaseConfig:
     """Базовый класс для конфигурации с общими настройками"""
     case_sensitive = False
-    env_file = "./settings/prod.env"
     env_file_encoding = "utf-8"
     env_nested_delimiter="__"
     extra = "ignore"
+    
+    @classmethod
+    def get_env_file(cls) -> str:
+        """Автоматически выбирает файл окружения"""
+        import os
+        
+        # Проверяем переменную окружения ENVIRONMENT
+        env = os.getenv("ENVIRONMENT", "development").lower()
+        
+        if env == "production":
+            return "/app/settings/prod.env"
+        elif env == "development":
+            return "/app/settings/dev.env"
+        else:
+            # Fallback на development
+            return "/app/settings/dev.env"
 
 
 class RunConfig(BaseSettings):
-    model_config = SettingsConfigDict(**AppBaseConfig.__dict__, env_prefix="RUN__")
+    model_config = SettingsConfigDict(
+        **AppBaseConfig.__dict__, 
+        env_prefix="RUN__",
+        env_file=AppBaseConfig.get_env_file()
+    )
 
     domain: str = Field(default="localhost")
     
@@ -27,8 +46,8 @@ class RunConfig(BaseSettings):
     port: int = Field(default=8000)
     reload: bool = Field(default=False)
 
-    celery_broker_url: str = Field(...)
-    celery_result_backend: str = Field(...)
+    celery_broker_url: str = Field(default="amqp://ai_control_user:ai_control_password@rabbitmq:5672//")
+    celery_result_backend: str = Field(default="redis://redis:6379/0")
 
     frontend_host: str = Field(default="localhost")
     frontend_port: int = Field(default=5173)
@@ -51,8 +70,11 @@ class RunConfig(BaseSettings):
 
 class LoggingConfig(BaseSettings):
     
-    model_config = SettingsConfigDict(**AppBaseConfig.__dict__, 
-                                      env_prefix="LOGGING__")
+    model_config = SettingsConfigDict(
+        **AppBaseConfig.__dict__, 
+        env_prefix="LOGGING__",
+        env_file=AppBaseConfig.get_env_file()
+    )
     
     level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
     format: str = LOG_DEFAULT_FORMAT
@@ -66,15 +88,18 @@ class LoggingConfig(BaseSettings):
 
 class DatabaseConfig(BaseSettings):
 
-    model_config = SettingsConfigDict(**AppBaseConfig.__dict__, 
-                                      env_prefix="POSTGRES_")
+    model_config = SettingsConfigDict(
+        **AppBaseConfig.__dict__, 
+        env_prefix="POSTGRES__",
+        env_file=AppBaseConfig.get_env_file()
+    )
     
-    user: str = Field(alias="USER", default="ai_control_user")
-    password: str = Field(alias="PASSWORD", default="ai_control_password")
-    host: str = Field(alias="HOST", default="postgres")
-    host_alt: str = Field(alias="HOST_ALT", default="postgres")
-    db_name: str = Field(alias="DB", default="ai_control_dev")
-    port: int = Field(alias="PORT", default=5432)
+    user: str = Field(default="ai_control_user")
+    password: str = Field(default="ai_control_password")
+    host: str = Field(default="localhost")
+    # host_alt: str = Field(default="localhost")
+    db_name: str = Field(default="ai_control_dev")
+    port: int = Field(default=5432)
 
     echo: bool = Field(default=False)
     echo_pool: bool = Field(default=False)
@@ -99,8 +124,11 @@ class DatabaseConfig(BaseSettings):
 
 class RabbitMQConfig(BaseSettings):
 
-    model_config = SettingsConfigDict(**AppBaseConfig.__dict__, 
-                                      env_prefix="RABBITMQ__")
+    model_config = SettingsConfigDict(
+        **AppBaseConfig.__dict__, 
+        env_prefix="RABBITMQ__",
+        env_file=AppBaseConfig.get_env_file()
+    )
     
     host: str = Field(default="localhost")
     port: int = Field(default=5672)
@@ -108,15 +136,18 @@ class RabbitMQConfig(BaseSettings):
     password: str = Field(default="guest")
 
 class SecurityCongig(BaseSettings):
-    model_config = SettingsConfigDict(**AppBaseConfig.__dict__, 
-                                      env_prefix="SECURITY__")
+    model_config = SettingsConfigDict(
+        **AppBaseConfig.__dict__, 
+        env_prefix="SECURITY__",
+        env_file=AppBaseConfig.get_env_file()
+    )
 
     private_key_path: Path = BASE_DIR / "ssl" / "privkey.pem"
     public_key_path: Path = BASE_DIR / "ssl" / "pubkey.pem"
     certificate_path: Path = BASE_DIR / "ssl" / "certificate.pem"
 
-    secret_key: str = Field(default=...)
-    refresh_secret_key: str = Field(default=...)
+    secret_key: str = Field(default="dev-secret-key-change-in-production")
+    refresh_secret_key: str = Field(default="dev-refresh-secret-key-change-in-production")
     algorithm: str = Field(default="RS256")
 
     access_token_expire_minutes: int = Field(default=120)
@@ -127,6 +158,7 @@ class Config(BaseSettings):
 
     model_config = SettingsConfigDict(
         **AppBaseConfig.__dict__,
+        env_file=AppBaseConfig.get_env_file()
     )
 
     debug: bool = Field(default=True)

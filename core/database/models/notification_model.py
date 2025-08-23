@@ -84,7 +84,7 @@ class NotificationTemplate(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Отношения
-    notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="template")
+    notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="template", lazy="dynamic")
     
     __table_args__ = (
         Index("idx_notification_templates_type", "notification_type"),
@@ -122,7 +122,7 @@ class Notification(Base):
     related_entity_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     
     # Метаданные
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    notification_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     variables: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     
     # Временные метки
@@ -135,9 +135,9 @@ class Notification(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Отношения
-    recipient: Mapped["User"] = relationship("User", back_populates="notifications")
-    template: Mapped[Optional[NotificationTemplate]] = relationship("NotificationTemplate", back_populates="notifications")
-    deliveries: Mapped[List["NotificationDelivery"]] = relationship("NotificationDelivery", back_populates="notification")
+    recipient: Mapped["User"] = relationship("User", back_populates="notifications", lazy="joined")
+    template: Mapped[Optional[NotificationTemplate]] = relationship("NotificationTemplate", back_populates="notifications", lazy="joined")
+    deliveries: Mapped[List["NotificationDelivery"]] = relationship("NotificationDelivery", back_populates="notification", lazy="dynamic")
     
     __table_args__ = (
         Index("idx_notifications_recipient", "recipient_id"),

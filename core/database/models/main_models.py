@@ -78,6 +78,12 @@ class User(Base):
     event_attendances: Mapped[List["EventAttendee"]] = relationship("EventAttendee", back_populates="user")
     event_reminders: Mapped[List["EventReminder"]] = relationship("EventReminder", back_populates="user")
     shared_calendars: Mapped[List["CalendarShare"]] = relationship("CalendarShare", back_populates="user")
+    
+    # Уведомления
+    notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="recipient", lazy="dynamic")
+    
+    # Email аккаунты
+    email_accounts: Mapped[List["EmailAccount"]] = relationship("EmailAccount", back_populates="user", lazy="dynamic")
 
 class Organization(Base):
     """Модель организации"""

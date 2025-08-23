@@ -73,8 +73,6 @@ class SearchIndex(Base):
     __table_args__ = (
         Index("idx_search_indexes_entity", "entity_type", "entity_id"),
         Index("idx_search_indexes_title", "title"),
-        Index("idx_search_indexes_keywords", "keywords", postgresql_using="gin"),
-        Index("idx_search_indexes_tags", "tags", postgresql_using="gin"),
         Index("idx_search_indexes_relevance", "relevance_score"),
         Index("idx_search_indexes_updated", "updated_at"),
         UniqueConstraint("entity_type", "entity_id", name="uq_search_index_entity"),

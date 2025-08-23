@@ -11,7 +11,8 @@ __all__ = ('User', 'Task', 'TaskComment', 'TaskTimeLog', 'TaskDependency', 'Task
            'DocumentStatus', 'DocumentType', 'DocumentPriority', 'DocumentVisibility',
            'PersonalDashboard', 'PersonalWidget', 'PersonalDashboardSettings', 'WidgetPermission',
            'WidgetPlugin', 'WidgetInstallation', 'QuickAction', 'UserPreference',
-           'WidgetCategory', 'WidgetType')
+           'WidgetCategory', 'WidgetType',
+           'NotificationTemplate', 'Notification', 'NotificationDelivery', 'UserNotificationPreference', 'NotificationBatch', 'NotificationWebhook')
 
 from .main_models import (User, Organization, Department, Permission, RolePermission)
 from .task_model import (
@@ -36,4 +37,15 @@ from .personal_dashboard_model import (
     PersonalDashboard, PersonalWidget, PersonalDashboardSettings, WidgetPermission,
     WidgetPlugin, WidgetInstallation, QuickAction, UserPreference,
     WidgetCategory, WidgetType
+)
+
+from .notification_model import (
+    NotificationTemplate, Notification, NotificationDelivery, 
+    UserNotificationPreference, NotificationBatch, NotificationWebhook
+)
+
+from .email_model import (
+    EmailAccount, EmailTemplate, Email, EmailAttachment,
+    EmailFolder, EmailRecipient, EmailLabel, EmailFilter,
+    EmailAutoReply, EmailFolderMapping
 )

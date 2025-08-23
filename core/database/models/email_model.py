@@ -186,7 +186,7 @@ class Email(Base):
     attachments: Mapped[List["EmailAttachment"]] = relationship("EmailAttachment", back_populates="email")
     folder_mappings: Mapped[List["EmailFolderMapping"]] = relationship("EmailFolderMapping", back_populates="email")
     labels: Mapped[List["EmailLabel"]] = relationship("EmailLabel", back_populates="email")
-    auto_replies: Mapped[List["EmailAutoReply"]] = relationship("EmailAutoReply", back_populates="original_email")
+    auto_replies: Mapped[List["EmailAutoReply"]] = relationship("EmailAutoReply", foreign_keys="EmailAutoReply.original_email_id", back_populates="original_email")
     
     __table_args__ = (
         Index("idx_emails_sender_id", "sender_id"),
