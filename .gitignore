@@ -21,6 +21,7 @@ node_modules/
 .DS_Store
 !.env
 .txt
+.mp3
 prod.env
 .env.local
 .env.development.local
