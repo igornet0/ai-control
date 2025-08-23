@@ -20,6 +20,7 @@ node_modules/
 # misc
 .DS_Store
 !.env
+.txt
 prod.env
 .env.local
 .env.development.local
