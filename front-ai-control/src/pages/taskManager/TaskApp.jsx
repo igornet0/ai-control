@@ -7,6 +7,7 @@ import TeamRatings from "./components/TeamRatings";
 import CreateTaskModal from "./components/CreateTaskModal";
 import Notification from "../../components/Notification";
 import { getTasks, createTask, deleteTask } from "../../services/taskService";
+import { useNavigate } from 'react-router-dom';
 
 const TaskApp = ({ user, onLogout }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -14,6 +15,7 @@ const TaskApp = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -40,6 +42,7 @@ const TaskApp = ({ user, onLogout }) => {
       });
       
       console.log('Filtered tasks:', filteredTasks);
+      console.log('Tasks with statuses:', filteredTasks.map(t => ({ id: t.id, title: t.title, status: t.status })));
       setTasks(filteredTasks);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -53,19 +56,25 @@ const TaskApp = ({ user, onLogout }) => {
     try {
       setError(null);
       console.log('Creating task with data:', taskData);
+      console.log('Task status being sent:', taskData.status);
       
       // Добавляем owner_id если не указан
       if (!taskData.owner_id && user) {
         taskData.owner_id = user.id;
       }
       
-      await createTask(taskData);
+      const createdTask = await createTask(taskData);
+      console.log('Task created successfully:', createdTask);
+      console.log('Created task status:', createdTask.status);
+      
       await loadData(); // Перезагружаем данные после создания
       setShowCreateModal(false);
       setNotification({ message: 'Task created successfully!', type: 'success' });
     } catch (error) {
       console.error('Error creating task:', error);
-      setNotification({ message: 'Failed to create task. Please try again.', type: 'error' });
+      console.error('Error response:', error.response);
+      console.error('Error details:', error.response?.data);
+      setNotification({ message: `Failed to create task: ${error.response?.data?.detail || error.message}`, type: 'error' });
     }
   };
 
@@ -169,6 +178,13 @@ const TaskApp = ({ user, onLogout }) => {
                     🧹 Clear Test Tasks
                   </button>
                 )}
+                <button 
+                  onClick={() => navigate('/teams')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                  title="Manage Teams"
+                >
+                  👥 Teams
+                </button>
                 <button 
                   onClick={() => setShowCreateModal(true)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"

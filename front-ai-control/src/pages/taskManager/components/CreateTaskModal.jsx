@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { projectService } from '../../../services/projectService';
 import CustomSelect from '../selector/CustomSelect';
 import TaskTags from './TaskTags';
+import './CreateTaskModal.css';
 
 const statusOptions = ["created", "in_progress", "review", "completed", "cancelled", "on_hold", "blocked"];
 const priorityOptions = ["low", "medium", "high", "critical", "urgent"];
@@ -14,12 +16,29 @@ export default function CreateTaskModal({ onClose, onSave }) {
     priority: 'medium',
     task_type: 'task',
     due_date: '',
-    executor: '',
+    start_date: '',
     estimated_hours: '',
-    tags: ''
+    tags: [],
+    project_id: null
   });
 
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [newTag, setNewTag] = useState('');
+
+  // Загрузка проектов
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const projectsData = await projectService.getProjects();
+        setProjects(projectsData);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+    loadProjects();
+  }, []);
 
   const handleChange = (field, value) => {
     setTaskData(prev => ({ ...prev, [field]: value }));
@@ -52,15 +71,17 @@ export default function CreateTaskModal({ onClose, onSave }) {
     const taskToSave = {
       title: taskData.title,
       description: taskData.description,
+      status: taskData.status,
       task_type: taskData.task_type,
       priority: taskData.priority,
       visibility: 'team',
-      due_date: taskData.due_date ? new Date(taskData.due_date).toISOString() : null,
-      estimated_hours: taskData.estimated_hours ? parseFloat(taskData.estimated_hours) : null,
-      tags: taskData.tags ? taskData.tags.split(',').map(tag => tag.trim()) : [],
-      executor_id: taskData.executor || null
+      due_date: taskData.due_date && taskData.due_date.trim() !== '' ? new Date(taskData.due_date).toISOString() : null,
+      estimated_hours: taskData.estimated_hours && taskData.estimated_hours.trim() !== '' ? parseFloat(taskData.estimated_hours) : null,
+      tags: taskData.tags && taskData.tags.trim() !== '' ? taskData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
+      executor_id: null // Fixed: Send null instead of string value
     };
 
+    console.log('Task data being sent:', taskToSave);
     onSave(taskToSave);
     onClose();
   };
@@ -160,19 +181,6 @@ export default function CreateTaskModal({ onClose, onSave }) {
           {/* Assignee and Estimated Hours */}
           <div>
             <label className="block mb-2">
-              <span className="text-gray-300">Assignee</span>
-              <input
-                type="text"
-                value={taskData.executor}
-                onChange={(e) => handleChange("executor", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-600 bg-[#0f1b16] p-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter assignee name"
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="block mb-2">
               <span className="text-gray-300">Estimated Hours</span>
               <input
                 type="number"
@@ -198,6 +206,38 @@ export default function CreateTaskModal({ onClose, onSave }) {
                 onTagsChange={(tags) => handleChange("tags", tags.join(', '))}
               />
             </label>
+          </div>
+
+          <div className="form-group">
+            <label>Тип задачи</label>
+            <CustomSelect
+              value={taskData.task_type}
+              onChange={(value) => handleChange('task_type', value)}
+              options={[
+                { value: 'task', label: 'Задача' },
+                { value: 'bug', label: 'Ошибка' },
+                { value: 'feature', label: 'Функция' },
+                { value: 'story', label: 'История' },
+                { value: 'epic', label: 'Эпик' },
+                { value: 'subtask', label: 'Подзадача' }
+              ]}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Проект (опционально)</label>
+            <CustomSelect
+              value={taskData.project_id}
+              onChange={(value) => handleChange('project_id', value)}
+              options={[
+                { value: null, label: 'Без проекта' },
+                ...projects.map(project => ({
+                  value: project.id,
+                  label: project.name
+                }))
+              ]}
+              placeholder="Выберите проект"
+            />
           </div>
         </div>
 

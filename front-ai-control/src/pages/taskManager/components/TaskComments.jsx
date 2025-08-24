@@ -33,8 +33,7 @@ export default function TaskComments({ taskId, currentUser }) {
       setSubmitting(true);
       const commentData = {
         content: newComment.trim(),
-        author_id: currentUser?.id,
-        task_id: taskId
+        is_internal: false
       };
 
       await addTaskComment(taskId, commentData);

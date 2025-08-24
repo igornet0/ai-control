@@ -1,21 +1,33 @@
-const tabs = ["Tasks", "Overview", "Statistics", "Team"];
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import './HeaderTabs.css';
 
 export default function HeaderTabs() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const tabs = ["Tasks", "Overview", "Statistics", "Projects"];
+
+  const handleTabClick = (tab) => {
+    if (tab === "Projects") {
+      navigate('/projects');
+    }
+    // Для других вкладок можно добавить логику навигации
+  };
+
   return (
-    <nav className="flex border-b border-gray-200 space-x-6 text-gray-600">
-      {tabs.map((tab, i) => (
+    <div className="header-tabs">
+      {tabs.map((tab) => (
         <button
-          key={i}
-          className={`pb-2 border-b-2 ${
-            i === 0
-              ? "border-green-600 text-green-600 font-medium"
-              : "border-transparent hover:text-green-500"
+          key={tab}
+          className={`tab-button ${
+            location.pathname === '/projects' && tab === 'Projects' ? 'active' : ''
           }`}
+          onClick={() => handleTabClick(tab)}
         >
           {tab}
         </button>
       ))}
-      <div className="ml-auto text-gray-400 cursor-pointer">🔍</div>
-    </nav>
+    </div>
   );
 }

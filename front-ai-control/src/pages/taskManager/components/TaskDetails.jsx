@@ -71,9 +71,13 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
         status: editedTask.status,
         priority: editedTask.priority,
         due_date: editedTask.due_date ? new Date(editedTask.due_date).toISOString() : null,
-        description: editedTask.description,
+        description: editedTask.description && editedTask.description.trim() !== '' ? editedTask.description : null,
         // executor_id будет обновлен через отдельный API если нужно
       };
+
+      console.log('Sending update data:', updateData);
+      console.log('Original description:', editedTask.description);
+      console.log('Processed description:', updateData.description);
 
       // Отправляем обновление на сервер
       await updateTask(task.id, updateData);
@@ -95,6 +99,111 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Функция для взятия задачи на себя
+  const handleTakeOnMyself = async () => {
+    if (!currentUser) {
+      setErrors({ general: 'You must be logged in to take a task on yourself.' });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      // Обновляем задачу, устанавливая текущего пользователя как исполнителя
+      const updateData = {
+        executor_id: currentUser.id,
+        status: 'in_progress' // Автоматически меняем статус на "в работе"
+      };
+
+      console.log('Taking task on myself:', updateData);
+      
+      // Отправляем обновление на сервер
+      await updateTask(task.id, updateData);
+      
+      // Обновляем локальное состояние
+      setEditedTask(prev => ({
+        ...prev,
+        executor_name: currentUser.username || currentUser.login || 'Me'
+      }));
+      
+      // Вызываем callback для обновления родительского компонента
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+      
+      setErrors({});
+    } catch (error) {
+      console.error('Error taking task on myself:', error);
+      setErrors({ general: 'Failed to take task on yourself. Please try again.' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Функция для жалобы на задачу
+  const handleReportTask = () => {
+    if (!currentUser) {
+      setErrors({ general: 'You must be logged in to report a task.' });
+      return;
+    }
+
+    // TODO: В будущем здесь будет отправка жалобы администраторам
+    console.log('Reporting task:', task.id, 'by user:', currentUser.id);
+    
+    // Показываем уведомление о том, что жалоба отправлена
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-orange-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
+    notification.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🚨</span>
+        <span>Task reported successfully!</span>
+      </div>
+      <div class="text-sm text-orange-100 mt-1">Administrators will review your report</div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Анимация появления
+    setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+    
+    // Автоматически скрываем через 4 секунды
+    setTimeout(() => {
+      notification.classList.add('translate-x-full');
+      setTimeout(() => document.body.removeChild(notification), 300);
+    }, 4000);
+  };
+
+  // Функция для вопроса по задаче
+  const handleAskQuestion = () => {
+    if (!currentUser) {
+      setErrors({ general: 'You must be logged in to ask a question about a task.' });
+      return;
+    }
+
+    // TODO: В будущем здесь будет открытие чата с создателем задачи
+    console.log('Asking question about task:', task.id, 'by user:', currentUser.id);
+    
+    // Показываем уведомление о том, что вопрос отправлен
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
+    notification.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="text-xl">❓</span>
+        <span>Question sent to task creator!</span>
+      </div>
+      <div class="text-sm text-blue-100 mt-1">You will be notified when they respond</div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Анимация появления
+    setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+    
+    // Автоматически скрываем через 4 секунды
+    setTimeout(() => {
+      notification.classList.add('translate-x-full');
+      setTimeout(() => document.body.removeChild(notification), 300);
+    }, 4000);
   };
 
   return (
@@ -187,6 +296,63 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
             />
           </label>
         </div>
+
+        {/* Кнопка "Взять на себя" */}
+        {currentUser && (
+          <div className="mb-4">
+            <button
+              onClick={handleTakeOnMyself}
+              disabled={isSaving || task.executor_id === currentUser.id}
+              className={`w-full px-4 py-2 rounded-md text-white transition ${
+                isSaving || task.executor_id === currentUser.id
+                  ? 'bg-gray-600 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+              title={
+                task.executor_id === currentUser.id
+                  ? 'This task is already assigned to you'
+                  : 'Take this task on yourself and set status to "in progress"'
+              }
+            >
+              {isSaving ? 'Taking...' : 
+                task.executor_id === currentUser.id 
+                  ? '✅ Уже назначена на вас' 
+                  : '🎯 Взять на себя'
+              }
+            </button>
+            <p className="text-xs text-gray-400 mt-1 text-center">
+              {task.executor_id === currentUser.id 
+                ? 'Задача уже назначена на вас'
+                : 'Автоматически изменит статус на "В работе"'
+              }
+            </p>
+          </div>
+        )}
+
+        {/* Кнопки действий */}
+        {currentUser && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* Кнопка "Задать вопрос" */}
+            <button
+              onClick={handleAskQuestion}
+              className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition flex items-center justify-center gap-2"
+              title="Ask a question about this task"
+            >
+              <span className="text-lg">❓</span>
+              <span className="text-sm">Задать вопрос</span>
+            </button>
+            
+            {/* Кнопка "Пожаловаться" */}
+            <button
+              onClick={handleReportTask}
+              className="px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white transition flex items-center justify-center gap-2"
+              title="Report this task to administrators"
+            >
+              <span className="text-lg">🚨</span>
+              <span className="text-sm">Пожаловаться</span>
+            </button>
+          </div>
+        )}
 
         {/* Опционально можно показать даты создания/обновления, если есть */}
         {task.created_at && (

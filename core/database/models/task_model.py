@@ -88,6 +88,9 @@ class Task(Base):
     organization_id: Mapped[Optional[int]] = mapped_column(ForeignKey("organizations.id"), nullable=True, index=True)
     department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True, index=True)
     
+    # Связь с проектом
+    project_id: Mapped[Optional[int]] = mapped_column(ForeignKey("projects.id"), nullable=True, index=True)
+    
     # Отношения
     owner: Mapped["User"] = relationship("User", back_populates="owned_tasks", foreign_keys=[owner_id])
     executor: Mapped[Optional["User"]] = relationship("User", back_populates="executed_tasks", foreign_keys=[executor_id])
@@ -100,8 +103,11 @@ class Task(Base):
     epic_tasks: Mapped[List["Task"]] = relationship("Task", back_populates="epic", foreign_keys=[epic_id])
     
     # Организационные отношения
-    organization: Mapped[Optional["Organization"]] = relationship("Organization", back_populates="tasks")
-    department: Mapped[Optional["Department"]] = relationship("Department", back_populates="tasks")
+    organization: Mapped[Optional["Organization"]] = relationship("Organization", foreign_keys=[organization_id])
+    department: Mapped[Optional["Department"]] = relationship("Department", foreign_keys=[department_id])
+    
+    # Связь с проектом
+    project: Mapped[Optional["Project"]] = relationship("Project", foreign_keys=[project_id])
     
     # Дополнительные отношения
     comments: Mapped[List["TaskComment"]] = relationship("TaskComment", back_populates="task", cascade="all, delete-orphan")

@@ -25,7 +25,9 @@ export const getTaskById = async (taskId) => {
 // Создать новую задачу
 export const createTask = async (taskData) => {
   try {
+    console.log('Sending task data to API:', taskData);
     const response = await api.post('/api/tasks/', taskData);
+    console.log('API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error creating task:', error);
@@ -36,10 +38,14 @@ export const createTask = async (taskData) => {
 // Обновить задачу
 export const updateTask = async (taskId, taskData) => {
   try {
+    console.log('Updating task with data:', { taskId, taskData });
     const response = await api.put(`/api/tasks/${taskId}/`, taskData);
+    console.log('Task update response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error updating task:', error);
+    console.error('Task ID:', taskId);
+    console.error('Task data:', taskData);
     throw error;
   }
 };
@@ -119,3 +125,4 @@ export const getTasksByFilters = async (filters) => {
     throw error;
   }
 };
+

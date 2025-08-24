@@ -31,6 +31,7 @@ class TaskCreateRequest(BaseModel):
     """Запрос на создание задачи"""
     title: str = Field(..., min_length=1, max_length=255, description="Название задачи")
     description: Optional[str] = Field(None, description="Описание задачи")
+    status: str = Field(default="created", description="Статус задачи")
     task_type: str = Field(default="task", description="Тип задачи")
     priority: str = Field(default="medium", description="Приоритет")
     visibility: str = Field(default="team", description="Видимость")
@@ -55,6 +56,7 @@ class TaskCreateRequest(BaseModel):
     # Метаданные
     tags: Optional[List[str]] = Field(None, description="Теги")
     custom_fields: Optional[Dict[str, Any]] = Field(None, description="Пользовательские поля")
+    project_id: Optional[int] = Field(None, description="ID проекта")
 
 class TaskUpdateRequest(BaseModel):
     """Запрос на обновление задачи"""
@@ -145,13 +147,13 @@ class TaskCommentCreateRequest(BaseModel):
 class TaskCommentResponse(BaseModel):
     """Ответ с данными комментария"""
     id: int
-    task_id: int
-    author_id: int
     content: str
     is_internal: bool
     created_at: datetime
     updated_at: datetime
-    author_name: Optional[str]
+    author_id: int
+    author_name: str
+    task_id: int
 
 class TaskTimeLogCreateRequest(BaseModel):
     """Запрос на создание записи времени"""
@@ -252,6 +254,9 @@ async def create_task(
     Создание новой задачи
     """
     try:
+        # Логируем входящие данные
+        logger.info(f"Creating task with data: title={request.title}, status={request.status}, priority={request.priority}, task_type={request.task_type}")
+        
         # Проверяем права доступа
         if request.executor_id and request.executor_id != user.id:
             # TODO: Проверка прав на назначение задач
@@ -280,6 +285,7 @@ async def create_task(
         task = Task(
             title=request.title,
             description=request.description,
+            status=request.status,
             task_type=request.task_type,
             priority=request.priority,
             visibility=request.visibility,
@@ -294,6 +300,7 @@ async def create_task(
             department_id=request.department_id or user.department_id,
             tags=request.tags,
             custom_fields=request.custom_fields,
+            project_id=request.project_id,
             owner_id=user.id
         )
         
@@ -301,7 +308,7 @@ async def create_task(
         await session.commit()
         await session.refresh(task)
         
-        logger.info(f"Task created: {task.id} by user {user.id}")
+        logger.info(f"Task created: {task.id} by user {user.id} with status: {task.status}")
         
         # Возвращаем простой ответ без дополнительных данных
         return {
@@ -518,35 +525,140 @@ async def update_task(
     Обновление задачи
     """
     try:
+        # Простое логирование для отладки
+        logger.info(f"=== UPDATE TASK START ===")
+        logger.info(f"Task ID: {task_id}")
+        logger.info(f"User ID: {user.id if user else 'None'}")
+        logger.info(f"Request type: {type(request)}")
+        
+        # Логируем входящие данные
+        logger.info(f"Updating task {task_id} with data: {request.dict(exclude_unset=True)}")
+        
         # Получаем задачу
+        logger.info("Getting task from database...")
         task = await session.get(Task, task_id)
         if not task:
+            logger.error(f"Task {task_id} not found")
             raise HTTPException(status_code=404, detail="Task not found")
         
+        logger.info(f"Task found: {task.id}, current status: {task.status}")
+        
         # Проверяем права доступа
+        logger.info("Checking edit permissions...")
         if not await _can_edit_task(task, user, session):
+            logger.error(f"User {user.id} cannot edit task {task_id}")
             raise HTTPException(status_code=403, detail="Access denied")
+        
+        logger.info("Edit permissions confirmed")
         
         # Обновляем поля
         update_data = request.dict(exclude_unset=True)
+        logger.info(f"Fields to update: {list(update_data.keys())}")
+        logger.info(f"Raw update data: {update_data}")
         
         for field, value in update_data.items():
-            if hasattr(task, field):
-                setattr(task, field, value)
-        
-        # Обновляем время завершения при изменении статуса
-        if request.status == TaskStatus.COMPLETED and task.completed_at is None:
-            task.completed_at = datetime.utcnow()
-        elif request.status != TaskStatus.COMPLETED:
-            task.completed_at = None
+            try:
+                if hasattr(task, field):
+                    logger.info(f"Updating field '{field}' from '{getattr(task, field)}' to '{value}' (type: {type(value)})")
+                    
+                    # Специальная обработка для статуса
+                    if field == 'status':
+                        # Приводим к Enum и валидируем
+                        try:
+                            if not isinstance(value, TaskStatus):
+                                value = TaskStatus(value)
+                        except Exception:
+                            raise HTTPException(status_code=400, detail=f"Invalid status: {value}")
+                        
+                        # Обновляем время завершения при изменении статуса
+                        if value == TaskStatus.COMPLETED and task.completed_at is None:
+                            task.completed_at = datetime.now()
+                            logger.info(f"Setting completed_at to {task.completed_at}")
+                        elif value != TaskStatus.COMPLETED:
+                            task.completed_at = None
+                            logger.info("Clearing completed_at")
+                    
+                    # Специальная обработка для приоритета (к Enum)
+                    elif field == 'priority' and value is not None:
+                        try:
+                            if not isinstance(value, TaskPriority):
+                                value = TaskPriority(value)
+                        except Exception:
+                            raise HTTPException(status_code=400, detail=f"Invalid priority: {value}")
+                    
+                    # Специальная обработка для типа задачи (к Enum)
+                    elif field == 'task_type' and value is not None:
+                        try:
+                            if not isinstance(value, TaskType):
+                                value = TaskType(value)
+                        except Exception:
+                            raise HTTPException(status_code=400, detail=f"Invalid task_type: {value}")
+                    
+                    # Специальная обработка для видимости (к Enum)
+                    elif field == 'visibility' and value is not None:
+                        try:
+                            if not isinstance(value, TaskVisibility):
+                                value = TaskVisibility(value)
+                        except Exception:
+                            raise HTTPException(status_code=400, detail=f"Invalid visibility: {value}")
+                    
+                    # Специальная обработка для описания (пустые строки -> None)
+                    elif field == 'description' and value == '':
+                        value = None
+                        logger.info("Converting empty description to None")
+                    
+                    # Специальная обработка для заголовка (не может быть пустым)
+                    elif field == 'title' and (not value or value.strip() == ''):
+                        raise HTTPException(status_code=400, detail="Title cannot be empty")
+                    
+                    # Специальная обработка для дат
+                    elif field in ['due_date', 'start_date'] and value:
+                        try:
+                            # Если дата приходит как строка, парсим её
+                            if isinstance(value, str):
+                                parsed_date = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                                value = parsed_date
+                            # Приводим к naive datetime (без tzinfo), чтобы соответствовать колонке БД
+                            if hasattr(value, 'tzinfo') and value.tzinfo is not None:
+                                value = value.replace(tzinfo=None)
+                            logger.info(f"Parsed date for {field}: {value}")
+                        except Exception as e:
+                            logger.error(f"Error parsing date for {field}: {value}, error: {e}")
+                            raise HTTPException(status_code=400, detail=f"Invalid date format for {field}: {value}")
+                    
+                    setattr(task, field, value)
+                    logger.info(f"Field '{field}' updated successfully")
+                else:
+                    logger.warning(f"Field '{field}' not found in task model, skipping")
+            except Exception as field_error:
+                logger.error(f"Error updating field '{field}' with value '{value}': {field_error}")
+                raise HTTPException(status_code=400, detail=f"Error updating field '{field}': {str(field_error)}")
         
         await session.commit()
         await session.refresh(task)
         
+        logger.info("Database updated successfully")
+        
+        # Повторно загружаем задачу с необходимыми связями, чтобы избежать lazy-loading в async
+        query = select(Task).options(
+            selectinload(Task.owner),
+            selectinload(Task.executor),
+            selectinload(Task.reviewer),
+            selectinload(Task.organization),
+            selectinload(Task.department),
+            selectinload(Task.subtasks),
+            selectinload(Task.comments),
+            selectinload(Task.watchers)
+        ).where(Task.id == task_id)
+        result = await session.execute(query)
+        task = result.scalar_one()
+        
         # Формируем ответ
+        logger.info("Building response data...")
         response_data = await _get_task_response_data(task, session)
         
         logger.info(f"Task updated: {task_id} by user {user.id}")
+        logger.info("=== UPDATE TASK SUCCESS ===")
         
         return response_data
         
@@ -554,6 +666,8 @@ async def update_task(
         raise
     except Exception as e:
         logger.error(f"Error updating task: {e}")
+        logger.error(f"Task ID: {task_id}, User ID: {user.id if user else 'None'}")
+        logger.error(f"Request data: {request.dict() if request else 'None'}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/{task_id}")
@@ -700,3 +814,109 @@ async def _can_delete_task(task: Task, user: User, session: AsyncSession) -> boo
         return True
     
     return False
+
+
+# Комментарии к задачам
+
+@router.get("/{task_id}/comments/", response_model=List[TaskCommentResponse])
+async def get_task_comments(
+    task_id: int,
+    user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """
+    Получение комментариев к задаче
+    """
+    try:
+        # Получаем задачу
+        task = await session.get(Task, task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        # Проверяем права доступа
+        if not await _can_access_task(task, user, session):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Получаем комментарии
+        comments = await session.execute(
+            select(TaskComment)
+            .where(TaskComment.task_id == task_id)
+            .order_by(TaskComment.created_at.desc())
+        )
+        
+        comment_list = comments.scalars().all()
+        
+        # Формируем ответ
+        result = []
+        for comment in comment_list:
+            result.append(TaskCommentResponse(
+                id=comment.id,
+                content=comment.content,
+                is_internal=comment.is_internal,
+                created_at=comment.created_at,
+                updated_at=comment.updated_at,
+                author_id=comment.author_id,
+                author_name=comment.author.username if comment.author else "Unknown",
+                task_id=comment.task_id
+            ))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching task comments: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/{task_id}/comments/", response_model=TaskCommentResponse)
+async def create_task_comment(
+    task_id: int,
+    request: TaskCommentCreateRequest,
+    user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """
+    Создание комментария к задаче
+    """
+    try:
+        # Получаем задачу
+        task = await session.get(Task, task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        # Проверяем права доступа
+        if not await _can_access_task(task, user, session):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Создаем комментарий
+        comment = TaskComment(
+            content=request.content,
+            is_internal=request.is_internal,
+            author_id=user.id,
+            task_id=task_id
+        )
+        
+        session.add(comment)
+        await session.commit()
+        await session.refresh(comment)
+        
+        logger.info(f"Task comment created: {comment.id} by user {user.id}")
+        
+        # Возвращаем ответ
+        return TaskCommentResponse(
+            id=comment.id,
+            content=comment.content,
+            is_internal=comment.is_internal,
+            created_at=comment.created_at,
+            updated_at=comment.updated_at,
+            author_id=comment.author_id,
+            author_name=comment.author.username if comment.author else "Unknown",
+            task_id=comment.task_id
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating task comment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

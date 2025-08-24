@@ -14,17 +14,14 @@ from core.database import (orm_get_user, orm_add_user, orm_get_user_by_id, orm_u
                           orm_add_permission, orm_get_permissions_by_role, orm_get_permission_by_id,
                           orm_add_role_permission)
 
-from backend.api.configuration import (Server, 
-                                       get_password_hash,
-                                       UserResponse, UserLoginResponse,
+from backend.api.configuration.server import Server
+from backend.api.configuration.schemas import (UserResponse, UserLoginResponse,
                                        UserRegisterResponse, UserEmailResponse,
                                        UserUpdateResponse, UserHierarchyResponse,
                                        OrganizationResponse, DepartmentResponse,
-                                       Token,
-                                       verify_password, is_email,
-                                       create_access_token,
-                                       verify_authorization, require_role, require_roles,
-                                       PermissionResponse, RolePermissionResponse)
+                                       Token, PermissionResponse, RolePermissionResponse)
+from backend.api.configuration.auth import (get_password_hash, verify_password, is_email,
+                                       create_access_token, verify_authorization, require_role, require_roles)
 
 import logging
 

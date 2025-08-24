@@ -12,6 +12,8 @@ import ProfilePage from './pages/profile/ProfilePage';
 // import PrivateRoute from './components/PrivateRoute';
 import CanvasPage from './pages/canvas/CanvasApp';
 import TaskApp from './pages/taskManager/TaskApp';
+import Teams from './pages/teams/Teams';
+import Projects from './pages/projects/Projects';
 import styles from './App.module.css';
 import useAuth from './hooks/useAuth';
 import spinner from './assets/pageload-spinner.gif';
@@ -96,6 +98,20 @@ const AppContent = ({ user, isAuthenticated, login, logout }) => {
             element={
           isAuthenticated 
             ? <TaskApp user={user} onLogout={logout} /> 
+            : <Navigate to="/signin" />
+        } />
+       <Route
+            path="/teams"
+            element={
+          isAuthenticated 
+            ? <Teams user={user} onLogout={logout} /> 
+            : <Navigate to="/signin" />
+        } />
+       <Route
+            path="/projects"
+            element={
+          isAuthenticated 
+            ? <Projects user={user} onLogout={logout} /> 
             : <Navigate to="/signin" />
         } />
       </Routes> 
