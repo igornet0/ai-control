@@ -18,7 +18,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
     due_date: '',
     start_date: '',
     estimated_hours: '',
-    tags: [],
+    tags: '',
     project_id: null
   });
 

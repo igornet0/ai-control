@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { teamService } from '../../../services/teamService';
-import './CreateTeamModal.module.css';
+import './CreateTeamModal.css';
 
 const CreateTeamModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({

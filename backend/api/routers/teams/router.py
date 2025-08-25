@@ -5,15 +5,22 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload, joinedload
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 
-from core.database import get_session
+from backend.api.configuration.server import Server
 from core.database.models import Team, TeamMember, TeamRole, TeamStatus, User, Task
 from backend.api.configuration.auth import get_current_user
 
 router = APIRouter(prefix="/api/teams", tags=["teams"])
 
+
+def _to_naive_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 # Схемы запросов и ответов
 class TeamCreateRequest(BaseModel):
@@ -83,7 +90,7 @@ async def get_teams(
     organization_id: Optional[int] = None,
     department_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Получить список команд с фильтрацией"""
     query = select(Team).options(
@@ -184,7 +191,7 @@ async def get_teams(
 async def get_team(
     team_id: int,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Получить информацию о команде"""
     query = select(Team).options(
@@ -257,15 +264,18 @@ async def get_team(
 async def create_team(
     team_data: TeamCreateRequest,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Создать новую команду"""
+    # Нормализуем дату расформирования
+    auto_date = _to_naive_utc(team_data.auto_disband_date)
+
     # Создаем команду
     team = Team(
         name=team_data.name,
         description=team_data.description,
         is_public=team_data.is_public,
-        auto_disband_date=team_data.auto_disband_date,
+        auto_disband_date=auto_date,
         organization_id=team_data.organization_id,
         department_id=team_data.department_id,
         tags=team_data.tags
@@ -305,7 +315,7 @@ async def update_team(
     team_id: int,
     team_data: TeamUpdateRequest,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Обновить команду"""
     query = select(Team).where(Team.id == team_id)
@@ -333,7 +343,7 @@ async def update_team(
     if team_data.is_public is not None:
         team.is_public = team_data.is_public
     if team_data.auto_disband_date is not None:
-        team.auto_disband_date = team_data.auto_disband_date
+        team.auto_disband_date = _to_naive_utc(team_data.auto_disband_date)
     if team_data.status is not None:
         team.status = team_data.status
     if team_data.tags is not None:
@@ -351,7 +361,7 @@ async def update_team(
 async def delete_team(
     team_id: int,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Удалить команду"""
     query = select(Team).where(Team.id == team_id)
@@ -383,7 +393,7 @@ async def add_team_member(
     team_id: int,
     member_data: TeamMemberAddRequest,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Добавить участника в команду"""
     # Проверяем существование команды
@@ -433,7 +443,7 @@ async def remove_team_member(
     team_id: int,
     user_id: int,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Удалить участника из команды"""
     # Проверяем существование команды
@@ -478,7 +488,7 @@ async def remove_team_member(
 async def search_users_for_team(
     search: str,
     current_user: User = Depends(get_current_user),
-    session = Depends(get_session)
+    session = Depends(Server.get_db)
 ):
     """Поиск пользователей для добавления в команду"""
     query = select(User).where(
