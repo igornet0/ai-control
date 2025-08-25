@@ -4,6 +4,7 @@ import useAuth from '../../hooks/useAuth';
 import { projectService } from '../../services/projectService';
 import ProjectCard from './components/ProjectCard';
 import CreateProjectModal from './components/CreateProjectModal';
+import ProjectsCalendar from './components/ProjectsCalendar';
 import './Projects.css';
 
 const Projects = () => {
@@ -15,6 +16,7 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [activeTab, setActiveTab] = useState('list'); // list | calendar
   
   const navigate = useNavigate();
   const { user, loading: userLoading } = useAuth();
@@ -163,6 +165,11 @@ const Projects = () => {
         </div>
       )}
 
+      <div className="projects-tabs">
+        <button className={`tab-btn ${activeTab === 'list' ? 'tab-active' : ''}`} onClick={() => setActiveTab('list')}>Список</button>
+        <button className={`tab-btn ${activeTab === 'calendar' ? 'tab-active' : ''}`} onClick={() => setActiveTab('calendar')}>Календарь</button>
+      </div>
+
       <div className="projects-filters">
         <div className="search-box">
           <input
@@ -206,25 +213,29 @@ const Projects = () => {
         </div>
       </div>
 
-      <div className="projects-grid">
-        {filteredProjects.length === 0 ? (
-          <div className="no-projects">
-            {searchTerm || statusFilter || priorityFilter 
-              ? 'Проекты не найдены' 
-              : 'Проекты не созданы'
-            }
-          </div>
-        ) : (
-          filteredProjects.map(project => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onDelete={handleDeleteProject}
-              onUpdate={handleUpdateProject}
-            />
-          ))
-        )}
-      </div>
+      {activeTab === 'list' ? (
+        <div className="projects-grid">
+          {filteredProjects.length === 0 ? (
+            <div className="no-projects">
+              {searchTerm || statusFilter || priorityFilter 
+                ? 'Проекты не найдены' 
+                : 'Проекты не созданы'
+              }
+            </div>
+          ) : (
+            filteredProjects.map(project => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onDelete={handleDeleteProject}
+                onUpdate={handleUpdateProject}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        <ProjectsCalendar projects={filteredProjects} />
+      )}
 
       {showCreateModal && (
         <CreateProjectModal
