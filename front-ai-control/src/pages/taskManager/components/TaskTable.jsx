@@ -555,7 +555,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
             <span>
               🎯 Показано <strong>{filteredTasks.length}</strong> ваших задач
               {tasks.length !== filteredTasks.length && (
-                <span className="text-gray-400"> (filtered from {tasks.length} total)</span>
+                <span className="text-gray-400"> (отфильтровано из {tasks.length} всего)</span>
               )}
             </span>
           ) : (
