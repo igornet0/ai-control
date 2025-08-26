@@ -18,6 +18,8 @@ import styles from './App.module.css';
 import useAuth from './hooks/useAuth';
 import spinner from './assets/pageload-spinner.gif';
 import logo from './assets/logo.png';
+import FilesPage from './pages/files/FilesPage';
+import StatisticsPage from './pages/statistics/StatisticsPage.jsx';
 
 const FullPageSpinner = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-700 to-green-1000">
@@ -98,6 +100,20 @@ const AppContent = ({ user, isAuthenticated, login, logout }) => {
             element={
           isAuthenticated 
             ? <TaskApp user={user} onLogout={logout} /> 
+            : <Navigate to="/signin" />
+        } />
+       <Route
+            path="/statistics"
+            element={
+          isAuthenticated 
+            ? <StatisticsPage /> 
+            : <Navigate to="/signin" />
+        } />
+       <Route
+            path="/files"
+            element={
+          isAuthenticated 
+            ? <FilesPage user={user} /> 
             : <Navigate to="/signin" />
         } />
        <Route

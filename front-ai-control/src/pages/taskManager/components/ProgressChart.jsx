@@ -25,7 +25,7 @@ export default function ProgressChart({ tasks = [] }) {
 
   return (
     <div className="bg-[#16251C] p-4 rounded-lg shadow-sm">
-      <h3 className="font-medium mb-4">Task Status Overview</h3>
+      <h3 className="font-medium mb-4">Обзор статусов задач</h3>
       <div className="flex justify-center items-center mb-4">
         <div className="relative w-24 h-24">
           <svg className="absolute inset-0" viewBox="0 0 36 36">
@@ -48,13 +48,13 @@ export default function ProgressChart({ tasks = [] }) {
         </div>
       </div>
       <ul className="text-xs text-gray-500 space-y-1">
-        <li><span className="inline-block w-3 h-3 rounded-full bg-green-600 mr-2" /> Completed – {completedPercentage}% ({stats.completed})</li>
-        <li><span className="inline-block w-3 h-3 rounded-full bg-blue-600 mr-2" /> In Progress – {inProgressPercentage}% ({stats.inProgress})</li>
-        <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-600 mr-2" /> Review – {reviewPercentage}% ({stats.review})</li>
-        <li><span className="inline-block w-3 h-3 rounded-full bg-gray-500 mr-2" /> Other – {otherPercentage}% ({stats.other})</li>
+        <li><span className="inline-block w-3 h-3 rounded-full bg-green-600 mr-2" /> Завершено – {completedPercentage}% ({stats.completed})</li>
+        <li><span className="inline-block w-3 h-3 rounded-full bg-blue-600 mr-2" /> В работе – {inProgressPercentage}% ({stats.inProgress})</li>
+        <li><span className="inline-block w-3 h-3 rounded-full bg-yellow-600 mr-2" /> На проверке – {reviewPercentage}% ({stats.review})</li>
+        <li><span className="inline-block w-3 h-3 rounded-full bg-gray-500 mr-2" /> Другие – {otherPercentage}% ({stats.other})</li>
       </ul>
       <div className="mt-3 text-center text-xs text-gray-400">
-        Total: {stats.total} tasks
+        Всего: {stats.total} задач
       </div>
     </div>
   );

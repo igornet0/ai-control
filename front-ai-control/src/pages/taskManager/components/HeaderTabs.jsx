@@ -6,11 +6,17 @@ export default function HeaderTabs() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tabs = ["Tasks", "Overview", "Statistics", "Projects"];
+  const tabs = ["Задачи", "Обзор", "Статистика", "Проекты", "Файлы"];
 
   const handleTabClick = (tab) => {
-    if (tab === "Projects") {
+    if (tab === "Задачи") {
+      navigate('/tasks');
+    } else if (tab === "Проекты") {
       navigate('/projects');
+    } else if (tab === "Статистика") {
+      navigate('/statistics');
+    } else if (tab === "Файлы") {
+      navigate('/files');
     }
     // Для других вкладок можно добавить логику навигации
   };
@@ -21,7 +27,10 @@ export default function HeaderTabs() {
         <button
           key={tab}
           className={`tab-button ${
-            location.pathname === '/projects' && tab === 'Projects' ? 'active' : ''
+            (location.pathname === '/tasks' && tab === 'Задачи') ||
+            (location.pathname === '/projects' && tab === 'Проекты') ||
+            (location.pathname === '/files' && tab === 'Файлы') ||
+            (location.pathname === '/statistics' && tab === 'Статистика') ? 'active' : ''
           }`}
           onClick={() => handleTabClick(tab)}
         >

@@ -36,6 +36,22 @@ export const projectService = {
     }
   },
 
+  // Загрузить вложения для проекта
+  async uploadProjectAttachments(projectId, files, onProgress) {
+    try {
+      const formData = new FormData();
+      (files || []).forEach((file) => formData.append('files', file));
+      const response = await api.post(`/api/projects/${projectId}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: onProgress
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading project attachments:', error);
+      throw error;
+    }
+  },
+
   // Обновить проект
   async updateProject(projectId, projectData) {
     try {
@@ -81,6 +97,28 @@ export const projectService = {
       return response.data;
     } catch (error) {
       console.error('Error removing team from project:', error);
+      throw error;
+    }
+  },
+
+  // Привязать существующую задачу к проекту
+  async addTaskToProject(projectId, taskId) {
+    try {
+      const response = await api.post(`/api/projects/${projectId}/tasks/${taskId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding task to project:', error);
+      throw error;
+    }
+  },
+
+  // Отвязать задачу от проекта
+  async removeTaskFromProject(projectId, taskId) {
+    try {
+      const response = await api.delete(`/api/projects/${projectId}/tasks/${taskId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error removing task from project:', error);
       throw error;
     }
   }

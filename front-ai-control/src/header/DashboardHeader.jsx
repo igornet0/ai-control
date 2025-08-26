@@ -37,7 +37,7 @@ const DashboardHeader = () => {
 
           <ul style={{ display: 'flex', alignItems: 'center', listStyle: 'none', margin: 0, padding: 0 }}>
             <li style={{ marginRight: '15px' }}><a href="/dashboard">Dashboard</a></li>
-            <li style={{ marginRight: '15px' }}><a href="/tasks">Tasks</a></li>
+            <li style={{ marginRight: '15px' }}><a href="/tasks">Задачи</a></li>
             <li style={{ marginRight: '15px' }}><a href="/support">Support</a></li>
             <li><a href="/signin" className={styles.signIn}>Sign In</a></li>
           </ul>

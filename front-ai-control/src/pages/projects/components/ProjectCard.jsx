@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { projectService } from '../../../services/projectService';
+import { getTasks } from '../../../services/taskService';
+import useAuth from '../../../hooks/useAuth';
 import './ProjectCard.css';
 
 const ProjectCard = ({ project, onDelete, onUpdate }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { user } = useAuth();
 
   const getStatusColor = (status) => {
     const statusColors = {
@@ -53,6 +57,74 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'Не указана';
     return new Date(dateString).toLocaleDateString('ru-RU');
+  };
+
+  const [attachUploading, setAttachUploading] = useState(false);
+  const [tasksList, setTasksList] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState('');
+
+  const canManageProject = useMemo(() => {
+    if (!user) return false;
+    // Разрешить завершение/удаление только менеджеру проекта или ролям admin/CEO
+    const isAdmin = user.role === 'admin' || user.role === 'CEO';
+    const isManager = user.username && project.manager_name && user.username === project.manager_name;
+    return isAdmin || isManager;
+  }, [user, project.manager_name]);
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        setTasksLoading(true);
+        const allTasks = await getTasks();
+        setTasksList(Array.isArray(allTasks) ? allTasks : []);
+      } catch (e) {
+        console.error('Failed to load tasks for project linking:', e);
+        setTasksList([]);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+    if (isExpanded) {
+      loadTasks();
+    }
+  }, [isExpanded]);
+
+  const projectTaskIds = useMemo(() => new Set((project.tasks || []).map(t => t.id)), [project.tasks]);
+  const selectableTasks = useMemo(() => {
+    return (tasksList || []).filter(t => !projectTaskIds.has(t.id));
+  }, [tasksList, projectTaskIds]);
+
+  const handleUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setAttachUploading(true);
+      await projectService.uploadProjectAttachments(project.id, Array.from(files));
+      // Запросим обновление карточки
+      if (onUpdate) {
+        try { await onUpdate(project.id, {}); } catch {}
+      }
+    } catch (err) {
+      console.error('Upload attachments error:', err);
+    } finally {
+      setAttachUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddTask = async () => {
+    const id = parseInt(selectedTaskId, 10);
+    if (!id) return;
+    try {
+      await projectService.addTaskToProject(project.id, id);
+      if (onUpdate) {
+        try { await onUpdate(project.id, {}); } catch {}
+      }
+      setSelectedTaskId('');
+    } catch (err) {
+      console.error('Add task to project error:', err);
+    }
   };
 
   return (
@@ -147,6 +219,21 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
             {/* Задачи проекта */}
             <div className="project-tasks">
               <h4>Задачи проекта ({project.task_count})</h4>
+              <div className="task-add-inline">
+                <select
+                  value={selectedTaskId}
+                  onChange={(e) => setSelectedTaskId(e.target.value)}
+                  disabled={tasksLoading || selectableTasks.length === 0}
+                >
+                  <option value="">{tasksLoading ? 'Загрузка задач...' : 'Выберите задачу'}</option>
+                  {selectableTasks.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.id} — {t.title || 'Без названия'} ({t.status})
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={handleAddTask} disabled={!selectedTaskId}>Добавить задачу</button>
+              </div>
               {project.tasks && project.tasks.length > 0 ? (
                 <div className="tasks-list">
                   {project.tasks.map(task => (
@@ -177,6 +264,29 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
                 </div>
               ) : (
                 <p className="no-tasks">Задачи не созданы</p>
+              )}
+            </div>
+
+            {/* Вложения проекта */}
+            <div className="project-attachments">
+              <h4>Вложения</h4>
+              <div className="attach-actions">
+                <label className="upload-btn">
+                  {attachUploading ? 'Загрузка...' : 'Загрузить файлы'}
+                  <input type="file" multiple style={{ display: 'none' }} onChange={handleUpload} />
+                </label>
+              </div>
+              {project.attachments && project.attachments.length > 0 ? (
+                <ul className="attachments-list">
+                  {project.attachments.map((a, idx) => (
+                    <li key={idx} className="attachment-item">
+                      <span className="att-name">{a.filename}</span>
+                      <span className="att-size">{a.size ? `${a.size} B` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="no-attachments">Файлы не прикреплены</p>
               )}
             </div>
 
@@ -218,21 +328,24 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
         </div>
         
         <div className="project-actions">
-          <button
-            onClick={() => onUpdate(project.id, { status: 'completed' })}
-            className="complete-btn"
-            title="Завершить проект"
-          >
-            ✅ Завершить
-          </button>
-          
-          <button
-            onClick={() => onDelete(project.id)}
-            className="delete-btn"
-            title="Удалить проект"
-          >
-            🗑️ Удалить
-          </button>
+          {canManageProject && (
+            <>
+              <button
+                onClick={() => onUpdate(project.id, { status: 'completed' })}
+                className="complete-btn"
+                title="Завершить проект"
+              >
+                ✅ Завершить
+              </button>
+              <button
+                onClick={() => onDelete(project.id)}
+                className="delete-btn"
+                title="Удалить проект"
+              >
+                🗑️ Удалить
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

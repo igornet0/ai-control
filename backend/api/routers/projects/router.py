@@ -2,14 +2,15 @@
 Роутер для управления проектами
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload, joinedload
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from pydantic import BaseModel
 
 from backend.api.configuration.server import Server
 from core.database.models import Project, ProjectTeam, ProjectStatus, ProjectPriority, User, Task, Team
+from core.database.models.project_model import ProjectAttachmentFavorite
 from backend.api.configuration.auth import get_current_user
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -29,6 +30,7 @@ class ProjectCreateRequest(BaseModel):
     budget: Optional[float] = None
     tags: Optional[List[str]] = None
     team_ids: Optional[List[int]] = None  # ID команд для добавления в проект
+    task_ids: Optional[List[int]] = None  # ID задач для привязки к проекту
 
 
 class ProjectUpdateRequest(BaseModel):
@@ -49,6 +51,7 @@ class ProjectTeamResponse(BaseModel):
     team_name: str
     role: str
     joined_at: datetime
+    disbanded_at: Optional[date]
     is_active: bool
 
 
@@ -83,6 +86,7 @@ class ProjectResponse(BaseModel):
     team_count: int
     tasks: List[ProjectTaskResponse]
     teams: List[ProjectTeamResponse]
+    attachments: Optional[List[dict]] = None
 
 
 def _to_naive_utc(dt: Optional[datetime]) -> Optional[datetime]:
@@ -161,6 +165,7 @@ async def get_projects(
                 team_name=pt.team.name,
                 role=pt.role,
                 joined_at=pt.joined_at,
+                disbanded_at=pt.disbanded_at,
                 is_active=pt.is_active
             ))
 
@@ -184,7 +189,8 @@ async def get_projects(
             task_count=task_count,
             team_count=team_count,
             tasks=tasks,
-            teams=teams
+            teams=teams,
+            attachments=(project.custom_fields or {}).get("attachments") if project.custom_fields else None
         ))
 
     return responses
@@ -228,12 +234,21 @@ async def get_project(
 
     teams: List[ProjectTeamResponse] = []
     for pt in project.teams:
+        # Конвертируем disbanded_at в date, если он есть
+        disbanded_date = None
+        if pt.disbanded_at:
+            if isinstance(pt.disbanded_at, datetime):
+                disbanded_date = pt.disbanded_at.date()
+            else:
+                disbanded_date = pt.disbanded_at
+        
         teams.append(ProjectTeamResponse(
             id=pt.id,
             team_id=pt.team_id,
             team_name=pt.team.name,
             role=pt.role,
             joined_at=pt.joined_at,
+            disbanded_at=disbanded_date,
             is_active=pt.is_active
         ))
 
@@ -257,7 +272,8 @@ async def get_project(
         task_count=task_count,
         team_count=team_count,
         tasks=tasks,
-        teams=teams
+        teams=teams,
+        attachments=(project.custom_fields or {}).get("attachments") if project.custom_fields else None
     )
 
 
@@ -302,6 +318,15 @@ async def create_project(
                     role="development"
                 )
                 session.add(project_team)
+        await session.commit()
+
+    # Привязываем существующие задачи к проекту, если указаны
+    if project_data.task_ids:
+        for task_id in project_data.task_ids:
+            task_result = await session.execute(select(Task).where(Task.id == task_id))
+            task = task_result.scalar_one_or_none()
+            if task:
+                task.project_id = project.id
         await session.commit()
 
     return await get_project(project.id, current_user, session)
@@ -439,7 +464,309 @@ async def remove_team_from_project(
     if not existing:
         raise HTTPException(status_code=404, detail="Team is not in this project")
 
-    await session.delete(existing)
+    # Set disbanded_at date only (without time) instead of deleting
+    existing.disbanded_at = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    existing.is_active = False
     await session.commit()
-
     return {"message": "Team removed from project"}
+
+
+@router.post("/{project_id}/attachments", response_model=ProjectResponse)
+async def upload_project_attachments(
+    project_id: int,
+    files: list[UploadFile] = File(default=None),
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Загрузить вложения для проекта. Допускаются: .pdf .doc .pages .csv .epub"""
+    # Проверяем существование проекта и права
+    result = await session.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
+        raise HTTPException(status_code=403, detail="Not enough permissions to modify this project")
+
+    if not files:
+        # Ничего не загружено — просто вернем проект
+        return await get_project(project.id, current_user, session)
+
+    import os
+    from pathlib import Path
+
+    allowed_ext = {".pdf", ".doc", ".pages", ".csv", ".cvs", ".epub"}
+    base_dir = Path("/app/uploads/projects")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    proj_dir = base_dir / str(project.id)
+    proj_dir.mkdir(parents=True, exist_ok=True)
+
+    attachments = []
+    for f in files:
+        name = f.filename or "upload"
+        ext = os.path.splitext(name)[1].lower()
+        if ext not in allowed_ext:
+            raise HTTPException(status_code=400, detail=f"File type not allowed: {ext}")
+
+        target_path = proj_dir / name
+        # Разрешим коллизии имен — допишем индекс
+        idx = 1
+        while target_path.exists():
+            stem = os.path.splitext(name)[0]
+            target_path = proj_dir / f"{stem}_{idx}{ext}"
+            idx += 1
+
+        content = await f.read()
+        with open(target_path, "wb") as out:
+            out.write(content)
+
+        attachments.append({
+            "filename": os.path.basename(target_path),
+            "path": str(target_path),
+            "content_type": f.content_type,
+            "size": len(content),
+            "uploaded_by": current_user.id,
+            "uploaded_at": datetime.utcnow().isoformat()
+        })
+
+    # Сохраняем метаданные вложений в custom_fields.attachments
+    cf = project.custom_fields or {}
+    existing = cf.get("attachments", [])
+    cf["attachments"] = existing + attachments
+    project.custom_fields = cf
+
+    await session.commit()
+    await session.refresh(project)
+
+    return await get_project(project.id, current_user, session)
+
+
+@router.get("/{project_id}/attachments")
+async def list_project_attachments(
+    project_id: int,
+    search: Optional[str] = None,
+    sort_by: str = "name",  # name | size | type
+    sort_order: str = "asc",
+    only_my: bool = False,
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    result = await session.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    cf = project.custom_fields or {}
+    attachments = cf.get("attachments", [])
+
+    # Фильтрация
+    if search:
+        q = search.lower()
+        attachments = [a for a in attachments if q in (a.get("filename", "").lower())]
+    if only_my:
+        attachments = [a for a in attachments if a.get("uploaded_by") == current_user.id]
+
+    # Избранное
+    fav_rows = await session.execute(
+        select(ProjectAttachmentFavorite.filename).where(
+            ProjectAttachmentFavorite.project_id == project_id,
+            ProjectAttachmentFavorite.user_id == current_user.id
+        )
+    )
+    fav_set = set([r[0] for r in fav_rows.fetchall()])
+
+    # Обогащаем
+    def key_fn(a):
+        if sort_by == "size":
+            return a.get("size", 0)
+        if sort_by == "type":
+            return (a.get("content_type") or "")
+        return (a.get("filename") or "")
+
+    reverse = sort_order == "desc"
+    attachments.sort(key=key_fn, reverse=reverse)
+
+    # Ограничение количества
+    if limit and limit > 0:
+        attachments = attachments[:limit]
+
+    for a in attachments:
+        a["is_favorite"] = a.get("filename") in fav_set
+
+    return {"items": attachments, "total": len(attachments)}
+
+
+@router.get("/attachments")
+async def list_all_project_attachments(
+    search: Optional[str] = None,
+    sort_by: str = "uploaded_at",  # uploaded_at | name | size | type
+    sort_order: str = "desc",
+    only_my: bool = False,
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    # Получаем проекты (минимальный набор полей)
+    proj_res = await session.execute(select(Project))
+    projects = proj_res.scalars().all()
+
+    rows: list[dict] = []
+    for p in projects:
+        cf = p.custom_fields or {}
+        atts = cf.get("attachments", []) or []
+        for a in atts:
+            # фильтр only_my
+            if only_my and a.get("uploaded_by") != current_user.id:
+                continue
+            rec = {
+                "project_id": p.id,
+                "project_name": p.name,
+                "filename": a.get("filename"),
+                "content_type": a.get("content_type"),
+                "size": a.get("size"),
+                "uploaded_by": a.get("uploaded_by"),
+                "uploaded_at": a.get("uploaded_at"),
+            }
+            rows.append(rec)
+
+    # Поиск
+    if search:
+        q = search.lower()
+        rows = [r for r in rows if q in (r.get("filename") or "").lower() or q in (r.get("project_name") or "").lower()]
+
+    # Сортировка
+    def key_fn(r: dict):
+        if sort_by == "size":
+            return r.get("size") or 0
+        if sort_by == "type":
+            return r.get("content_type") or ""
+        if sort_by == "name":
+            return r.get("filename") or ""
+        # uploaded_at
+        return r.get("uploaded_at") or ""
+
+    reverse = sort_order == "desc"
+    rows.sort(key=key_fn, reverse=reverse)
+
+    total = len(rows)
+    if limit and limit > 0:
+        rows = rows[:limit]
+
+    return {"items": rows, "total": total}
+
+
+@router.post("/{project_id}/attachments/{filename}/favorite")
+async def toggle_favorite_attachment(
+    project_id: int,
+    filename: str,
+    favorite: bool = True,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    # Ensure project exists
+    res = await session.execute(select(Project.id).where(Project.id == project_id))
+    if not res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if favorite:
+        # add or ignore
+        exists = await session.execute(
+            select(ProjectAttachmentFavorite.id).where(
+                ProjectAttachmentFavorite.user_id == current_user.id,
+                ProjectAttachmentFavorite.project_id == project_id,
+                ProjectAttachmentFavorite.filename == filename
+            )
+        )
+        if exists.scalar_one_or_none() is None:
+            session.add(ProjectAttachmentFavorite(
+                user_id=current_user.id,
+                project_id=project_id,
+                filename=filename
+            ))
+            await session.commit()
+        return {"message": "added"}
+    else:
+        await session.execute(
+            ProjectAttachmentFavorite.__table__.delete().where(
+                (ProjectAttachmentFavorite.user_id == current_user.id) &
+                (ProjectAttachmentFavorite.project_id == project_id) &
+                (ProjectAttachmentFavorite.filename == filename)
+            )
+        )
+        await session.commit()
+        return {"message": "removed"}
+
+
+@router.get("/{project_id}/attachments/{filename}")
+async def download_project_attachment(
+    project_id: int,
+    filename: str,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    # Найдем вложение в custom_fields
+    result = await session.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    cf = project.custom_fields or {}
+    attachments = cf.get("attachments", [])
+    found = next((a for a in attachments if a.get("filename") == filename), None)
+    if not found:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    from fastapi.responses import FileResponse
+    return FileResponse(path=found["path"], media_type=found.get("content_type") or "application/octet-stream", filename=found["filename"])
+
+
+@router.post("/{project_id}/tasks/{task_id}")
+async def add_existing_task_to_project(
+    project_id: int,
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Привязать существующую задачу к проекту (установить project_id у Task)."""
+    proj_res = await session.execute(select(Project).where(Project.id == project_id))
+    project = proj_res.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
+        raise HTTPException(status_code=403, detail="Not enough permissions to modify this project")
+
+    task_res = await session.execute(select(Task).where(Task.id == task_id))
+    task = task_res.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task.project_id = project.id
+    await session.commit()
+    return {"message": "Task linked to project"}
+
+
+@router.delete("/{project_id}/tasks/{task_id}")
+async def remove_task_from_project(
+    project_id: int,
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Отвязать задачу от проекта (project_id = NULL)."""
+    proj_res = await session.execute(select(Project).where(Project.id == project_id))
+    project = proj_res.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
+        raise HTTPException(status_code=403, detail="Not enough permissions to modify this project")
+
+    task_res = await session.execute(select(Task).where(Task.id == task_id))
+    task = task_res.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.project_id != project.id:
+        raise HTTPException(status_code=400, detail="Task does not belong to this project")
+
+    task.project_id = None
+    await session.commit()
+    return {"message": "Task unlinked from project"}

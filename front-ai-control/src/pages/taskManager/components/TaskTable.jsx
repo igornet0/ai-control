@@ -36,13 +36,13 @@ const statusStyles = {
 const StatusBadge = ({ status }) => {
   const getStatusDisplayName = (status) => {
     const statusMap = {
-      'created': 'Created',
-      'in_progress': 'In Progress',
-      'review': 'Review',
-      'completed': 'Completed',
-      'cancelled': 'Cancelled',
-      'on_hold': 'On Hold',
-      'blocked': 'Blocked'
+      'created': 'Создана',
+      'in_progress': 'В работе',
+      'review': 'На проверке',
+      'completed': 'Завершена',
+      'cancelled': 'Отменена',
+      'on_hold': 'На паузе',
+      'blocked': 'Заблокирована'
     };
     return statusMap[status] || status;
   };
@@ -395,7 +395,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
         className="absolute bg-[#16251C] shadow-lg rounded-md p-2 z-50 text-sm"
         style={{ top: contextMenu.y, left: contextMenu.x, width: 200 }}
       >
-        <h4 className="font-semibold mb-1 capitalize">Filter {type}:</h4>
+                    <h4 className="font-semibold mb-1 capitalize">Фильтр {type}:</h4>
         {options.map((key) => (
           <label key={key} className="flex items-center space-x-2 px-2 py-1 hover:bg-[#1A2B24] rounded">
             <input
@@ -417,7 +417,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                 checked={myTasksFilter}
                 onChange={(e) => setMyTasksFilter(e.target.checked)}
               />
-              <span className="text-blue-400">🎯 My Tasks</span>
+              <span className="text-blue-400">🎯 Мои задачи</span>
             </label>
           </>
         )}
@@ -426,7 +426,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
         {currentUser && (
           <>
             <hr className="border-gray-600 my-2" />
-            <h4 className="font-semibold mb-1 text-gray-300">Quick Actions:</h4>
+            <h4 className="font-semibold mb-1 text-gray-300">Быстрые действия:</h4>
             <div className="space-y-1">
               <button
                 onClick={() => {
@@ -436,7 +436,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                 }}
                 className="w-full text-left px-2 py-1 hover:bg-[#1A2B24] rounded text-blue-400 hover:text-blue-300 transition-colors"
               >
-                ❓ Ask Question
+                ❓ Задать вопрос
               </button>
               <button
                 onClick={() => {
@@ -446,7 +446,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                 }}
                 className="w-full text-left px-2 py-1 hover:bg-[#1A2B24] rounded text-orange-400 hover:text-orange-300 transition-colors"
               >
-                🚨 Report Task
+                🚨 Пожаловаться
               </button>
             </div>
           </>
@@ -460,7 +460,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
     <div className="flex items-center space-x-2">
       <input
         type="text"
-        placeholder="🔍 Search tasks..."
+        placeholder="🔍 Поиск задач..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="flex-grow md:max-w-sm px-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -543,26 +543,26 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
 
     <div className="overflow-x-auto max-h-[400px] overflow-y-auto rounded-md">
       <div className="text-xs text-gray-400 mb-2 px-2">
-        💡 Click on column headers to sort tasks. Click again to reverse order.
+        💡 Нажмите на заголовки колонок для сортировки задач. Нажмите еще раз для изменения порядка.
         {sortConfig.field && (
           <span className="ml-2 text-green-400">
-            Currently sorted by: <strong>{sortConfig.field}</strong> ({sortConfig.direction === "asc" ? "ascending" : "descending"})
+            Сортировка по: <strong>{sortConfig.field}</strong> ({sortConfig.direction === "asc" ? "по возрастанию" : "по убыванию"})
           </span>
         )}
         {/* Счетчик задач */}
         <div className="mt-2 text-blue-400">
           {myTasksFilter ? (
             <span>
-              🎯 Showing <strong>{filteredTasks.length}</strong> of your tasks
+              🎯 Показано <strong>{filteredTasks.length}</strong> ваших задач
               {tasks.length !== filteredTasks.length && (
                 <span className="text-gray-400"> (filtered from {tasks.length} total)</span>
               )}
             </span>
           ) : (
             <span>
-              📋 Showing <strong>{filteredTasks.length}</strong> tasks
+              📋 Показано <strong>{filteredTasks.length}</strong> задач
               {tasks.length !== filteredTasks.length && (
-                <span className="text-gray-400"> (filtered from {tasks.length} total)</span>
+                <span className="text-gray-400"> (отфильтровано из {tasks.length} всего)</span>
               )}
             </span>
           )}
@@ -577,7 +577,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               onContextMenu={(e) => handleContextMenu(e, "status")}
             >
               <div className="flex items-center justify-between">
-                Status
+                Статус
                 <span className="ml-2 text-green-400">
                   {sortConfig.field === "status" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
@@ -588,7 +588,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               onClick={() => handleSort("title")}
             >
               <div className="flex items-center justify-between">
-                Task
+                Задача
                 <span className="ml-2 text-green-400">
                   {sortConfig.field === "title" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
@@ -600,10 +600,10 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  Assignee
+                  Исполнитель
                   {myTasksFilter && (
                     <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">
-                      🎯 My Tasks
+                      🎯 Мои задачи
                     </span>
                   )}
                 </div>
@@ -617,7 +617,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               onClick={() => handleSort("created_at")}
             >
               <div className="flex items-center justify-between">
-                Created
+                Создано
                 <span className="ml-2 text-green-400">
                   {sortConfig.field === "created_at" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
@@ -628,7 +628,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               onClick={() => handleSort("due_date")}
             >
               <div className="flex items-center justify-between">
-                Due Date
+                Срок
                 <span className="ml-2 text-green-400">
                   {sortConfig.field === "due_date" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
@@ -640,20 +640,20 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               onContextMenu={(e) => handleContextMenu(e, "priority")}
             >
               <div className="flex items-center justify-between">
-                Priority
+                Приоритет
                 <span className="ml-2 text-green-400">
                   {sortConfig.field === "priority" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
             </th>
-            <th className="px-3 py-2">Actions</th>
+            <th className="px-3 py-2">Действия</th>
           </tr>
         </thead>
         <tbody>
             {loading ? (
               <tr>
                 <td colSpan="7" className="text-center py-6 text-gray-400">
-                  Loading tasks... 🔄
+                  Загрузка задач... 🔄
                 </td>
               </tr>
             ) : filteredTasks.length > 0 ? (
@@ -701,8 +701,8 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                         task.executor_id === currentUser?.id ? 'font-semibold text-green-300' : ''
                       }`}>
                         {task.executor_id === currentUser?.id 
-                          ? `${task.executor_name || 'Unassigned'} (You)` 
-                          : task.executor_name || 'Unassigned'
+                                                      ? `${task.executor_name || 'Не назначен'} (Вы)`  
+                          : task.executor_name || 'Не назначен'
                         }
                       </span>
                     </div>
@@ -743,11 +743,11 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                               ? 'text-gray-500 cursor-not-allowed'
                               : 'text-blue-400 hover:text-blue-300'
                           }`}
-                          title={
-                            task.executor_id === currentUser.id
-                              ? 'This task is already assigned to you'
-                              : 'Take this task on yourself'
-                          }
+                                                  title={
+                          task.executor_id === currentUser.id
+                            ? 'Эта задача уже назначена вам'
+                            : 'Взять эту задачу на себя'
+                        }
                         >
                           <svg
                             className="w-4 h-4"
@@ -770,7 +770,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                         <button
                           onClick={(e) => handleAskQuestion(task, e)}
                           className="text-blue-400 hover:text-blue-300 transition-colors"
-                          title="Ask a question about this task"
+                          title="Задать вопрос по этой задаче"
                         >
                           <svg
                             className="w-4 h-4"
@@ -793,7 +793,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                         <button
                           onClick={(e) => handleReportTask(task, e)}
                           className="text-orange-400 hover:text-orange-300 transition-colors"
-                          title="Report this task to administrators"
+                          title="Пожаловаться на эту задачу администраторам"
                         >
                           <svg
                             className="w-4 h-4"
@@ -819,7 +819,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                             setConfirmDelete(task.id);
                           }}
                           className="text-red-400 hover:text-red-300 transition-colors"
-                          title="Delete task"
+                          title="Удалить задачу"
                         >
                           <svg
                             className="w-4 h-4"
@@ -843,7 +843,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
             ) : (
               <tr>
                 <td colSpan="7" className="text-center py-6 text-gray-400">
-                  {tasks.length === 0 ? 'No tasks found. Create your first task!' : 'No tasks matched your filters 🔍'}
+                  {tasks.length === 0 ? 'Задачи не найдены. Создайте первую задачу!' : 'Задачи не найдены по вашим фильтрам 🔍'}
                 </td>
               </tr>
             )}

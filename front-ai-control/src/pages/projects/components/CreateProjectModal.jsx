@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { teamService } from '../../../services/teamService';
+import { getTasks } from '../../../services/taskService';
 import './CreateProjectModal.css';
 
 const CreateProjectModal = ({ onClose, onSubmit }) => {
@@ -16,9 +17,12 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
   });
 
   const [teams, setTeams] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [newTag, setNewTag] = useState('');
+  const [files, setFiles] = useState([]);
 
   // Загрузка команд для выбора
   useEffect(() => {
@@ -32,6 +36,25 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
     };
     loadTeams();
   }, []);
+
+  // Загрузка задач для выбора
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        setTasksLoading(true);
+        const all = await getTasks();
+        setTasks(Array.isArray(all) ? all : []);
+      } catch (e) {
+        console.error('Error loading tasks:', e);
+        setTasks([]);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+    loadTasks();
+  }, []);
+
+  const selectableTasks = useMemo(() => tasks, [tasks]);
 
   const handleChange = (field, value) => {
     setProjectData(prev => ({ ...prev, [field]: value }));
@@ -105,7 +128,17 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
         due_date: projectData.due_date ? new Date(projectData.due_date).toISOString() : null
       };
 
-      await onSubmit(submitData);
+      const created = await onSubmit(submitData);
+      // Загрузка вложений, если выбраны
+      if (created && created.id && files && files.length > 0) {
+        try {
+          const { projectService } = await import('../../../services/projectService');
+          await projectService.uploadProjectAttachments(created.id, Array.from(files));
+        } catch (err) {
+          console.error('Attachment upload failed:', err);
+        }
+      }
+      onClose();
     } catch (error) {
       console.error('Error creating project:', error);
       setErrors({ general: 'Ошибка при создании проекта' });
@@ -255,6 +288,16 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
           </div>
 
           <div className="form-group">
+            <label>Вложения (.pdf, .doc, .pages, .csv, .epub)</label>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.doc,.pages,.csv,.epub,application/pdf,application/msword,text/csv,application/epub+zip"
+              onChange={(e) => setFiles(e.target.files)}
+            />
+          </div>
+
+          <div className="form-group">
             <label>Команды</label>
             <div className="teams-selection">
               {teams.map(team => (
@@ -271,6 +314,16 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>Задачи для добавления</label>
+            <TaskMultiSelect
+              tasks={selectableTasks}
+              loading={tasksLoading}
+              value={projectData.task_ids}
+              onChange={(ids) => handleChange('task_ids', ids)}
+            />
           </div>
 
           <div className="form-actions">
@@ -296,3 +349,37 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
 };
 
 export default CreateProjectModal;
+
+// Простой мультиселект задач без зависимостей от UI-библиотек
+const TaskMultiSelect = ({ tasks, value, onChange, loading }) => {
+  const handleToggle = (taskId) => {
+    const curr = Array.isArray(value) ? value : [];
+    if (curr.includes(taskId)) {
+      onChange(curr.filter(id => id !== taskId));
+    } else {
+      onChange([...curr, taskId]);
+    }
+  };
+
+  return (
+    <div className="tasks-selection">
+      {loading && <div>Загрузка задач...</div>}
+      {!loading && tasks && tasks.length === 0 && <div>Нет доступных задач</div>}
+      {!loading && tasks && tasks.length > 0 && (
+        <div className="task-checkbox-list">
+          {tasks.map(t => (
+            <label key={t.id} className="task-checkbox">
+              <input
+                type="checkbox"
+                checked={(value || []).includes(t.id)}
+                onChange={() => handleToggle(t.id)}
+              />
+              <span className="task-title">{t.id} — {t.title || 'Без названия'}</span>
+              {t.status && <span className="task-meta">({t.status})</span>}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

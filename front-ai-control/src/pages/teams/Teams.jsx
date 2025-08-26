@@ -146,9 +146,9 @@ const Teams = () => {
           <button 
             className={styles['back-btn']}
             onClick={() => navigate('/tasks')}
-            title="Back to Tasks"
+            title="Вернуться к задачам"
           >
-            ← Back to Tasks
+            ← К задачам
           </button>
           <div className={styles['title-section']}>
             <h1>Команды</h1>
@@ -175,9 +175,9 @@ const Teams = () => {
             <button 
               onClick={() => setShowMyTeams(!showMyTeams)}
               className={`${styles['my-teams-btn']} ${showMyTeams ? styles['my-teams-active'] : ''}`}
-              title={showMyTeams ? "Show all teams" : "Show my teams only"}
+              title={showMyTeams ? "Показать все команды" : "Показать только мои команды"}
             >
-              {showMyTeams ? '👥 All Teams' : '👤 My Teams'}
+              {showMyTeams ? '👥 Все команды' : '👤 Мои команды'}
             </button>
           ) : (
             <button 
@@ -185,7 +185,7 @@ const Teams = () => {
               disabled
               title="Загрузка пользователя..."
             >
-              👤 My Teams
+              👤 Мои команды
             </button>
           )}
           <button 

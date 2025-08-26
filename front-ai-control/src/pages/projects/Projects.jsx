@@ -83,8 +83,8 @@ const Projects = () => {
     try {
       const newProject = await projectService.createProject(projectData);
       setProjects(prev => [newProject, ...prev]);
-      setShowCreateModal(false);
       setError(null);
+      return newProject;
     } catch (err) {
       setError('Ошибка при создании проекта');
       console.error('Error creating project:', err);
@@ -131,13 +131,13 @@ const Projects = () => {
     <div className="projects-container">
       <div className="projects-header">
         <div className="header-left">
-          <button 
-            className="back-btn"
-            onClick={() => navigate('/tasks')}
-            title="Back to Tasks"
-          >
-            ← Back to Tasks
-          </button>
+                      <button 
+              className="back-btn"
+              onClick={() => navigate('/tasks')}
+              title="Вернуться к задачам"
+            >
+              ← К задачам
+            </button>
           <div className="title-section">
             <h1>Проекты</h1>
             <div className="projects-counter">

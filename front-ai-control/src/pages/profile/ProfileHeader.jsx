@@ -29,7 +29,7 @@ const ProfileHeader = ({ isAuthenticated }) => {
 
           <ul style={{ display: 'flex', alignItems: 'center', listStyle: 'none', margin: 0, padding: 0 }}>
             <li ><a href="/dashboard">Dashboard</a></li>
-            <li ><a href="/tasks">Tasks</a></li>
+            <li ><a href="/tasks">Задачи</a></li>
             <li ><a href="/support">Support</a></li>
             <li>
               {isAuthenticated ? (

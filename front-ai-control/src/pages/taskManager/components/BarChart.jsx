@@ -34,7 +34,7 @@ export default function BarChart({ tasks = [] }) {
 
   return (
     <div className="bg-[#16251C] p-4 rounded-lg shadow-sm">
-      <h3 className="font-medium mb-4">Priority Distribution</h3>
+      <h3 className="font-medium mb-4">Распределение приоритетов</h3>
       <div className="flex items-end gap-2 h-24">
         {Object.entries(priorityStats).map(([priority, count]) => (
           <div key={priority} className="flex flex-col items-center">
@@ -48,7 +48,7 @@ export default function BarChart({ tasks = [] }) {
         ))}
       </div>
       <div className="mt-3 text-center text-xs text-gray-400">
-        Total: {Object.values(priorityStats).reduce((a, b) => a + b, 0)} tasks
+        Всего: {Object.values(priorityStats).reduce((a, b) => a + b, 0)} задач
       </div>
     </div>
   );

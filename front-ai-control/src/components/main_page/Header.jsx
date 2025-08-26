@@ -7,7 +7,7 @@ const Header = ({ isAuthenticated }) => {
       <nav className={styles.nav}>
         <ul>
           <li><a href="/dashboard">Dashboard</a></li>
-          <li><a href="/tasks">Tasks</a></li>
+          <li><a href="/tasks">Задачи</a></li>
           <li><a href="/support">Support</a></li>
           <li>
             {isAuthenticated ? (

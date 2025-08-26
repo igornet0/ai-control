@@ -5,8 +5,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy import (
-    BigInteger, String, Text, Boolean, DateTime, Integer, 
-    ForeignKey, Index, JSON, func
+    BigInteger, String, Text, Boolean, DateTime, Integer,
+    ForeignKey, Index, JSON, func, UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database.base import Base
@@ -93,6 +93,7 @@ class ProjectTeam(Base):
     
     # Дополнительные поля
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    disbanded_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     
     # Связи
@@ -103,4 +104,23 @@ class ProjectTeam(Base):
         Index("idx_project_teams_project", "project_id"),
         Index("idx_project_teams_team", "team_id"),
         Index("idx_project_teams_active", "is_active"),
+        Index("idx_project_teams_disbanded", "disbanded_at"),
+    )
+
+
+class ProjectAttachmentFavorite(Base):
+    """Избранные вложения проектов пользователем"""
+    __tablename__ = "project_attachment_favorites"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "project_id", "filename", name="uq_project_attachment_fav"),
+        Index("idx_project_attachment_fav_user", "user_id"),
+        Index("idx_project_attachment_fav_project", "project_id"),
     )

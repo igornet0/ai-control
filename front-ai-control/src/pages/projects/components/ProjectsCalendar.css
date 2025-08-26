@@ -93,6 +93,21 @@
   background: #3f0e1244;
 }
 
+.cal-chip--project-start {
+  background-color: #10b981;
+  color: white;
+}
+
+.cal-chip--project-due {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.cal-chip--team-disband {
+  background-color: #ef4444;
+  color: white;
+}
+
 .cal-chip-dot {
   width: 8px;
   height: 8px;

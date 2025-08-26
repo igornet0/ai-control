@@ -46,7 +46,7 @@ const TaskApp = ({ user, onLogout }) => {
       setTasks(filteredTasks);
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Failed to load data. Please refresh the page.');
+      setError('Не удалось загрузить данные. Пожалуйста, обновите страницу.');
     } finally {
       setLoading(false);
     }
@@ -142,7 +142,7 @@ const TaskApp = ({ user, onLogout }) => {
               onClick={loadData}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
             >
-              Try Again
+              Попробовать снова
             </button>
           </div>
         </div>
@@ -158,12 +158,8 @@ const TaskApp = ({ user, onLogout }) => {
           <div className="flex-1">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-xl font-semibold">Tasks</h2>
-                {tasks.length === 0 && !loading && (
-                  <p className="text-sm text-gray-400 mt-1">
-                    No tasks found. Create your first task!
-                  </p>
-                )}
+                <h2 className="text-xl font-semibold">Задачи</h2>
+
               </div>
               <div className="flex gap-2">
                 {tasks.some(task => 
@@ -173,23 +169,23 @@ const TaskApp = ({ user, onLogout }) => {
                   <button 
                     onClick={clearTestTasks}
                     className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
-                    title="Clear test tasks"
+                    title="Очистить тестовые задачи"
                   >
-                    🧹 Clear Test Tasks
+                    🧹 Очистить тестовые задачи
                   </button>
                 )}
                 <button 
                   onClick={() => navigate('/teams')}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                  title="Manage Teams"
+                  title="Управление командами"
                 >
-                  👥 Teams
+                  👥 Команды
                 </button>
                 <button 
                   onClick={() => setShowCreateModal(true)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
                 >
-                  + New Task
+                  + Новая задача
                 </button>
               </div>
             </div>

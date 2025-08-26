@@ -52,11 +52,11 @@ export default function CreateTaskModal({ onClose, onSave }) {
     const newErrors = {};
     
     if (!taskData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'Название обязательно';
     }
     
     if (taskData.estimated_hours && isNaN(taskData.estimated_hours)) {
-      newErrors.estimated_hours = 'Estimated hours must be a number';
+      newErrors.estimated_hours = 'Оценка в часах должна быть числом';
     }
 
     setErrors(newErrors);
@@ -97,13 +97,13 @@ export default function CreateTaskModal({ onClose, onSave }) {
           ✕
         </button>
 
-        <h2 className="text-2xl font-semibold mb-6">Create New Task</h2>
+        <h2 className="text-2xl font-semibold mb-6">Создать новую задачу</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Title */}
           <div className="md:col-span-2">
             <label className="block mb-2">
-              <span className="text-gray-300">Title *</span>
+              <span className="text-gray-300">Название *</span>
               <input
                 type="text"
                 value={taskData.title}
@@ -111,7 +111,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
                 className={`mt-1 block w-full rounded-md border p-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500 ${
                   errors.title ? 'border-red-500 bg-[#0f1b16]' : 'border-gray-600 bg-[#0f1b16]'
                 }`}
-                placeholder="Enter task title"
+                placeholder="Введите название задачи"
               />
               {errors.title && <span className="text-red-400 text-sm">{errors.title}</span>}
             </label>
@@ -120,13 +120,13 @@ export default function CreateTaskModal({ onClose, onSave }) {
           {/* Description */}
           <div className="md:col-span-2">
             <label className="block mb-2">
-              <span className="text-gray-300">Description</span>
+              <span className="text-gray-300">Описание</span>
               <textarea
                 rows={3}
                 value={taskData.description}
                 onChange={(e) => handleChange("description", e.target.value)}
                 className="mt-1 block w-full rounded-md border border-gray-600 bg-[#0f1b16] p-2 text-white resize-y focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter task description..."
+                placeholder="Введите описание задачи..."
               />
             </label>
           </div>
@@ -134,7 +134,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
           {/* Status and Priority */}
           <div>
             <label className="block mb-2">
-              <span className="text-gray-300">Status</span>
+              <span className="text-gray-300">Статус</span>
               <CustomSelect
                 options={statusOptions}
                 value={taskData.status}
@@ -145,7 +145,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
 
           <div>
             <label className="block mb-2">
-              <span className="text-gray-300">Priority</span>
+              <span className="text-gray-300">Приоритет</span>
               <CustomSelect
                 options={priorityOptions}
                 value={taskData.priority}
@@ -157,7 +157,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
           {/* Task Type and Due Date */}
           <div>
             <label className="block mb-2">
-              <span className="text-gray-300">Task Type</span>
+              <span className="text-gray-300">Тип задачи</span>
               <CustomSelect
                 options={taskTypeOptions}
                 value={taskData.task_type}
@@ -168,7 +168,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
 
           <div>
             <label className="block mb-2">
-              <span className="text-gray-300">Due Date</span>
+              <span className="text-gray-300">Срок выполнения</span>
               <input
                 type="date"
                 value={taskData.due_date}
@@ -181,7 +181,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
           {/* Assignee and Estimated Hours */}
           <div>
             <label className="block mb-2">
-              <span className="text-gray-300">Estimated Hours</span>
+              <span className="text-gray-300">Оценка в часах</span>
               <input
                 type="number"
                 step="0.5"
@@ -200,7 +200,7 @@ export default function CreateTaskModal({ onClose, onSave }) {
           {/* Tags */}
           <div className="md:col-span-2">
             <label className="block mb-2">
-              <span className="text-gray-300">Tags</span>
+              <span className="text-gray-300">Теги</span>
               <TaskTags
                 tags={taskData.tags ? taskData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []}
                 onTagsChange={(tags) => handleChange("tags", tags.join(', '))}
@@ -246,13 +246,13 @@ export default function CreateTaskModal({ onClose, onSave }) {
             onClick={onClose}
             className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 transition"
           >
-            Cancel
+            Отмена
           </button>
           <button
             onClick={handleSubmit}
             className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 transition"
           >
-            Create Task
+            Создать задачу
           </button>
         </div>
       </div>
