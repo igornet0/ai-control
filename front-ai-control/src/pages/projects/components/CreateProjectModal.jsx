@@ -23,6 +23,8 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
   const [errors, setErrors] = useState({});
   const [newTag, setNewTag] = useState('');
   const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Загрузка команд для выбора
   useEffect(() => {
@@ -128,22 +130,22 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
         due_date: projectData.due_date ? new Date(projectData.due_date).toISOString() : null
       };
 
-      const created = await onSubmit(submitData);
-      // Загрузка вложений, если выбраны
-      if (created && created.id && files && files.length > 0) {
-        try {
-          const { projectService } = await import('../../../services/projectService');
-          await projectService.uploadProjectAttachments(created.id, Array.from(files));
-        } catch (err) {
-          console.error('Attachment upload failed:', err);
+      setUploading(true);
+      setUploadProgress(0);
+      await onSubmit(submitData, Array.from(files || []), (evt) => {
+        if (evt && evt.total) {
+          const percent = Math.round((evt.loaded * 100) / evt.total);
+          setUploadProgress(percent);
         }
-      }
+      });
       onClose();
     } catch (error) {
       console.error('Error creating project:', error);
       setErrors({ general: 'Ошибка при создании проекта' });
     } finally {
       setLoading(false);
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -295,6 +297,14 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
               accept=".pdf,.doc,.pages,.csv,.epub,application/pdf,application/msword,text/csv,application/epub+zip"
               onChange={(e) => setFiles(e.target.files)}
             />
+            {uploading && (
+              <div className="upload-progress">
+                Загрузка файлов: {uploadProgress}%
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${uploadProgress}%` }}></div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-group">

@@ -5,6 +5,7 @@ import { projectService } from '../../services/projectService';
 import ProjectCard from './components/ProjectCard';
 import CreateProjectModal from './components/CreateProjectModal';
 import ProjectsCalendar from './components/ProjectsCalendar';
+import HeaderTabs from '../taskManager/components/HeaderTabs';
 import './Projects.css';
 
 const Projects = () => {
@@ -79,12 +80,21 @@ const Projects = () => {
   }, [projects, searchTerm, statusFilter, priorityFilter]);
 
   // Создание проекта
-  const handleCreateProject = async (projectData) => {
+  const handleCreateProject = async (projectData, files = [], onProgress) => {
     try {
       const newProject = await projectService.createProject(projectData);
-      setProjects(prev => [newProject, ...prev]);
+      let projectWithAttachments = newProject;
+      if (newProject && newProject.id && files && files.length > 0) {
+        try {
+          // загрузим вложения и получим обновленный проект с attachments
+          projectWithAttachments = await projectService.uploadProjectAttachments(newProject.id, files, onProgress);
+        } catch (e) {
+          console.error('Failed to upload attachments for new project:', e);
+        }
+      }
+      setProjects(prev => [projectWithAttachments, ...prev]);
       setError(null);
-      return newProject;
+      return projectWithAttachments;
     } catch (err) {
       setError('Ошибка при создании проекта');
       console.error('Error creating project:', err);
@@ -129,15 +139,9 @@ const Projects = () => {
 
   return (
     <div className="projects-container">
+      <HeaderTabs />
       <div className="projects-header">
         <div className="header-left">
-                      <button 
-              className="back-btn"
-              onClick={() => navigate('/tasks')}
-              title="Вернуться к задачам"
-            >
-              ← К задачам
-            </button>
           <div className="title-section">
             <h1>Проекты</h1>
             <div className="projects-counter">

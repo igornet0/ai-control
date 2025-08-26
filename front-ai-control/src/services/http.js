@@ -1,5 +1,7 @@
+import api from './api';
+
 export async function authFetch(path, options = {}) {
-  const base = process.env.REACT_APP_API_URL || '';
+  const base = (api && api.defaults && api.defaults.baseURL) || (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '';
   const token = localStorage.getItem('access_token');
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && (!options.body || typeof options.body === 'object')) {

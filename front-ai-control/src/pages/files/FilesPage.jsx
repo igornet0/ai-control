@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { listProjectFiles, toggleFavoriteFile, downloadProjectFile } from '../../services/filesService';
+import { authFetch } from '../../services/http';
+import HeaderTabs from '../taskManager/components/HeaderTabs';
 
 export default function FilesPage() {
   const { user } = useAuth();
@@ -21,19 +23,14 @@ export default function FilesPage() {
     setLoading(true);
     try {
       // global list via /api/projects/attachments
-      const base = process.env.REACT_APP_API_URL || '';
-      const token = localStorage.getItem('access_token');
       const params = new URLSearchParams();
       if (query) params.set('search', query);
-      params.set('sort_by', sortBy === 'type' ? 'type' : sortBy === 'size' ? 'size' : 'uploaded_at');
+      params.set('sort_by', sortBy === 'type' ? 'type' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'uploaded_at');
       params.set('sort_order', sortOrder);
       if (tab === 'my') params.set('only_my', 'true');
       params.set('limit', '10');
-      const res = await fetch(`${base}/api/projects/attachments?${params.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
-      const data = await res.json();
-      setItems(data.items || []);
+      const data = await authFetch(`/api/projects/attachments?${params.toString()}`);
+      setItems((data && data.items) || []);
     } finally {
       setLoading(false);
     }
@@ -55,8 +52,8 @@ export default function FilesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
       <div className="bg-[#0F1717] rounded-xl shadow-md p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <button className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded" onClick={()=>navigate('/tasks')}>← К задачам</button>
+        <HeaderTabs />
+        <div className="mt-6 flex items-center gap-3 mb-4">
           <div className="header-tabs ml-3">
             <button className={`tab-button ${tab==='all'?'active':''}`} onClick={() => setTab('all')}>Все файлы</button>
             <button className={`tab-button ${tab==='my'?'active':''}`} onClick={() => setTab('my')}>Мои файлы</button>

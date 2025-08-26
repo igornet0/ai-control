@@ -93,8 +93,7 @@ export default function OverviewPage({ user }) {
     <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
       <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
         <HeaderTabs />
-        <div className="flex items-center gap-3 mb-4">
-          <button className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded" onClick={() => navigate('/tasks')}>← К задачам</button>
+        <div className="mt-6">
           <h2 className="text-xl font-semibold">Обзор</h2>
         </div>
 

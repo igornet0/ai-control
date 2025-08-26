@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { getUserStatistics } from '../../services/statsService';
+import HeaderTabs from '../taskManager/components/HeaderTabs';
 
 export default function StatisticsPage() {
   const { user } = useAuth();
@@ -58,13 +59,8 @@ export default function StatisticsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
       <div className="bg-[#0F1717] rounded-xl shadow-md p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <button 
-            onClick={() => navigate('/tasks')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            ← К задачам
-          </button>
+        <HeaderTabs />
+        <div className="mt-6">
           <h2 className="text-xl font-semibold">Статистика</h2>
         </div>
 

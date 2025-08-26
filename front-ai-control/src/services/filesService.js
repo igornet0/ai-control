@@ -1,4 +1,5 @@
 import { authFetch } from './http';
+import api from './api';
 
 export async function listProjectFiles({ projectId, search, sortBy, sortOrder, onlyMy }) {
   const params = new URLSearchParams();
@@ -18,7 +19,8 @@ export async function toggleFavoriteFile({ projectId, filename, favorite }) {
 }
 
 export function downloadProjectFile({ projectId, filename }) {
-  const url = `${process.env.REACT_APP_API_URL || ''}/api/projects/${projectId}/attachments/${encodeURIComponent(filename)}`;
+  const base = (api && api.defaults && api.defaults.baseURL) || (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '';
+  const url = `${base}/api/projects/${projectId}/attachments/${encodeURIComponent(filename)}`;
   const a = document.createElement('a');
   a.href = url;
   a.target = '_blank';

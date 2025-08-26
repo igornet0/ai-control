@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import CreateTeamModal from './components/CreateTeamModal';
 import TeamCard from './components/TeamCard';
+import HeaderTabs from '../taskManager/components/HeaderTabs';
 import styles from './Teams.module.css';
 
 const Teams = () => {
@@ -141,15 +142,9 @@ const Teams = () => {
 
   return (
     <div className={styles['teams-container']}>
+      <HeaderTabs />
       <div className={styles['teams-header']}>
         <div className={styles['header-left']}>
-          <button 
-            className={styles['back-btn']}
-            onClick={() => navigate('/tasks')}
-            title="Вернуться к задачам"
-          >
-            ← К задачам
-          </button>
           <div className={styles['title-section']}>
             <h1>Команды</h1>
             {user ? (

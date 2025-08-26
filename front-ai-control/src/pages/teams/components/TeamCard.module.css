@@ -1,30 +1,30 @@
 .team-card {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #475569;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .team-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border-color: #60a5fa;
 }
 
 .team-card-header {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #374151;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .team-name {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #f1f5f9;
   margin: 0;
   flex: 1;
 }
@@ -32,20 +32,20 @@
 .team-status {
   color: white;
   padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .team-card-body {
-  padding: 1.5rem;
+  padding: 1rem 1.25rem;
 }
 
 .team-description {
-  color: #6b7280;
-  margin: 0 0 1rem 0;
+  color: #cbd5e1;
+  margin: 0 0 0.75rem 0;
   line-height: 1.6;
 }
 
@@ -58,7 +58,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #374151;
 }
 
 .info-item:last-child {
@@ -67,11 +67,11 @@
 
 .info-label {
   font-weight: 600;
-  color: #374151;
+  color: #94a3b8;
 }
 
 .info-value {
-  color: #6b7280;
+  color: #e2e8f0;
   font-weight: 500;
 }
 
@@ -83,11 +83,11 @@
 }
 
 .tag {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #475569;
+  color: #cbd5e1;
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #2563eb;
   color: white;
 }
 
@@ -122,8 +122,8 @@
 }
 
 .btn-secondary {
-  background: #6b7280;
-  color: white;
+  background: #475569;
+  color: #e2e8f0;
 }
 
 .btn-secondary:hover {
@@ -142,9 +142,9 @@
 }
 
 .team-details {
-  border-top: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  background: #f9fafb;
+  border-top: 1px solid #374151;
+  padding: 1rem 1.25rem;
+  background: #111827;
 }
 
 .members-section,
@@ -172,19 +172,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: white;
+  background: #1f2937;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #374151;
 }
 
 .member-name {
   font-weight: 600;
-  color: #1f2937;
+  color: #e2e8f0;
 }
 
 .member-role {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #374151;
+  color: #cbd5e1;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -224,21 +224,21 @@
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: white;
+  background: #1f2937;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #374151;
   align-items: center;
 }
 
 .task-title {
   font-weight: 600;
-  color: #1f2937;
+  color: #e2e8f0;
 }
 
 .task-status,
 .task-priority {
-  background: #f3f4f6;
-  color: #374151;
+  background: #374151;
+  color: #e5e7eb;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -247,7 +247,7 @@
 }
 
 .task-due-date {
-  color: #6b7280;
+  color: #94a3b8;
   font-size: 0.875rem;
   text-align: center;
 }
