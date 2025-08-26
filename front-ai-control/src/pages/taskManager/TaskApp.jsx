@@ -169,7 +169,7 @@ const TaskApp = ({ user, onLogout }) => {
           <div className="flex-1">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-xl font-semibold">Задачи</h2>
+                <h1 className="text-2xl font-bold text-gray-100">Задачи</h1>
 
               </div>
               <div className="flex gap-2">

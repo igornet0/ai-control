@@ -61,7 +61,7 @@ export default function StatisticsPage() {
       <div className="bg-[#0F1717] rounded-xl shadow-md p-6">
         <HeaderTabs />
         <div className="mt-6">
-          <h2 className="text-xl font-semibold">Статистика</h2>
+          <h1 className="text-2xl font-bold text-gray-100">Статистика</h1>
         </div>
 
         {loading && <div>Загрузка...</div>}

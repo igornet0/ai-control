@@ -146,7 +146,7 @@ const Teams = () => {
       <div className={styles['teams-header']}>
         <div className={styles['header-left']}>
           <div className={styles['title-section']}>
-            <h1>Команды</h1>
+            <h1 className="text-2xl font-bold text-gray-100">Команды</h1>
             {user ? (
               <div className={styles['teams-counter']}>
                 <span className={styles['counter-label']}>Мои команды:</span>

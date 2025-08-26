@@ -94,7 +94,7 @@ export default function OverviewPage({ user }) {
       <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
         <HeaderTabs />
         <div className="mt-6">
-          <h2 className="text-xl font-semibold">Обзор</h2>
+          <h1 className="text-2xl font-bold text-gray-100">Обзор</h1>
         </div>
 
         {loading ? (

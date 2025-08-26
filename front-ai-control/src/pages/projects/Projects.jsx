@@ -143,7 +143,7 @@ const Projects = () => {
       <div className="projects-header">
         <div className="header-left">
           <div className="title-section">
-            <h1>Проекты</h1>
+            <h1 className="text-2xl font-bold text-gray-100">Проекты</h1>
             <div className="projects-counter">
               <span className="counter-label">Всего проектов:</span>
               <span className="counter-value">
