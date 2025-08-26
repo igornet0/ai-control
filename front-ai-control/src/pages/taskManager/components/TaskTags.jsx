@@ -27,7 +27,7 @@ export default function TaskTags({ tags = [], onTagsChange, readOnly = false }) 
     return (
       <div className="flex flex-wrap gap-2">
         {tags.length === 0 ? (
-          <span className="text-gray-400 text-sm">No tags</span>
+          <span className="text-gray-400 text-sm">Нет тегов</span>
         ) : (
           tags.map((tag, index) => (
             <span
@@ -51,7 +51,7 @@ export default function TaskTags({ tags = [], onTagsChange, readOnly = false }) 
           value={newTag}
           onChange={(e) => setNewTag(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Add a tag..."
+          placeholder="Добавить тег..."
           className="flex-1 rounded-md border border-gray-600 bg-[#0f1b16] p-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <button
@@ -63,7 +63,7 @@ export default function TaskTags({ tags = [], onTagsChange, readOnly = false }) 
               : 'bg-gray-600 cursor-not-allowed'
           }`}
         >
-          Add
+          Добавить
         </button>
       </div>
 
@@ -87,7 +87,7 @@ export default function TaskTags({ tags = [], onTagsChange, readOnly = false }) 
 
       {tags.length === 0 && (
         <div className="text-gray-400 text-sm text-center py-2">
-          No tags added yet
+          Теги не добавлены
         </div>
       )}
     </div>

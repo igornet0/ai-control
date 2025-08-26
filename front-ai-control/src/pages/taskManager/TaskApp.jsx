@@ -197,9 +197,9 @@ const TaskApp = ({ user, onLogout }) => {
                   <button
                     className={`px-3 py-2 text-sm ${viewMode === 'kanban' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-[#1A2B24]'}`}
                     onClick={() => setViewMode('kanban')}
-                    title="Канбан-доска (скоро)"
+                    title="Канбан-доска"
                   >
-                    Канбан (скоро)
+                                          Канбан
                   </button>
                 </div>
                 <button 

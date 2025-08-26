@@ -4,9 +4,32 @@ import CustomSelect from '../selector/CustomSelect';
 import TaskTags from './TaskTags';
 import './CreateTaskModal.css';
 
-const statusOptions = ["created", "in_progress", "review", "completed", "cancelled", "on_hold", "blocked"];
-const priorityOptions = ["low", "medium", "high", "critical", "urgent"];
-const taskTypeOptions = ["task", "bug", "feature", "story", "epic", "subtask"];
+const statusOptions = [
+  { value: "created", label: "Создана" },
+  { value: "in_progress", label: "В работе" },
+  { value: "review", label: "На проверке" },
+  { value: "completed", label: "Завершена" },
+  { value: "cancelled", label: "Отменена" },
+  { value: "on_hold", label: "На паузе" },
+  { value: "blocked", label: "Заблокирована" }
+];
+
+const priorityOptions = [
+  { value: "low", label: "Низкий" },
+  { value: "medium", label: "Средний" },
+  { value: "high", label: "Высокий" },
+  { value: "critical", label: "Критичный" },
+  { value: "urgent", label: "Срочный" }
+];
+
+const taskTypeOptions = [
+  { value: "task", label: "Задача" },
+  { value: "bug", label: "Ошибка" },
+  { value: "feature", label: "Функция" },
+  { value: "story", label: "История" },
+  { value: "epic", label: "Эпик" },
+  { value: "subtask", label: "Подзадача" }
+];
 
 export default function CreateTaskModal({ onClose, onSave }) {
   const [taskData, setTaskData] = useState({
