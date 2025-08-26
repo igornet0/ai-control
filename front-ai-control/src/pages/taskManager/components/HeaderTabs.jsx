@@ -6,19 +6,34 @@ export default function HeaderTabs() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tabs = ["Задачи", "Обзор", "Статистика", "Проекты", "Файлы"];
+  // Обновленный порядок вкладок: добавлена вкладка "Команды" между "Проекты" и "Файлы"
+  const tabs = ["Задачи", "Обзор", "Статистика", "Проекты", "Команды", "Файлы"];
 
   const handleTabClick = (tab) => {
     if (tab === "Задачи") {
       navigate('/tasks');
-    } else if (tab === "Проекты") {
-      navigate('/projects');
+    } else if (tab === "Обзор") {
+      navigate('/overview');
     } else if (tab === "Статистика") {
       navigate('/statistics');
+    } else if (tab === "Проекты") {
+      navigate('/projects');
+    } else if (tab === "Команды") {
+      navigate('/teams');
     } else if (tab === "Файлы") {
       navigate('/files');
     }
-    // Для других вкладок можно добавить логику навигации
+  };
+
+  const isActive = (tab) => {
+    return (
+      (location.pathname === '/tasks' && tab === 'Задачи') ||
+      (location.pathname === '/overview' && tab === 'Обзор') ||
+      (location.pathname === '/statistics' && tab === 'Статистика') ||
+      (location.pathname === '/projects' && tab === 'Проекты') ||
+      (location.pathname === '/teams' && tab === 'Команды') ||
+      (location.pathname === '/files' && tab === 'Файлы')
+    );
   };
 
   return (
@@ -26,12 +41,7 @@ export default function HeaderTabs() {
       {tabs.map((tab) => (
         <button
           key={tab}
-          className={`tab-button ${
-            (location.pathname === '/tasks' && tab === 'Задачи') ||
-            (location.pathname === '/projects' && tab === 'Проекты') ||
-            (location.pathname === '/files' && tab === 'Файлы') ||
-            (location.pathname === '/statistics' && tab === 'Статистика') ? 'active' : ''
-          }`}
+          className={`tab-button ${isActive(tab) ? 'active' : ''}`}
           onClick={() => handleTabClick(tab)}
         >
           {tab}

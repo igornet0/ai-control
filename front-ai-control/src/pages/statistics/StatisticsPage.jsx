@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import { getUserStatistics } from '../../services/statsService';
 
 export default function StatisticsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,16 +23,7 @@ export default function StatisticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const base = process.env.REACT_APP_API_URL || '';
-      const token = localStorage.getItem('access_token');
-      const params = new URLSearchParams();
-      if (periodFrom) params.set('period_from', new Date(periodFrom).toISOString());
-      if (periodTo) params.set('period_to', new Date(periodTo).toISOString());
-      const res = await fetch(`${base}/api/stats/user?${params.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const json = await res.json();
+      const json = await getUserStatistics(periodFrom, periodTo);
       setData(json);
     } catch (e) {
       setError(e.message);
@@ -66,7 +60,7 @@ export default function StatisticsPage() {
       <div className="bg-[#0F1717] rounded-xl shadow-md p-6">
         <div className="flex items-center gap-4 mb-4">
           <button 
-            onClick={() => window.location.href = '/tasks'}
+            onClick={() => navigate('/tasks')}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
             ← К задачам
