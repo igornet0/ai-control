@@ -188,6 +188,12 @@
   font-weight: 500;
 }
 
+.edit-info {
+  color: #60a5fa;
+  font-style: italic;
+  font-size: 12px;
+}
+
 .project-tags {
   display: flex;
   flex-wrap: wrap;
@@ -312,6 +318,7 @@
   gap: 8px;
 }
 
+.edit-btn,
 .complete-btn,
 .delete-btn {
   padding: 6px 12px;
@@ -321,6 +328,16 @@
   font-size: 12px;
   font-weight: 500;
   transition: all 0.3s ease;
+}
+
+.edit-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
 }
 
 .complete-btn {

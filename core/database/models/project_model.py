@@ -62,6 +62,7 @@ class Project(Base):
     # Метаданные
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    updated_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     
     # Связи
     tasks: Mapped[List["Task"]] = relationship("Task", back_populates="project", cascade="all, delete-orphan")
@@ -69,6 +70,7 @@ class Project(Base):
     organization: Mapped[Optional["Organization"]] = relationship("Organization", foreign_keys=[organization_id])
     department: Mapped[Optional["Department"]] = relationship("Department", foreign_keys=[department_id])
     manager: Mapped[Optional["User"]] = relationship("User", foreign_keys=[manager_id])
+    updated_by_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[updated_by])
     
     __table_args__ = (
         Index("idx_projects_status", "status"),

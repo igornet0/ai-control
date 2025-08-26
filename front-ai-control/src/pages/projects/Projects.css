@@ -1,11 +1,4 @@
-.projects-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  min-height: 100vh;
-  background: linear-gradient(to bottom, #0D1414, #16251C);
-  color: #e2e8f0;
-}
+/* Основной контейнер теперь управляется через inline стили в JSX */
 
 .loading {
   display: flex;
@@ -22,7 +15,7 @@
   align-items: center;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #475569;
 }
 
 .header-left {

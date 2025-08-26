@@ -79,6 +79,8 @@ class ProjectResponse(BaseModel):
     tags: Optional[List[str]]
     created_at: datetime
     updated_at: datetime
+    updated_by: Optional[int] = None
+    updated_by_username: Optional[str] = None
     manager_name: Optional[str]
     organization_name: Optional[str]
     department_name: Optional[str]
@@ -169,6 +171,13 @@ async def get_projects(
                 is_active=pt.is_active
             ))
 
+        # Получаем имя пользователя, который обновил проект
+        updated_by_username = None
+        if project.updated_by:
+            updated_user_result = await session.execute(select(User).where(User.id == project.updated_by))
+            updated_user = updated_user_result.scalar_one_or_none()
+            updated_by_username = updated_user.username if updated_user else None
+
         responses.append(ProjectResponse(
             id=project.id,
             name=project.name,
@@ -183,6 +192,8 @@ async def get_projects(
             tags=project.tags,
             created_at=project.created_at,
             updated_at=project.updated_at,
+            updated_by=project.updated_by,
+            updated_by_username=updated_by_username,
             manager_name=project.manager.username if project.manager else None,
             organization_name=project.organization.name if project.organization else None,
             department_name=project.department.name if project.department else None,
@@ -252,6 +263,13 @@ async def get_project(
             is_active=pt.is_active
         ))
 
+    # Получаем имя пользователя, который обновил проект
+    updated_by_username = None
+    if project.updated_by:
+        updated_user_result = await session.execute(select(User).where(User.id == project.updated_by))
+        updated_user = updated_user_result.scalar_one_or_none()
+        updated_by_username = updated_user.username if updated_user else None
+
     return ProjectResponse(
         id=project.id,
         name=project.name,
@@ -266,6 +284,8 @@ async def get_project(
         tags=project.tags,
         created_at=project.created_at,
         updated_at=project.updated_at,
+        updated_by=project.updated_by,
+        updated_by_username=updated_by_username,
         manager_name=project.manager.username if project.manager else None,
         organization_name=project.organization.name if project.organization else None,
         department_name=project.department.name if project.department else None,
@@ -361,6 +381,9 @@ async def update_project(
     # Если проект завершен, устанавливаем дату завершения
     if project.status == ProjectStatus.COMPLETED and not project.completed_at:
         project.completed_at = datetime.now()
+
+    # Устанавливаем информацию о том, кто и когда обновил проект
+    project.updated_by = current_user.id
 
     await session.commit()
     await session.refresh(project)

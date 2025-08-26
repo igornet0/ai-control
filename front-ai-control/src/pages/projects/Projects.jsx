@@ -138,9 +138,11 @@ const Projects = () => {
   }
 
   return (
-    <div className="projects-container">
-      <HeaderTabs />
-      <div className="projects-header">
+    <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
+      <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
+        <HeaderTabs />
+        <div className="mt-6">
+          <div className="projects-header">
         <div className="header-left">
           <div className="title-section">
             <h1 className="text-2xl font-bold text-gray-100">Проекты</h1>
@@ -247,6 +249,8 @@ const Projects = () => {
           onSubmit={handleCreateProject}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 };

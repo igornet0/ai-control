@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { projectService } from '../../../services/projectService';
 import { getTasks } from '../../../services/taskService';
 import useAuth from '../../../hooks/useAuth';
+import EditProjectModal from './EditProjectModal';
 import './ProjectCard.css';
 
 const ProjectCard = ({ project, onDelete, onUpdate }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const { user } = useAuth();
 
   const getStatusColor = (status) => {
@@ -127,6 +129,27 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
     }
   };
 
+  const handleEditProject = async (projectData, files, onProgress) => {
+    try {
+      // Обновляем проект
+      const updatedProject = await projectService.updateProject(project.id, projectData);
+      
+      // Если есть файлы, загружаем их
+      if (files && files.length > 0) {
+        await projectService.uploadProjectAttachments(project.id, files, onProgress);
+      }
+      
+      // Уведомляем родительский компонент об обновлении
+      if (onUpdate) {
+        try { await onUpdate(project.id, {}); } catch {}
+      }
+      
+      setShowEditModal(false);
+    } catch (err) {
+      console.error('Edit project error:', err);
+    }
+  };
+
   return (
     <div className="project-card">
       <div className="card-header">
@@ -199,6 +222,18 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
               <span className="info-label">Бюджет:</span>
               <span className="info-value">
                 {project.budget.toLocaleString()} ₽
+              </span>
+            </div>
+          )}
+
+          {project.updated_at && (
+            <div className="info-row">
+              <span className="info-label">Последнее обновление:</span>
+              <span className="info-value">
+                {formatDate(project.updated_at)}
+                {project.updated_by_username && (
+                  <span className="edit-info"> от {project.updated_by_username}</span>
+                )}
               </span>
             </div>
           )}
@@ -331,6 +366,13 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
           {canManageProject && (
             <>
               <button
+                onClick={() => setShowEditModal(true)}
+                className="edit-btn"
+                title="Редактировать проект"
+              >
+                ✏️ Редактировать
+              </button>
+              <button
                 onClick={() => onUpdate(project.id, { status: 'completed' })}
                 className="complete-btn"
                 title="Завершить проект"
@@ -348,6 +390,14 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
           )}
         </div>
       </div>
+
+      {showEditModal && (
+        <EditProjectModal
+          project={project}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={handleEditProject}
+        />
+      )}
     </div>
   );
 };
