@@ -318,7 +318,7 @@ class UserPreference(Base):
     ui_sounds: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Настройки дашборда
-    dashboard_layout: Mapped[str] = mapped_column(String(20), default="grid")  # grid, list, masonry
+    dashboard_layout: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string for custom layout
     dashboard_columns: Mapped[int] = mapped_column(Integer, default=12)
     dashboard_auto_refresh: Mapped[bool] = mapped_column(Boolean, default=True)
     dashboard_refresh_interval: Mapped[int] = mapped_column(Integer, default=300)  # секунды

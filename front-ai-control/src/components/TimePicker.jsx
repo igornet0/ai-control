@@ -21,28 +21,44 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
     };
   }, [isOpen]);
 
-  // Простая и надежная валидация времени
+  // Правильная валидация времени - форматируем только законченный ввод
   const formatTimeInput = (inputValue) => {
     // Убираем все кроме цифр и двоеточия
     let cleaned = inputValue.replace(/[^\d:]/g, '');
+    
+    // Если уже есть двоеточие, работаем с готовым форматом
+    if (cleaned.includes(':')) {
+      const parts = cleaned.split(':');
+      if (parts.length === 2) {
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        const validHours = Math.min(hours, 23);
+        const validMinutes = Math.min(minutes, 59);
+        return `${validHours.toString().padStart(2, '0')}:${validMinutes.toString().padStart(2, '0')}`;
+      }
+    }
     
     // Убираем двоеточие для обработки
     const numbers = cleaned.replace(/:/g, '');
     
     if (numbers.length === 0) return '';
     
-    // Ограничиваем до 4 цифр
+    // Ограничиваем строго до 4 цифр
     const limitedNumbers = numbers.slice(0, 4);
     
     if (limitedNumbers.length <= 2) {
-      // Только часы
+      // 1-2 цифры: только часы, возвращаем как есть
       const hours = parseInt(limitedNumbers) || 0;
       if (hours > 23) return '23';
       return limitedNumbers;
+    } else if (limitedNumbers.length === 3) {
+      // 3 цифры: возвращаем как есть, НЕ форматируем
+      // Пользователь может хотеть ввести 4-ю цифру
+      return limitedNumbers;
     } else {
-      // Часы и минуты
-      const hours = parseInt(limitedNumbers.slice(0, 2)) || 0;
-      const minutes = parseInt(limitedNumbers.slice(2)) || 0;
+      // 4 цифры: форматируем как HH:MM
+      const hours = parseInt(limitedNumbers.slice(0, 2));
+      const minutes = parseInt(limitedNumbers.slice(2, 4));
       
       const validHours = Math.min(hours, 23);
       const validMinutes = Math.min(minutes, 59);
@@ -130,11 +146,20 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
                     max="23"
                     placeholder="ЧЧ"
                     value={value?.split(':')[0] || ''}
+                    maxLength="2"
                     className="w-20 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white text-center"
+                    onInput={(e) => {
+                      // Ограничиваем до 2 символов
+                      if (e.target.value.length > 2) {
+                        e.target.value = e.target.value.slice(0, 2);
+                      }
+                    }}
                     onChange={(e) => {
-                      const hours = e.target.value.padStart(2, '0');
-                      const currentMinutes = value?.split(':')[1] || '00';
-                      if (e.target.value && parseInt(e.target.value) <= 23) {
+                      const inputValue = e.target.value;
+                      // Проверяем что введено только 1-2 цифры и значение корректное
+                      if (inputValue === '' || (inputValue.length <= 2 && parseInt(inputValue) >= 0 && parseInt(inputValue) <= 23)) {
+                        const hours = inputValue ? inputValue.padStart(2, '0') : '00';
+                        const currentMinutes = value?.split(':')[1] || '00';
                         handleManualTimeChange(`${hours}:${currentMinutes}`);
                       }
                     }}
@@ -149,11 +174,20 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
                     max="59"
                     placeholder="ММ"
                     value={value?.split(':')[1] || ''}
+                    maxLength="2"
                     className="w-20 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white text-center"
+                    onInput={(e) => {
+                      // Ограничиваем до 2 символов
+                      if (e.target.value.length > 2) {
+                        e.target.value = e.target.value.slice(0, 2);
+                      }
+                    }}
                     onChange={(e) => {
-                      const minutes = e.target.value.padStart(2, '0');
-                      const currentHours = value?.split(':')[0] || '00';
-                      if (e.target.value && parseInt(e.target.value) <= 59) {
+                      const inputValue = e.target.value;
+                      // Проверяем что введено только 1-2 цифры и значение корректное
+                      if (inputValue === '' || (inputValue.length <= 2 && parseInt(inputValue) >= 0 && parseInt(inputValue) <= 59)) {
+                        const minutes = inputValue ? inputValue.padStart(2, '0') : '00';
+                        const currentHours = value?.split(':')[0] || '00';
                         handleManualTimeChange(`${currentHours}:${minutes}`);
                       }
                     }}

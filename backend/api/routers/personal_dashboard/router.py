@@ -118,6 +118,18 @@ class DashboardLayoutUpdateRequest(BaseModel):
     compact_mode: Optional[bool] = Field(None, description="Компактный режим")
 
 
+class OverviewCardLayoutRequest(BaseModel):
+    """Запрос на обновление расположения карточек обзора"""
+    card_id: str = Field(..., description="ID карточки (priorities, overdue, upcoming, projects, notes, checklist, time-management)")
+    position: int = Field(..., description="Позиция карточки в сетке (0-7)")
+    visible: bool = Field(True, description="Видимость карточки")
+
+
+class OverviewLayoutUpdateRequest(BaseModel):
+    """Запрос на обновление layout карточек обзора"""
+    cards: List[OverviewCardLayoutRequest] = Field(..., description="Список карточек с их позициями")
+
+
 class WidgetResponse(BaseModel):
     """Ответ с данными виджета"""
     id: int
@@ -164,10 +176,10 @@ class DashboardLayoutResponse(BaseModel):
 
 # Вспомогательные функции
 
-def can_access_widget(user: Dict[str, Any], widget_user_id: int) -> bool:
+def can_access_widget(user, widget_user_id: int) -> bool:
     """Проверка прав доступа к виджету"""
-    user_role = user.get("role", "")
-    current_user_id = user.get("id")
+    user_role = getattr(user, "role", "")
+    current_user_id = user.id
     
     # Пользователь может управлять только своими виджетами
     if user_role in ["admin", "CEO"]:
@@ -187,7 +199,7 @@ async def get_dashboard_layout(
     
     try:
         service = PersonalDashboardService(session)
-        layout_data = await service.get_dashboard_layout(user["id"])
+        layout_data = await service.get_dashboard_layout(user.id)
         
         return DashboardLayoutResponse(**layout_data)
         
@@ -209,9 +221,9 @@ async def update_dashboard_layout(
         widget_service = WidgetService(session)
         
         # Получаем личный кабинет
-        dashboard = await widget_service.get_personal_dashboard(user["id"])
+        dashboard = await widget_service.get_personal_dashboard(user.id)
         if not dashboard:
-            dashboard = await service.initialize_user_dashboard(user["id"])
+            dashboard = await service.initialize_user_dashboard(user.id)
         
         # Обновляем настройки дашборда
         update_data = layout_update.dict(exclude_unset=True)
@@ -223,7 +235,7 @@ async def update_dashboard_layout(
         await session.commit()
         
         # Возвращаем обновленный макет
-        layout_data = await service.get_dashboard_layout(user["id"])
+        layout_data = await service.get_dashboard_layout(user.id)
         return DashboardLayoutResponse(**layout_data)
         
     except Exception as e:
@@ -243,10 +255,10 @@ async def create_widget(
         service = WidgetService(session)
         
         # Получаем личный кабинет
-        dashboard = await service.get_personal_dashboard(user["id"])
+        dashboard = await service.get_personal_dashboard(user.id)
         if not dashboard:
             dashboard_service = PersonalDashboardService(session)
-            dashboard = await dashboard_service.initialize_user_dashboard(user["id"])
+            dashboard = await dashboard_service.initialize_user_dashboard(user.id)
         
         # Создаем виджет
         widget = await service.create_widget(
@@ -516,7 +528,7 @@ async def create_quick_action(
         service = WidgetService(session)
         
         action = await service.create_quick_action(
-            user_id=user["id"],
+            user_id=user.id,
             name=action_request.name,
             description=action_request.description,
             icon=action_request.icon,
@@ -554,7 +566,7 @@ async def get_quick_actions(
     
     try:
         service = WidgetService(session)
-        actions = await service.get_user_quick_actions(user["id"])
+        actions = await service.get_user_quick_actions(user.id)
         
         return [
             QuickActionResponse(
@@ -595,7 +607,7 @@ async def update_quick_action(
             select(QuickAction).where(
                 and_(
                     QuickAction.id == action_id,
-                    QuickAction.user_id == user["id"]
+                    QuickAction.user_id == user.id
                 )
             )
         )
@@ -650,7 +662,7 @@ async def delete_quick_action(
             select(QuickAction).where(
                 and_(
                     QuickAction.id == action_id,
-                    QuickAction.user_id == user["id"]
+                    QuickAction.user_id == user.id
                 )
             )
         )
@@ -684,7 +696,7 @@ async def update_user_preferences(
         service = WidgetService(session)
         
         preferences = await service.update_user_preferences(
-            user_id=user["id"],
+            user_id=user.id,
             preferences=preferences_update.dict(exclude_unset=True)
         )
         
@@ -723,7 +735,7 @@ async def get_user_preferences(
     
     try:
         service = WidgetService(session)
-        preferences = await service.get_user_preferences(user["id"])
+        preferences = await service.get_user_preferences(user.id)
         
         if not preferences:
             return {"preferences": {}}
@@ -807,7 +819,7 @@ async def initialize_dashboard(
     
     try:
         service = PersonalDashboardService(session)
-        dashboard = await service.initialize_user_dashboard(user["id"])
+        dashboard = await service.initialize_user_dashboard(user.id)
         
         return {
             "message": "Личный кабинет успешно инициализирован",
@@ -817,3 +829,115 @@ async def initialize_dashboard(
     except Exception as e:
         logger.error(f"Error initializing dashboard: {str(e)}")
         raise HTTPException(status_code=500, detail="Ошибка при инициализации личного кабинета")
+
+
+@router.get("/overview-layout")
+async def get_overview_layout(
+    user: dict = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Получение layout карточек обзора"""
+    
+    try:
+        service = WidgetService(session)
+        
+        # Получаем настройки пользователя
+        preferences = await service.get_user_preferences(user.id)
+        
+        # Дефолтный layout карточек обзора
+        default_layout = {
+            "priorities": {"position": 0, "visible": True},
+            "overdue": {"position": 1, "visible": True},
+            "upcoming": {"position": 2, "visible": True},
+            "projects": {"position": 3, "visible": True},
+            "notes": {"position": 4, "visible": True},
+            "checklist": {"position": 5, "visible": True},
+            "time-management": {"position": 6, "visible": True}
+        }
+        
+        if preferences and hasattr(preferences, 'dashboard_layout') and preferences.dashboard_layout:
+            # Если есть сохраненные настройки layout, используем их
+            try:
+                if isinstance(preferences.dashboard_layout, str):
+                    import json
+                    saved_layout = json.loads(preferences.dashboard_layout)
+                else:
+                    saved_layout = preferences.dashboard_layout
+                
+                if isinstance(saved_layout, dict) and "overview_cards" in saved_layout:
+                    return {"layout": saved_layout["overview_cards"]}
+            except:
+                pass
+        
+        return {"layout": default_layout}
+        
+    except Exception as e:
+        logger.error(f"Error getting overview layout: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении layout карточек")
+
+
+@router.post("/overview-layout")
+async def update_overview_layout(
+    layout_update: OverviewLayoutUpdateRequest,
+    user: dict = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Обновление layout карточек обзора"""
+    
+    try:
+        service = WidgetService(session)
+        
+        # Получаем или создаем настройки пользователя
+        preferences = await service.get_user_preferences(user.id)
+        if not preferences:
+            # Создаем новые настройки
+            from core.database.models.personal_dashboard_model import UserPreference
+            preferences = UserPreference(user_id=user.id)
+            session.add(preferences)
+            try:
+                await session.flush()
+            except Exception as e:
+                # Если произошла ошибка дублирования, получаем существующую запись
+                await session.rollback()
+                preferences = await service.get_user_preferences(user.id)
+                if not preferences:
+                    raise e
+        
+        # Формируем новый layout из запроса
+        layout_dict = {}
+        for card in layout_update.cards:
+            layout_dict[card.card_id] = {
+                "position": card.position,
+                "visible": card.visible
+            }
+        
+        # Получаем текущий dashboard_layout или создаем новый
+        current_layout = {}
+        if preferences.dashboard_layout:
+            try:
+                if isinstance(preferences.dashboard_layout, str):
+                    import json
+                    current_layout = json.loads(preferences.dashboard_layout)
+                else:
+                    current_layout = preferences.dashboard_layout
+            except:
+                current_layout = {}
+        
+        # Обновляем секцию overview_cards
+        current_layout["overview_cards"] = layout_dict
+        
+        # Сохраняем обновленный layout
+        import json
+        preferences.dashboard_layout = json.dumps(current_layout)
+        preferences.updated_at = datetime.now()
+        
+        await session.commit()
+        
+        return {
+            "message": "Layout карточек обзора успешно обновлен",
+            "layout": layout_dict
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating overview layout: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при обновлении layout карточек")

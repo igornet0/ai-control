@@ -5,6 +5,7 @@ import { getTasks } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
 import { getCurrentUserNoteForTask, createOrUpdateUserNote, deleteUserNote } from '../../services/notesService';
 import TimePicker from '../../components/TimePicker';
+import DraggableGrid from '../../components/DraggableGrid';
 
 export default function OverviewPage({ user }) {
   const navigate = useNavigate();
@@ -533,15 +534,25 @@ export default function OverviewPage({ user }) {
       <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
         <HeaderTabs />
         <div className="mt-6">
+          <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-100">Обзор</h1>
+            <div className="text-sm text-gray-400 hidden md:flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"/>
+                <circle cx="12" cy="12" r="2"/>
+                <circle cx="12" cy="19" r="2"/>
+              </svg>
+              Перетаскивайте за троеточие
+            </div>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-gray-400">Загрузка...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <DraggableGrid user={user} enableDragAndDrop={true}>
             {/* Мои приоритеты на сегодня */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
+            <div data-card-id="priorities" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Мои приоритеты на сегодня</h3>
               <div className="block-content">
               {prioritiesToday.length === 0 ? (
@@ -563,7 +574,7 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Просроченные задачи */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
+            <div data-card-id="overdue" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Просроченные задачи</h3>
               <div className="block-content">
               {overdueTasks.length === 0 ? (
@@ -582,7 +593,7 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Предстоящие дедлайны */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
+            <div data-card-id="upcoming" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Предстоящие дедлайны</h3>
               <div className="block-content">
               {upcomingTasks.length === 0 ? (
@@ -601,7 +612,7 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Статусы проектов */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
+            <div data-card-id="projects" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Статусы проектов</h3>
               <div className="block-content">
               {userProjects.length === 0 ? (
@@ -627,7 +638,7 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Заметки к задачам */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
+            <div data-card-id="notes" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Заметки</h3>
               <div className="block-content flex flex-col gap-3">
                 <select 
@@ -684,7 +695,7 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Чек-лист */}
-            <div className={`bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block transition-opacity duration-400 ease-out ${
+            <div data-card-id="checklist" className={`bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block transition-opacity duration-400 ease-out ${
               activeTasksCount === 0 ? 'opacity-90' : 'opacity-100'
             }`}>
               <h3 className="text-lg font-semibold mb-3">Чек-лист</h3>
@@ -774,7 +785,7 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Тайм-менеджмент на сегодня */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
+            <div data-card-id="time-management" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Тайм-менеджмент на сегодня</h3>
               <div className="block-content space-y-3">
                 {scheduleItems.map((item, idx) => {
@@ -806,7 +817,7 @@ export default function OverviewPage({ user }) {
                             🗑️
                           </button>
                         </div>
-                        <input
+                    <input
                           type="text"
                           className="w-full bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-400"
                           placeholder="Деятельность"
@@ -820,18 +831,18 @@ export default function OverviewPage({ user }) {
                       <div className="hidden md:flex md:items-center md:gap-3">
                         <div className="w-36">
                           <TimePicker
-                            value={item.time}
+                      value={item.time}
                             onChange={(value) => updateScheduleItem(idx, 'time', value)}
                             disabled={isRemoving}
                             placeholder="09:30"
-                          />
+                    />
                         </div>
-                        <input
+                    <input
                           type="text"
                           className="flex-1 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-400"
-                          placeholder="Деятельность"
-                          value={item.activity}
-                          onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
+                      placeholder="Деятельность"
+                      value={item.activity}
+                      onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
                           disabled={isRemoving}
                         />
                         <button 
@@ -857,10 +868,10 @@ export default function OverviewPage({ user }) {
                     <span className="text-lg">+</span>
                     <span>Добавить пункт</span>
                   </button>
-                </div>
+                  </div>
               </div>
             </div>
-          </div>
+          </DraggableGrid>
         )}
       </div>
     </div>

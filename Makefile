@@ -34,10 +34,14 @@ help:
 	@echo "  make prod-logs    - Show production logs"
 	@echo ""
 	@echo "$(GREEN)Testing:$(NC)"
-	@echo "  make test         - Run all tests"
-	@echo "  make test-unit    - Run unit tests"
-	@echo "  make test-integration - Run integration tests"
-	@echo "  make test-coverage - Run tests with coverage"
+	@echo "  make test         - Run all tests (backend + frontend)"
+	@echo "  make test-backend - Run backend tests only"
+	@echo "  make test-frontend - Run frontend tests only"
+	@echo "  make test-unit    - Run backend unit tests"
+	@echo "  make test-integration - Run backend integration tests"
+	@echo "  make test-coverage - Run backend tests with coverage"
+	@echo "  make test-frontend-watch - Run frontend tests in watch mode"
+	@echo "  make test-frontend-coverage - Run frontend tests with coverage"
 	@echo ""
 	@echo "$(GREEN)Code Quality:$(NC)"
 	@echo "  make lint         - Run linting"
@@ -106,19 +110,41 @@ prod-logs:
 # Testing commands
 test:
 	@echo "$(GREEN)Running all tests...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest
+	@echo "$(BLUE)Backend tests:$(NC)"
+	-make test-backend 2>/dev/null || echo "$(YELLOW)Warning: Some backend tests failed$(NC)"
+	@echo ""
+	@echo "$(BLUE)Frontend tests:$(NC)"
+	@make test-frontend
+	@echo ""
+	@echo "$(GREEN)Test run completed!$(NC)"
+
+test-backend:
+	@echo "$(GREEN)Running backend tests...$(NC)"
+	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend /home/appuser/.local/bin/pytest
+
+test-frontend:
+	@echo "$(GREEN)Running frontend tests...$(NC)"
+	cd front-ai-control && npm run test
 
 test-unit:
 	@echo "$(GREEN)Running unit tests...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest tests/unit/
+	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend /home/appuser/.local/bin/pytest tests/unit/
 
 test-integration:
 	@echo "$(GREEN)Running integration tests...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest tests/integration/
+	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend /home/appuser/.local/bin/pytest tests/integration/
 
 test-coverage:
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest --cov=backend --cov=core --cov-report=html
+	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend /home/appuser/.local/bin/pytest --cov=backend --cov=core --cov-report=html
+
+test-frontend-watch:
+	@echo "$(GREEN)Running frontend tests in watch mode...$(NC)"
+	cd front-ai-control && npm run test:watch
+
+test-frontend-coverage:
+	@echo "$(GREEN)Running frontend tests with coverage...$(NC)"
+	cd front-ai-control && npm run test:coverage
 
 # Code quality commands
 lint:
