@@ -4,6 +4,7 @@ import HeaderTabs from '../taskManager/components/HeaderTabs';
 import { getTasks } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
 import { getCurrentUserNoteForTask, createOrUpdateUserNote, deleteUserNote } from '../../services/notesService';
+import TimePicker from '../../components/TimePicker';
 
 export default function OverviewPage({ user }) {
   const navigate = useNavigate();
@@ -16,15 +17,78 @@ export default function OverviewPage({ user }) {
       @keyframes slideInFromLeft {
         0% {
           opacity: 0;
-          transform: translateX(-20px) scale(0.95);
+          transform: translateX(-15px) scale(0.95);
         }
-        50% {
-          opacity: 0.8;
-          transform: translateX(-5px) scale(0.98);
+        60% {
+          opacity: 0.9;
+          transform: translateX(-2px) scale(0.99);
         }
         100% {
           opacity: 1;
           transform: translateX(0) scale(1);
+        }
+      }
+      
+      .checklist-content {
+        transition: max-height 0.4s ease-out;
+        overflow: hidden;
+        width: 100%;
+      }
+      
+      .overview-block {
+        min-height: 250px;
+        max-height: 400px;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      .overview-block .block-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+      
+      .checklist-content.empty {
+        max-height: 120px;
+      }
+      
+      .checklist-content.filled {
+        max-height: 350px;
+      }
+      
+      .schedule-item {
+        transition: all 0.4s ease-out;
+        transform-origin: top center;
+      }
+      
+      .schedule-item.removing {
+        opacity: 0;
+        transform: scale(0.95) translateX(10px);
+        max-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      .schedule-item.adding {
+        animation: scheduleSlideIn 0.5s ease-out;
+      }
+      
+      @keyframes scheduleSlideIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.95) translateY(-10px);
+          max-height: 0;
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(0.98) translateY(-2px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+          max-height: 100px;
         }
       }
     `;
@@ -56,6 +120,15 @@ export default function OverviewPage({ user }) {
   const [removingItems, setRemovingItems] = useState(new Set()); // ID задач в процессе удаления
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set()); // ID недавно добавленных задач для анимации появления
 
+  // Состояние для анимаций тайм-менеджмента
+  const [scheduleRemoving, setScheduleRemoving] = useState(new Set()); // Индексы удаляемых элементов
+  const [scheduleAdding, setScheduleAdding] = useState(new Set()); // Индексы новых элементов
+
+  // Вычисляем количество активных задач для анимации блока
+  const activeTasksCount = useMemo(() => {
+    return checklistItems.filter(item => !item.completed).length;
+  }, [checklistItems]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -76,6 +149,11 @@ export default function OverviewPage({ user }) {
   // Загружаем чек-лист при изменении пользователя
   useEffect(() => {
     loadChecklist();
+  }, [user]);
+
+  // Загружаем тайм-менеджмент при изменении пользователя
+  useEffect(() => {
+    loadSchedule();
   }, [user]);
 
   // Функции для работы с чек-листом
@@ -124,7 +202,7 @@ export default function OverviewPage({ user }) {
         newSet.delete(newItem.id);
         return newSet;
       });
-    }, 500);
+    }, 300);
   };
 
   const toggleChecklistItem = (itemId) => {
@@ -140,7 +218,7 @@ export default function OverviewPage({ user }) {
       // Удаляем через время достаточное для проигрывания анимации
       setTimeout(() => {
         removeChecklistItem(itemId);
-      }, 800); // Увеличили время для анимации затухания
+      }, 500); // Ускоренная анимация затухания
     } else {
       // Если задача снова стала невыполненной, убираем её из удаляемых
       setRemovingItems(prev => {
@@ -171,7 +249,7 @@ export default function OverviewPage({ user }) {
           newSet.delete(itemId);
           return newSet;
         });
-      }, 700);
+      }, 450);
     } else {
       // Для автоматического удаления после отметки галочкой
       const updatedItems = checklistItems.filter(item => item.id !== itemId);
@@ -192,6 +270,30 @@ export default function OverviewPage({ user }) {
       e.preventDefault();
       addChecklistItem();
     }
+  };
+
+  // Функции для работы с тайм-менеджментом и localStorage
+  const loadSchedule = () => {
+    if (!user) return;
+    const storageKey = `schedule_${user.id}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const items = JSON.parse(stored);
+        setScheduleItems(items.length > 0 ? items : [{ time: '', activity: '' }]);
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+        setScheduleItems([{ time: '', activity: '' }]);
+      }
+    } else {
+      setScheduleItems([{ time: '', activity: '' }]);
+    }
+  };
+
+  const saveSchedule = (items) => {
+    if (!user) return;
+    const storageKey = `schedule_${user.id}`;
+    localStorage.setItem(storageKey, JSON.stringify(items));
   };
 
   // Загружаем заметку при выборе задачи
@@ -282,9 +384,107 @@ export default function OverviewPage({ user }) {
     });
   }, [projects, user]);
 
-  const addScheduleItem = () => setScheduleItems(prev => [...prev, { time: '', activity: '' }]);
-  const updateScheduleItem = (idx, key, value) => setScheduleItems(prev => prev.map((it, i) => i === idx ? { ...it, [key]: value } : it));
-  const removeScheduleItem = (idx) => setScheduleItems(prev => prev.filter((_, i) => i !== idx));
+  // Функции тайм-менеджмента с анимациями и сохранением
+  const addScheduleItem = () => {
+    const newIndex = scheduleItems.length;
+    const newItems = [...scheduleItems, { time: '', activity: '' }];
+    setScheduleItems(newItems);
+    saveSchedule(newItems);
+    
+    // Добавляем анимацию появления
+    setScheduleAdding(prev => new Set([...prev, newIndex]));
+    
+    // Убираем анимацию через время
+    setTimeout(() => {
+      setScheduleAdding(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(newIndex);
+        return newSet;
+      });
+    }, 500);
+  };
+
+  const formatTimeInput = (value) => {
+    // Убираем все кроме цифр
+    const numbers = value.replace(/\D/g, '');
+    
+    if (numbers.length === 0) return '';
+    
+    // Валидация первой цифры часов (не больше 2)
+    if (numbers.length >= 1) {
+      const firstDigit = parseInt(numbers[0]);
+      if (firstDigit > 2) {
+        return '';
+      }
+    }
+    
+    // Валидация часов полностью
+    if (numbers.length >= 2) {
+      const hours = parseInt(numbers.slice(0, 2));
+      if (hours > 23) {
+        // Если часы больше 23, корректируем
+        return '23';
+      }
+    }
+    
+    // Валидация минут
+    if (numbers.length >= 3) {
+      const hours = numbers.slice(0, 2);
+      const firstMinuteDigit = parseInt(numbers[2]);
+      
+      // Первая цифра минут не должна быть больше 5
+      if (firstMinuteDigit > 5) {
+        return hours + ':00';
+      }
+      
+      if (numbers.length >= 4) {
+        const minutes = parseInt(numbers.slice(2, 4));
+        if (minutes > 59) {
+          return hours + ':59';
+        }
+        return hours + ':' + numbers.slice(2, 4);
+      } else {
+        return hours + ':' + numbers[2];
+      }
+    }
+    
+    // Форматируем как HH или H
+    return numbers;
+  };
+
+  const updateScheduleItem = (idx, key, value) => {
+    // TimePicker уже выполняет валидацию времени, поэтому просто используем переданное значение
+    const newItems = scheduleItems.map((it, i) => i === idx ? { ...it, [key]: value } : it);
+    setScheduleItems(newItems);
+    saveSchedule(newItems);
+  };
+
+  const removeScheduleItem = (idx) => {
+    // Не позволяем удалить последний элемент
+    if (scheduleItems.length === 1) {
+      const newItems = [{ time: '', activity: '' }];
+      setScheduleItems(newItems);
+      saveSchedule(newItems);
+      return;
+    }
+
+    // Добавляем анимацию удаления
+    setScheduleRemoving(prev => new Set([...prev, idx]));
+    
+    // Удаляем элемент после анимации
+    setTimeout(() => {
+      const newItems = scheduleItems.filter((_, i) => i !== idx);
+      setScheduleItems(newItems);
+      saveSchedule(newItems);
+      
+      // Очищаем состояние анимации
+      setScheduleRemoving(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(idx);
+        return newSet;
+      });
+    }, 400);
+  };
 
   // Функции для работы с заметками
   const handleSaveNote = async () => {
@@ -339,10 +539,11 @@ export default function OverviewPage({ user }) {
         {loading ? (
           <div className="text-gray-400">Загрузка...</div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {/* Мои приоритеты на сегодня */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Мои приоритеты на сегодня</h3>
+              <div className="block-content">
               {prioritiesToday.length === 0 ? (
                 <div className="text-gray-400">На сегодня приоритетов нет</div>
               ) : (
@@ -358,11 +559,13 @@ export default function OverviewPage({ user }) {
                   ))}
                 </ul>
               )}
+              </div>
             </div>
 
             {/* Просроченные задачи */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Просроченные задачи</h3>
+              <div className="block-content">
               {overdueTasks.length === 0 ? (
                 <div className="text-gray-400">Просроченных задач нет</div>
               ) : (
@@ -375,11 +578,13 @@ export default function OverviewPage({ user }) {
                   ))}
                 </ul>
               )}
+              </div>
             </div>
 
             {/* Предстоящие дедлайны */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Предстоящие дедлайны</h3>
+              <div className="block-content">
               {upcomingTasks.length === 0 ? (
                 <div className="text-gray-400">Нет задач на завтра и послезавтра</div>
               ) : (
@@ -392,36 +597,39 @@ export default function OverviewPage({ user }) {
                   ))}
                 </ul>
               )}
+              </div>
             </div>
 
             {/* Статусы проектов */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Статусы проектов</h3>
+              <div className="block-content">
               {userProjects.length === 0 ? (
-                <div className="text-gray-400">Нет доступных проектов</div>
+                  <div className="text-gray-400">Нет доступных проектов</div>
               ) : (
                 <ul className="space-y-2">
                   {userProjects.map(p => (
                     <li key={p.id} className="p-3 rounded bg-[#16251C]">
                       <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-gray-400">
-                        Статус: {p.status === 'planning' ? 'Планирование' : 
-                                p.status === 'active' ? 'Активный' :
-                                p.status === 'on_hold' ? 'На паузе' :
-                                p.status === 'completed' ? 'Завершен' :
-                                p.status === 'cancelled' ? 'Отменен' :
-                                p.status === 'archived' ? 'Архивирован' : p.status} • Команд: {(p.teams || []).length}
-                      </div>
+                        <div className="text-xs text-gray-400">
+                          Статус: {p.status === 'planning' ? 'Планирование' : 
+                                  p.status === 'active' ? 'Активный' :
+                                  p.status === 'on_hold' ? 'На паузе' :
+                                  p.status === 'completed' ? 'Завершен' :
+                                  p.status === 'cancelled' ? 'Отменен' :
+                                  p.status === 'archived' ? 'Архивирован' : p.status} • Команд: {(p.teams || []).length}
+                        </div>
                     </li>
                   ))}
                 </ul>
               )}
+              </div>
             </div>
 
             {/* Заметки к задачам */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Заметки</h3>
-              <div className="flex flex-col gap-3">
+              <div className="block-content flex flex-col gap-3">
                 <select 
                   value={selectedTaskIdForNote} 
                   onChange={(e) => setSelectedTaskIdForNote(e.target.value)} 
@@ -476,9 +684,13 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Чек-лист */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <div className={`bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block transition-opacity duration-400 ease-out ${
+              activeTasksCount === 0 ? 'opacity-90' : 'opacity-100'
+            }`}>
               <h3 className="text-lg font-semibold mb-3">Чек-лист</h3>
-              <div className="flex flex-col gap-3">
+              <div className={`block-content flex flex-col gap-3 checklist-content ${
+                activeTasksCount === 0 ? 'empty' : 'filled'
+              }`}>
                 <div className="flex gap-2">
                   <input 
                     type="text"
@@ -497,8 +709,8 @@ export default function OverviewPage({ user }) {
                   </button>
                 </div>
                 
-                {checklistItems.length === 0 ? (
-                  <div className="text-gray-400 text-sm italic">
+                {activeTasksCount === 0 ? (
+                  <div className="text-gray-400 text-sm italic transition-all duration-300 text-center">
                     Нет активных задач в чек-листе
                   </div>
                 ) : (
@@ -513,7 +725,7 @@ export default function OverviewPage({ user }) {
                         return (
                           <div 
                             key={item.id} 
-                            className={`flex items-center gap-3 p-3 bg-[#16251C] rounded border border-gray-700 transition-all duration-700 ease-out transform ${
+                            className={`flex items-center gap-3 p-3 bg-[#16251C] rounded border border-gray-700 transition-all duration-500 ease-out transform ${
                               isRemoving 
                                 ? 'opacity-0 scale-95 translate-x-4 pointer-events-none' 
                                 : isNewlyAdded
@@ -524,7 +736,7 @@ export default function OverviewPage({ user }) {
                             }`}
                             style={{
                               transformOrigin: 'left center',
-                              animation: isNewlyAdded ? 'slideInFromLeft 0.5s ease-out' : undefined
+                              animation: isNewlyAdded ? 'slideInFromLeft 0.3s ease-out' : undefined
                             }}
                           >
                             <input 
@@ -553,8 +765,8 @@ export default function OverviewPage({ user }) {
                   </div>
                 )}
                 
-                {checklistItems.length > 0 && (
-                  <div className="text-xs text-gray-500 text-center">
+                {activeTasksCount > 0 && (
+                  <div className="text-xs text-gray-500 text-center transition-opacity duration-300">
                     💡 Отметьте галочкой, чтобы задача исчезла
                   </div>
                 )}
@@ -562,27 +774,90 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Тайм-менеджмент на сегодня */}
-            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 lg:col-span-2">
+            <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
               <h3 className="text-lg font-semibold mb-3">Тайм-менеджмент на сегодня</h3>
-              <div className="space-y-3">
-                {scheduleItems.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-                    <input
-                      className="md:col-span-2 bg-[#16251C] border border-gray-700 rounded px-3 py-2"
-                      placeholder="Время (например 09:30)"
-                      value={item.time}
-                      onChange={(e) => updateScheduleItem(idx, 'time', e.target.value)}
-                    />
-                    <input
-                      className="md:col-span-9 bg-[#16251C] border border-gray-700 rounded px-3 py-2"
-                      placeholder="Деятельность"
-                      value={item.activity}
-                      onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
-                    />
-                    <button onClick={() => removeScheduleItem(idx)} className="md:col-span-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded">Удалить</button>
-                  </div>
-                ))}
-                <button onClick={addScheduleItem} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Добавить пункт</button>
+              <div className="block-content space-y-3">
+                {scheduleItems.map((item, idx) => {
+                  const isRemoving = scheduleRemoving.has(idx);
+                  const isAdding = scheduleAdding.has(idx);
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`schedule-item ${isRemoving ? 'removing' : isAdding ? 'adding' : ''}`}
+                    >
+                      {/* Мобильная версия - вертикальная */}
+                      <div className="flex flex-col gap-2 md:hidden">
+                        <div className="flex gap-2">
+                          <div className="w-32">
+                            <TimePicker
+                              value={item.time}
+                              onChange={(value) => updateScheduleItem(idx, 'time', value)}
+                              disabled={isRemoving}
+                              placeholder="09:30"
+                            />
+                          </div>
+                          <button 
+                            onClick={() => removeScheduleItem(idx)} 
+                            className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition-colors flex items-center justify-center"
+                            disabled={isRemoving}
+                            title="Удалить пункт"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          className="w-full bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-400"
+                          placeholder="Деятельность"
+                          value={item.activity}
+                          onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
+                          disabled={isRemoving}
+                        />
+                      </div>
+
+                      {/* Десктопная версия - горизонтальная */}
+                      <div className="hidden md:flex md:items-center md:gap-3">
+                        <div className="w-36">
+                          <TimePicker
+                            value={item.time}
+                            onChange={(value) => updateScheduleItem(idx, 'time', value)}
+                            disabled={isRemoving}
+                            placeholder="09:30"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          className="flex-1 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-400"
+                          placeholder="Деятельность"
+                          value={item.activity}
+                          onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
+                          disabled={isRemoving}
+                        />
+                        <button 
+                          onClick={() => removeScheduleItem(idx)} 
+                          className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition-colors flex items-center justify-center w-10 h-10"
+                          disabled={isRemoving}
+                          title="Удалить пункт"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Кнопка добавления */}
+                <div className="pt-2 border-t border-gray-700">
+                  <button 
+                    onClick={addScheduleItem} 
+                    className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 rounded text-white transition-colors flex items-center justify-center gap-2 font-medium"
+                    title="Добавить новый пункт"
+                  >
+                    <span className="text-lg">+</span>
+                    <span>Добавить пункт</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
