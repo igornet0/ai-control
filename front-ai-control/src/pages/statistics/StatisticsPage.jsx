@@ -67,42 +67,42 @@ export default function StatisticsPage() {
         {loading && <div>Загрузка...</div>}
         {error && <div className="text-red-400">{error}</div>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-[#0D1414] border border-gray-800 rounded p-4">
-            <h3 className="text-lg font-medium mb-2">Выполненные задачи</h3>
-            <ul className="space-y-1">
+          <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <h3 className="text-lg font-semibold mb-3">Выполненные задачи</h3>
+            <ul className="space-y-2">
               <li>Сегодня: <b>{stats.completed?.day ?? 0}</b></li>
               <li>За неделю: <b>{stats.completed?.week ?? 0}</b></li>
               <li>За месяц: <b>{stats.completed?.month ?? 0}</b></li>
               <li>За всё время: <b>{stats.completed?.all_time ?? 0}</b></li>
             </ul>
           </div>
-          <div className="bg-[#0D1414] border border-gray-800 rounded p-4">
-            <h3 className="text-lg font-medium mb-3">Просрочки</h3>
+          <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <h3 className="text-lg font-semibold mb-3">Просрочки</h3>
             <div className="space-y-3">
               <div className="flex flex-wrap items-end gap-2">
                 <div className="flex-1 min-w-[120px]">
                   <label className="block text-gray-400 text-xs mb-1">Период с</label>
-                  <input type="date" className="w-full bg-[#0D1414] border border-gray-700 rounded px-2 py-1 text-sm" value={periodFrom} onChange={(e)=>setPeriodFrom(e.target.value)} />
+                  <input type="date" className="w-full bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm" value={periodFrom} onChange={(e)=>setPeriodFrom(e.target.value)} />
                 </div>
                 <div className="flex-1 min-w-[120px]">
                   <label className="block text-gray-400 text-xs mb-1">Период по</label>
-                  <input type="date" className="w-full bg-[#0D1414] border border-gray-700 rounded px-2 py-1 text-sm" value={periodTo} onChange={(e)=>setPeriodTo(e.target.value)} />
+                  <input type="date" className="w-full bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm" value={periodTo} onChange={(e)=>setPeriodTo(e.target.value)} />
                 </div>
-                <button onClick={fetchStats} className="bg-green-600 px-3 py-1 rounded text-sm whitespace-nowrap">Обновить</button>
+                <button onClick={fetchStats} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm whitespace-nowrap transition-colors">Обновить</button>
               </div>
               <p>Просрочек за выбранный период: <b>{stats.overdue_in_period ?? 0}</b></p>
             </div>
           </div>
-          <div className="bg-[#0D1414] border border-gray-800 rounded p-4">
-            <h3 className="text-lg font-medium mb-2">Команды пользователя</h3>
+          <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <h3 className="text-lg font-semibold mb-3">Команды пользователя</h3>
             <p>Количество команд: <b>{stats.teams_count ?? 0}</b></p>
           </div>
-          <div className="bg-[#0D1414] border border-gray-800 rounded p-4">
-            <h3 className="text-lg font-medium mb-2">Проекты пользователя</h3>
+          <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
+            <h3 className="text-lg font-semibold mb-3">Проекты пользователя</h3>
             <p>Количество проектов: <b>{stats.projects_count ?? 0}</b></p>
           </div>
-          <div className="bg-[#0D1414] border border-gray-800 rounded p-4 md:col-span-2">
-            <h3 className="text-lg font-medium mb-2">Жалобы и похвалы</h3>
+          <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 md:col-span-2">
+            <h3 className="text-lg font-semibold mb-3">Жалобы и похвалы</h3>
             <div className="flex gap-8">
               <p>Жалобы: <b>0</b></p>
               <p>Похвалы: <b>0</b></p>
