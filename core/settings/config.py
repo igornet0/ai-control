@@ -24,13 +24,27 @@ class AppBaseConfig:
         # Проверяем переменную окружения ENVIRONMENT
         env = os.getenv("ENVIRONMENT", "development").lower()
         
+        # Определяем базовый путь проекта
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        
         if env == "production":
-            return "/app/settings/prod.env"
+            # В продакшене используем Docker путь
+            if os.path.exists("/app/settings/prod.env"):
+                return "/app/settings/prod.env"
+            else:
+                return str(base_dir / "settings" / "prod.env")
         elif env == "development":
-            return "/app/settings/dev.env"
+            # В разработке используем локальный путь
+            if os.path.exists("/app/settings/dev.env"):
+                return "/app/settings/dev.env"
+            else:
+                return str(base_dir / "settings" / "dev.env")
         else:
             # Fallback на development
-            return "/app/settings/dev.env"
+            if os.path.exists("/app/settings/dev.env"):
+                return "/app/settings/dev.env"
+            else:
+                return str(base_dir / "settings" / "dev.env")
 
 
 class RunConfig(BaseSettings):

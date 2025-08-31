@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { authFetch } from '../../../services/http';
+import { authFetch } from '../../../../../services/http';
 import './CreateTeamModal.css'; // Используем те же стили
 
 const EditTeamModal = ({ team, onClose, onSubmit }) => {

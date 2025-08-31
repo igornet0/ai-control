@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import HeaderTabs from '../taskManager/components/HeaderTabs';
-import { getTasks } from '../../services/taskService';
-import { projectService } from '../../services/projectService';
-import { getCurrentUserNoteForTask, createOrUpdateUserNote, deleteUserNote } from '../../services/notesService';
-import TimePicker from '../../components/TimePicker';
-import DraggableGrid from '../../components/DraggableGrid';
+import { getTasks } from '../../../../services/taskService';
+import { projectService } from '../../../../services/projectService';
+import { getCurrentUserNoteForTask, createOrUpdateUserNote, deleteUserNote } from '../../../../services/notesService';
+import TimePicker from '../../../../components/TimePicker';
+import DraggableGrid from '../../../../components/DraggableGrid';
 
 export default function OverviewPage({ user }) {
   const navigate = useNavigate();
@@ -530,22 +529,18 @@ export default function OverviewPage({ user }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
-      <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
-        <HeaderTabs />
-        <div className="mt-6">
-          <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-100">Обзор</h1>
-            <div className="text-sm text-gray-400 hidden md:flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="2"/>
-                <circle cx="12" cy="12" r="2"/>
-                <circle cx="12" cy="19" r="2"/>
-              </svg>
-              Перетаскивайте за троеточие
-            </div>
-          </div>
+    <div className="mt-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-100">Обзор</h1>
+        <div className="text-sm text-gray-400 hidden md:flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="19" r="2"/>
+          </svg>
+          Перетаскивайте за троеточие
         </div>
+      </div>
 
         {loading ? (
           <div className="text-gray-400">Загрузка...</div>
@@ -873,7 +868,6 @@ export default function OverviewPage({ user }) {
             </div>
           </DraggableGrid>
         )}
-      </div>
     </div>
   );
 }

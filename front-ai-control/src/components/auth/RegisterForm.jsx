@@ -25,6 +25,10 @@ const RegisterPage = () => {
   const validate = () => {
     const newErrors = {};
     
+    if (!formData.username) {
+      newErrors.username = 'Имя пользователя обязательно';
+    }
+    
     if (!formData.email) {
       newErrors.email = 'Email обязателен';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {

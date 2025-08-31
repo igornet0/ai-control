@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { projectService } from '../../../services/projectService';
-import { getTasks } from '../../../services/taskService';
-import useAuth from '../../../hooks/useAuth';
+import { projectService } from '../../../../../services/projectService';
+import { getTasks } from '../../../../../services/taskService';
+import useAuth from '../../../../../hooks/useAuth';
 import EditProjectModal from './EditProjectModal';
 import './ProjectCard.css';
 

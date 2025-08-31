@@ -21,28 +21,28 @@ async def app_lifespan(app: FastAPI):
         await get_db_helper().init_db()
         logger.info("Starting application...")
 
-        # Setup RabbitMQ
-        await rabbit.setup_dlx()
+        # Setup RabbitMQ - временно отключено для Docker тестирования
+        # await rabbit.setup_dlx()
 
-        # Start code execution consumer in background
-        logger.info("Starting code execution consumer...")
-        consumer_task = asyncio.create_task(start_code_execution_consumer())
+        # Start code execution consumer in background - временно отключено
+        # logger.info("Starting code execution consumer...")
+        # consumer_task = asyncio.create_task(start_code_execution_consumer())
 
         logger.info("Application startup complete")
         yield
     finally:
         logger.info("Shutting down application...")
 
-        # Stop the consumer
-        if consumer_task and not consumer_task.done():
-            logger.info("Stopping code execution consumer...")
-            consumer_task.cancel()
-            try:
-                await consumer_task
-            except asyncio.CancelledError:
-                pass
+        # Stop the consumer - временно отключено
+        # if consumer_task and not consumer_task.done():
+        #     logger.info("Stopping code execution consumer...")
+        #     consumer_task.cancel()
+        #     try:
+        #         await consumer_task
+        #     except asyncio.CancelledError:
+        #         pass
 
-        await stop_code_execution_consumer()
+        # await stop_code_execution_consumer()
         await get_db_helper().dispose()
-        await rabbit.close()
+        # await rabbit.close()
         logger.info("Application shutdown complete")

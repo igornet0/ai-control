@@ -21,10 +21,13 @@ class AuthMiddleware:
             request = Request(scope, receive)
             
             # Проверяем, нужна ли аутентификация для этого пути
+            print(f"🔍 AuthMiddleware checking path: {request.url.path}")
             if self._requires_auth(request.url.path):
+                print(f"🔐 AuthMiddleware: Authentication required for {request.url.path}")
                 try:
                     # Проверяем аутентификацию
                     user = await verify_authorization(request)
+                    print(f"✅ AuthMiddleware: User authenticated: {user.login if hasattr(user, 'login') else 'Unknown'}")
                     
                     # Добавляем пользователя в scope для использования в endpoint'ах
                     scope["user"] = user
@@ -34,6 +37,7 @@ class AuthMiddleware:
                         await self._check_role_access(request, user)
                         
                 except HTTPException as e:
+                    print(f"🔥 AuthMiddleware HTTPException: {e.status_code} - {e.detail}")
                     response = JSONResponse(
                         status_code=e.status_code,
                         content={"detail": e.detail}
@@ -41,9 +45,12 @@ class AuthMiddleware:
                     await response(scope, receive, send)
                     return
                 except Exception as e:
+                    print(f"🔥 AuthMiddleware Exception: {type(e).__name__}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
                     response = JSONResponse(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        content={"detail": "Authentication failed"}
+                        content={"detail": f"Authentication failed: {str(e)}"}
                     )
                     await response(scope, receive, send)
                     return
@@ -55,7 +62,9 @@ class AuthMiddleware:
         # Пути, которые не требуют аутентификации
         public_paths = [
             "/auth/register/",
+            "/api/auth/register/",
             "/auth/login_user/",
+            "/api/auth/login_user/",
             "/auth/health/",
             "/docs",
             "/redoc",

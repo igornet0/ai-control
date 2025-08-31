@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { teamService } from '../../../services/teamService';
-import { getTasks } from '../../../services/taskService';
+import { teamService } from '../../../../../services/teamService';
+import { getTasks } from '../../../../../services/taskService';
 import './CreateProjectModal.css';
 
 const EditProjectModal = ({ project, onClose, onSubmit }) => {

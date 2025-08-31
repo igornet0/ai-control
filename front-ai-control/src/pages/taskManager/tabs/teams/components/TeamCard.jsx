@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { teamService } from '../../../services/teamService';
+import { teamService } from '../../../../../services/teamService';
 import EditTeamModal from './EditTeamModal';
 import styles from './TeamCard.module.css';
 

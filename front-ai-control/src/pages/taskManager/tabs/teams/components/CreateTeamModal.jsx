@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { teamService } from '../../../services/teamService';
+import { teamService } from '../../../../../services/teamService';
 import './CreateTeamModal.css';
 
 const CreateTeamModal = ({ onClose, onSubmit }) => {

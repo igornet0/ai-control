@@ -10,7 +10,15 @@ import Notification from "../../components/Notification";
 import { getTasks, createTask, deleteTask } from "../../services/taskService";
 import KanbanBoard from './components/KanbanBoard';
 
+// Импортируем вкладки
+import FilesPage from './tabs/files/FilesPage';
+import OverviewPage from './tabs/overview/OverviewPage';
+import Projects from './tabs/projects/Projects';
+import StatisticsPage from './tabs/statistics/StatisticsPage';
+import Teams from './tabs/teams/Teams';
+
 const TaskApp = ({ user, onLogout }) => {
+  const [activeTab, setActiveTab] = useState('Задачи');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -144,106 +152,168 @@ const TaskApp = ({ user, onLogout }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm">
-        <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
-          <div className="text-center py-12">
-            <div className="text-red-400 text-xl mb-4">⚠️ Error Loading Data</div>
-            <div className="text-gray-400 mb-6">{error}</div>
-            <button 
-              onClick={loadData}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-            >
-              Попробовать снова
-            </button>
+      <div className="min-h-screen bg-gradient-to-b from-[#0f172a] to-[#1e293b] p-6 animate-fadeIn">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] rounded-2xl shadow-2xl border border-slate-700 p-8 backdrop-filter backdrop-blur-xl">
+            <div className="text-center py-16 animate-scaleIn">
+              <div className="text-6xl mb-6 animate-bounce">⚠️</div>
+              <div className="text-red-400 text-2xl font-semibold mb-4">Ошибка загрузки данных</div>
+              <div className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">{error}</div>
+              <button 
+                onClick={loadData}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-xl 
+                         hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 
+                         transform hover:scale-105 hover:shadow-xl font-medium
+                         focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
+              >
+                🔄 Попробовать снова
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm">
-      <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
-        <HeaderTabs />
-        <div className="mt-6 flex flex-col lg:flex-row gap-6">
-          <div className="flex-1">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-100">Задачи</h1>
-
-              </div>
-              <div className="flex gap-2">
-                {tasks.some(task => 
-                  task.title?.includes('Test Task') || 
-                  task.title?.includes('Test')
-                ) && (
-                  <button 
-                    onClick={clearTestTasks}
-                    className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
-                    title="Очистить тестовые задачи"
-                  >
-                    🧹 Очистить тестовые задачи
-                  </button>
-                )}
-                {/* Переключатель режимов отображения задач */}
-                <div className="flex items-center bg-[#16251C] border border-gray-700 rounded-lg overflow-hidden">
-                  <button
-                    className={`px-3 py-2 text-sm ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-[#1A2B24]'}`}
-                    onClick={() => setViewMode('table')}
-                    title="Таблица"
-                  >
-                    Таблица
-                  </button>
-                  <button
-                    className={`px-3 py-2 text-sm ${viewMode === 'kanban' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-[#1A2B24]'}`}
-                    onClick={() => setViewMode('kanban')}
-                    title="Канбан-доска"
-                  >
-                                          Канбан
-                  </button>
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Задачи':
+        return (
+          <>
+            <div className="mt-6 flex flex-col lg:flex-row gap-6">
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                  <div className="animate-slideInLeft">
+                    <h1 className="text-3xl font-bold text-slate-100 tracking-tight">
+                      📋 Управление задачами
+                    </h1>
+                    <p className="text-slate-400 mt-1">Организуйте и отслеживайте свои проекты</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 animate-slideInRight">
+                    {tasks.some(task => 
+                      task.title?.includes('Test Task') || 
+                      task.title?.includes('Test')
+                    ) && (
+                      <button 
+                        onClick={clearTestTasks}
+                        className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2.5 rounded-xl
+                                 hover:from-orange-600 hover:to-red-600 transition-all duration-300 
+                                 transform hover:scale-105 hover:shadow-lg font-medium
+                                 focus:outline-none focus:ring-4 focus:ring-orange-500/50"
+                        title="Очистить тестовые задачи"
+                      >
+                        🧹 Очистить тестовые
+                      </button>
+                    )}
+                    
+                    {/* Переключатель режимов отображения задач */}
+                    <div className="flex items-center bg-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl overflow-hidden shadow-lg">
+                      <button
+                        className={`px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                          viewMode === 'table' 
+                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg' 
+                            : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                        }`}
+                        onClick={() => setViewMode('table')}
+                        title="Таблица"
+                      >
+                        📊 Таблица
+                      </button>
+                      <button
+                        className={`px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                          viewMode === 'kanban' 
+                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg' 
+                            : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                        }`}
+                        onClick={() => setViewMode('kanban')}
+                        title="Канбан-доска"
+                      >
+                        🗂️ Канбан
+                      </button>
+                    </div>
+                    
+                    <button 
+                      onClick={() => setShowCreateModal(true)}
+                      className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-2.5 rounded-xl
+                               hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 
+                               transform hover:scale-105 hover:shadow-xl font-medium
+                               focus:outline-none focus:ring-4 focus:ring-emerald-500/50"
+                    >
+                      ✨ Новая задача
+                    </button>
+                    
+                    <button 
+                      onClick={loadData}
+                      disabled={loading}
+                      className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2.5 rounded-xl
+                               hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 
+                               transform hover:scale-105 hover:shadow-lg font-medium disabled:opacity-50 
+                               disabled:cursor-not-allowed disabled:transform-none
+                               focus:outline-none focus:ring-4 focus:ring-blue-500/50"
+                      title="Обновить данные"
+                    >
+                      {loading ? (
+                        <span className="animate-spin inline-block">🔄</span>
+                      ) : (
+                        '🔄'
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-                >
-                  + Новая задача
-                </button>
-                <button 
-                  onClick={loadData}
-                  disabled={loading}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                  title="Обновить данные"
-                >
-                  {loading ? '🔄' : '🔄'}
-                </button>
+                {viewMode === 'table' ? (
+                  <TaskTable 
+                    tasks={tasks} 
+                    loading={loading} 
+                    onTaskUpdate={handleTaskUpdate} 
+                    currentUser={user} 
+                  />
+                ) : (
+                  <KanbanBoard 
+                    tasks={tasks} 
+                    currentUser={user}
+                    onTaskUpdate={handleTaskUpdate}
+                  />
+                )}
+              </div>
+
+              <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
+                <ProgressChart tasks={tasks} />
+                <BarChart tasks={tasks} />
+                <TeamRatings />
               </div>
             </div>
-            {viewMode === 'table' ? (
-              <TaskTable 
-                tasks={tasks} 
-                loading={loading} 
-                onTaskUpdate={handleTaskUpdate} 
-                currentUser={user} 
-              />
-            ) : (
-              <KanbanBoard 
-                tasks={tasks} 
-                currentUser={user}
-                onTaskUpdate={handleTaskUpdate}
-              />
-            )}
-          </div>
+          </>
+        );
+      case 'Обзор':
+        return <OverviewPage user={user} />;
+      case 'Статистика':
+        return <StatisticsPage />;
+      case 'Проекты':
+        return <Projects user={user} onLogout={onLogout} />;
+      case 'Команды':
+        return <Teams user={user} onLogout={onLogout} />;
+      case 'Файлы':
+        return <FilesPage user={user} />;
+      default:
+        return null;
+    }
+  };
 
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
-            <ProgressChart tasks={tasks} />
-            <BarChart tasks={tasks} />
-            <TeamRatings />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-6 animate-fadeIn">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6 sm:p-8 animate-scaleIn">
+          <HeaderTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <div className="animate-fadeIn">
+            <div key={activeTab} className="animate-scaleIn">
+              {renderTabContent()}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Модальное окно создания задачи */}
-      {showCreateModal && (
+      {/* Модальное окно создания задачи - показываем только на вкладке Задачи */}
+      {showCreateModal && activeTab === 'Задачи' && (
         <CreateTaskModal
           onClose={() => setShowCreateModal(false)}
           onSave={handleCreateTask}

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { teamService } from '../../services/teamService';
+import { teamService } from '../../../../services/teamService';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
+import useAuth from '../../../../hooks/useAuth';
 import CreateTeamModal from './components/CreateTeamModal';
 import TeamCard from './components/TeamCard';
-import HeaderTabs from '../taskManager/components/HeaderTabs';
 import styles from './Teams.module.css';
 
 const Teams = () => {
@@ -141,11 +140,8 @@ const Teams = () => {
   console.log('Rendering teams page...', { teams, filteredTeams, user, error });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
-      <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
-        <HeaderTabs />
-        <div className="mt-6">
-          <div className={styles['teams-header']}>
+    <div className="mt-6">
+      <div className={styles['teams-header']}>
         <div className={styles['header-left']}>
           <div className={styles['title-section']}>
             <h1 className="text-2xl font-bold text-gray-100">Команды</h1>
@@ -256,8 +252,6 @@ const Teams = () => {
           onSubmit={handleCreateTeam}
         />
       )}
-        </div>
-      </div>
     </div>
   );
 };

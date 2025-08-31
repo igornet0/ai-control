@@ -52,11 +52,15 @@ services:
     container_name: ai-control-backend-dev
     environment:
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://ai_control_user:ai_control_password@postgres:5432/ai_control_dev
+      - POSTGRES__USER=ai_control_user
+      - POSTGRES__PASSWORD=ai_control_password
+      - POSTGRES__HOST=postgres
+      - POSTGRES__PORT=5432
+      - POSTGRES__DB_NAME=ai_control_dev
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://ai_control_user:ai_control_password@rabbitmq:5672/
       - JWT_SECRET_KEY=dev-jwt-secret-key-change-in-production
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost,http://frontend:3000
     ports:
       - "8000:8000"
     volumes:
@@ -64,6 +68,7 @@ services:
       - ../core:/app/core
       - ../settings:/app/settings
       - ../tests:/app/tests
+      - ../alembic:/app/alembic
       - ../alembic.ini:/app/alembic.ini
       - ../pyproject.toml:/app/pyproject.toml
       - ../poetry.lock:/app/poetry.lock
@@ -73,7 +78,7 @@ services:
       - rabbitmq
     networks:
       - ai-control-network
-    command: sh -c "sleep 15 && uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh -c "sleep 30 && cd /app && uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
 
   # Frontend React App
   frontend:
@@ -105,7 +110,11 @@ services:
     container_name: ai-control-celery-worker-dev
     environment:
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://ai_control_user:ai_control_password@postgres:5432/ai_control_dev
+      - POSTGRES__USER=ai_control_user
+      - POSTGRES__PASSWORD=ai_control_password
+      - POSTGRES__HOST=postgres
+      - POSTGRES__PORT=5432
+      - POSTGRES__DB_NAME=ai_control_dev
       - REDIS_URL=redis://redis:6379/0
       - RABBITMQ_URL=amqp://ai_control_user:ai_control_password@rabbitmq:5672/
     volumes:
@@ -129,9 +138,13 @@ services:
     container_name: ai-control-celery-beat-dev
     environment:
       - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://ai_control_user:ai_control_password@postgres:5432/ai_control_dev
+      - POSTGRES__USER=ai_control_user
+      - POSTGRES__PASSWORD=ai_control_password
+      - POSTGRES__HOST=postgres
+      - POSTGRES__PORT=5432
+      - POSTGRES__DB_NAME=ai_control_dev
       - REDIS_URL=redis://redis:6379/0
-      - RABBITMQ_URL=amqp://ai_control_password@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://ai_control_user:ai_control_password@rabbitmq:5672/
     volumes:
       - ../backend:/app/backend
       - ../core:/app/core

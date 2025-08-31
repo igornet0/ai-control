@@ -16,6 +16,7 @@ import {
 import DraggableCard from './DraggableCard';
 import { overviewLayoutService } from '../services/overviewLayoutService';
 import { statisticsLayoutService } from '../services/statisticsLayoutService';
+import CardVisibilitySettings from './CardVisibilitySettings';
 
 const DraggableGrid = ({ 
   children, 
@@ -29,6 +30,7 @@ const DraggableGrid = ({
   const [layout, setLayout] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showVisibilitySettings, setShowVisibilitySettings] = useState(false);
 
   // Определяем порядок карточек по умолчанию в зависимости от типа layout
   const getDefaultCards = () => {
@@ -162,6 +164,70 @@ const DraggableGrid = ({
     }
   };
 
+  const handleVisibilityUpdate = async (visibility) => {
+    try {
+      setSaving(true);
+      
+      // Создаем новый layout с обновленной видимостью
+      const newLayout = { ...layout };
+      
+      // Обновляем видимость для всех карточек
+      Object.keys(visibility).forEach(cardId => {
+        if (!newLayout[cardId]) {
+          newLayout[cardId] = { position: 999, visible: true };
+        }
+        newLayout[cardId].visible = visibility[cardId];
+      });
+      
+      // Фильтруем и пересортировываем карточки
+      const filteredCards = defaultCards
+        .filter(card => newLayout[card.id]?.visible !== false)
+        .sort((a, b) => {
+          const posA = newLayout[a.id]?.position ?? 999;
+          const posB = newLayout[b.id]?.position ?? 999;
+          return posA - posB;
+        });
+      
+      // Пересчитываем позиции для видимых карточек
+      filteredCards.forEach((card, index) => {
+        newLayout[card.id] = {
+          ...newLayout[card.id],
+          position: index
+        };
+      });
+      
+      // Сохраняем в API
+      const layoutService = getLayoutService();
+      if (layoutType === "statistics") {
+        const cardsForApi = Object.keys(newLayout).map(cardId => ({
+          card_id: cardId,
+          position: newLayout[cardId].position,
+          visible: newLayout[cardId].visible
+        }));
+        await layoutService.updateStatisticsLayout(cardsForApi);
+      } else {
+        const cardsForApi = overviewLayoutService.layoutToCards(newLayout);
+        await layoutService.updateOverviewLayout(cardsForApi);
+      }
+      
+      // Обновляем состояние
+      setLayout(newLayout);
+      setCards(filteredCards);
+      
+      // Вызываем callback если есть
+      if (onLayoutChange) {
+        onLayoutChange(newLayout);
+      }
+      
+    } catch (error) {
+      console.error('Error updating card visibility:', error);
+      // В случае ошибки перезагружаем layout
+      loadLayout();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
@@ -244,6 +310,30 @@ const DraggableGrid = ({
           <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
           Сохранение layout...
         </div>
+      )}
+
+      {/* Кнопка настроек карточек */}
+      {enableDragAndDrop && user && (
+        <button
+          onClick={() => setShowVisibilitySettings(true)}
+          className="fixed bottom-4 left-4 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg transition-colors"
+          title="Настроить карточки"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L19 7.5C18.8 6.9 18.6 6.4 18.3 5.9L19.5 4.5L18 3L16.6 4.2C16.1 3.9 15.6 3.7 15 3.5L14.5 1.5H12.5L12 3.5C11.4 3.7 10.9 3.9 10.4 4.2L9 3L7.5 4.5L8.7 5.9C8.4 6.4 8.2 6.9 8 7.5L6 7V9L8 8.5C8.2 9.1 8.4 9.6 8.7 10.1L7.5 11.5L9 13L10.4 11.8C10.9 12.1 11.4 12.3 12 12.5L12.5 14.5H14.5L15 12.5C15.6 12.3 16.1 12.1 16.6 11.8L18 13L19.5 11.5L18.3 10.1C18.6 9.6 18.8 9.1 19 8.5L21 9Z"/>
+          </svg>
+        </button>
+      )}
+
+      {/* Модальное окно настроек */}
+      {showVisibilitySettings && (
+        <CardVisibilitySettings
+          availableCards={defaultCards}
+          currentLayout={layout}
+          onUpdateVisibility={handleVisibilityUpdate}
+          onClose={() => setShowVisibilitySettings(false)}
+          layoutType={layoutType}
+        />
       )}
     </DndContext>
   );

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
-import { projectService } from '../../services/projectService';
+import useAuth from '../../../../hooks/useAuth';
+import { projectService } from '../../../../services/projectService';
 import ProjectCard from './components/ProjectCard';
 import CreateProjectModal from './components/CreateProjectModal';
 import ProjectsCalendar from './components/ProjectsCalendar';
-import HeaderTabs from '../taskManager/components/HeaderTabs';
 import './Projects.css';
 
 const Projects = () => {
@@ -169,11 +168,8 @@ const Projects = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
-      <div className="bg-gradient-to-b from-[#0D1414] to-[#16251C] rounded-xl shadow-md p-6">
-        <HeaderTabs />
-        <div className="mt-6">
-          <div className="projects-header">
+    <div className="mt-6">
+      <div className="projects-header">
         <div className="header-left">
           <div className="title-section">
             <h1 className="text-2xl font-bold text-gray-100">Проекты</h1>
@@ -280,8 +276,6 @@ const Projects = () => {
           onSubmit={handleCreateProject}
         />
       )}
-        </div>
-      </div>
     </div>
   );
 };
