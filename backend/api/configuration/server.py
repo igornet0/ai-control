@@ -16,7 +16,7 @@ class Server:
 
     __app: FastAPI
 
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
     http_bearer = HTTPBearer(auto_error=False)
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl=settings.security.secret_key)
 
@@ -44,6 +44,8 @@ class Server:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=[
+                "http://localhost:3000",  # Явно разрешаем localhost:3000
+                "http://127.0.0.1:3000",  # Альтернативный адрес
                 settings.run.frontend_url,   
                 settings.run.https_frontend_url,  
                 settings.run.http_domain_frontend_url,

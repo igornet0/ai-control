@@ -68,12 +68,6 @@ const DashboardDetail = () => {
   };
 
   const saveChanges = () => {
-    console.log('Dashboard saved', {
-      dashboardName,
-      dashboardDescription,
-      selectedSource,
-      sheets,
-    });
     alert('Changes saved successfully!');
   };
 

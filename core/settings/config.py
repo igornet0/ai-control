@@ -49,8 +49,8 @@ class RunConfig(BaseSettings):
     celery_broker_url: str = Field(default="amqp://ai_control_user:ai_control_password@rabbitmq:5672//")
     celery_result_backend: str = Field(default="redis://redis:6379/0")
 
-    frontend_host: str = Field(default="localhost")
-    frontend_port: int = Field(default=5173)
+    frontend_host: str = Field(default="0.0.0.0")
+    frontend_port: int = Field(default=3000)
 
     @property
     def frontend_url(self):
@@ -148,7 +148,7 @@ class SecurityCongig(BaseSettings):
 
     secret_key: str = Field(default="dev-secret-key-change-in-production")
     refresh_secret_key: str = Field(default="dev-refresh-secret-key-change-in-production")
-    algorithm: str = Field(default="RS256")
+    algorithm: str = Field(default="HS256")  # Изменено с RS256 на HS256 для разработки
 
     access_token_expire_minutes: int = Field(default=120)
     refresh_token_expire_days:int = Field(default=7)

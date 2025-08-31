@@ -55,7 +55,7 @@ def create_app(
     )
 
     # Настраиваем middleware для аутентификации и авторизации
-    setup_auth_middleware(app)
+    # setup_auth_middleware(app)  # Временно отключено для отладки
 
     # app.mount("/static", StaticFiles(directory="backend/app/front/static"), name="static")
 

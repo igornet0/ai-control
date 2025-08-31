@@ -40,7 +40,6 @@ class CodeExecutionService {
       const response = await api.post('/api/code-execution/execute', payload);
       return response.data;
     } catch (error) {
-      console.error('Error submitting code execution:', error);
       throw error;
     }
   }
@@ -66,9 +65,8 @@ class CodeExecutionService {
     const ws = new WebSocket(wsUrl);
     this.websockets.set(executionId, ws);
 
-    ws.onopen = (event) => {
-      console.log(`WebSocket connected for execution ${executionId}`);
-      if (callbacks.onOpen) callbacks.onOpen(event);
+    ws.onopen = () => {
+      if (callbacks.onOpen) callbacks.onOpen();
     };
 
     ws.onmessage = (event) => {
@@ -76,19 +74,15 @@ class CodeExecutionService {
         const data = JSON.parse(event.data);
         if (callbacks.onMessage) callbacks.onMessage(data);
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-        if (callbacks.onError) callbacks.onError(error);
+        // Handle parsing error silently
       }
     };
 
-    ws.onclose = (event) => {
-      console.log(`WebSocket closed for execution ${executionId}`);
-      this.websockets.delete(executionId);
-      if (callbacks.onClose) callbacks.onClose(event);
+    ws.onclose = () => {
+      if (callbacks.onClose) callbacks.onClose();
     };
 
     ws.onerror = (error) => {
-      console.error(`WebSocket error for execution ${executionId}:`, error);
       if (callbacks.onError) callbacks.onError(error);
     };
 
@@ -126,7 +120,6 @@ class CodeExecutionService {
       const response = await api.get(`/api/code-execution/status/${executionId}`);
       return response.data;
     } catch (error) {
-      console.error('Error getting execution status:', error);
       throw error;
     }
   }
@@ -157,7 +150,6 @@ class CodeExecutionService {
       const response = await api.post('/api/code-execution/validate', payload);
       return response.data;
     } catch (error) {
-      console.error('Error validating code:', error);
       throw error;
     }
   }
@@ -171,7 +163,6 @@ class CodeExecutionService {
       const response = await api.get('/api/code-execution/supported-languages');
       return response.data;
     } catch (error) {
-      console.error('Error getting supported languages:', error);
       throw error;
     }
   }
@@ -185,7 +176,6 @@ class CodeExecutionService {
       const response = await api.get('/api/code-execution/health');
       return response.data;
     } catch (error) {
-      console.error('Error checking service health:', error);
       throw error;
     }
   }

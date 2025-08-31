@@ -1,150 +1,169 @@
-import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import df_dashboard from '../../assets/default_dashboard.png';
-
-const dashboardTabs = {
-  My: [
-    { id: 1, img: df_dashboard, name: 'Sales Dashboard' },
-    { id: 2, img: df_dashboard, name: 'Marketing Dashboard' },
-    { id: 3, img: df_dashboard, name: 'HR Dashboard' },
-    { id: 4, img: df_dashboard, name: 'HR Dashboard' },
-    { id: 5, img: df_dashboard, name: 'HR Dashboard' },
-    { id: 6, img: df_dashboard, name: 'HR Dashboard' },
-  ],
-  Favorites: [
-    { id: 1, img: df_dashboard, name: 'Sales Dashboard' },
-    { id: 2, img: df_dashboard, name: 'Marketing Dashboard' },
-  ],
-  Finance: [
-    { id: 4, img: df_dashboard, name: 'Budget 2025' },
-  ],
-  HR: [
-    { id: 5, img: df_dashboard, name: 'Team Overview' },
-  ],
-};
+import { dashboardService } from '../../services/dashboardService';
+import styles from './Dashboard.module.css';
 
 const DashboardList = () => {
   const { user } = useAuth();
+  const [dashboards, setDashboards] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('My');
-  const [contextMenu, setContextMenu] = useState(null);
-  const [selectedDashboard, setSelectedDashboard] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [error, setError] = useState(null);
+  const [newDashboard, setNewDashboard] = useState({
+    name: '',
+    description: '',
+    is_template: false
+  });
 
-  const dashboards = dashboardTabs[activeTab] || [];
+  const loadDashboards = async () => {
+    try {
+      const [dashboardsData, templatesData, statsData] = await Promise.all([
+        dashboardService.getDashboards(),
+        dashboardService.getTemplates(),
+        dashboardService.getStats()
+      ]);
+      
+      setDashboards(dashboardsData);
+      setTemplates(templatesData);
+      setStats(statsData);
+    } catch (error) {
+      setError('Failed to load dashboards');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleContextMenu = (e, dashboard) => {
+  useEffect(() => {
+    if (user) {
+      loadDashboards();
+    }
+  }, [user]);
+
+  const handleCreateDashboard = async (e) => {
     e.preventDefault();
-    setSelectedDashboard(dashboard);
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  };
-
-  const closeContextMenu = () => setContextMenu(null);
-
-  const handleOpen = () => {
-    window.location.href = `/dashboard/${selectedDashboard.id}`;
-  };
-
-  const handleRename = () => {
-    const newName = prompt('Enter new dashboard name:', selectedDashboard.name);
-    if (newName) {
-      alert(`Renamed to: ${newName}`);
+    
+    try {
+      await dashboardService.createDashboard(newDashboard);
+      setNewDashboard({ name: '', description: '', is_template: false });
+      setShowCreateForm(false);
+      await loadDashboards(); // Reload dashboards after creation
+    } catch (error) {
+      setError('Failed to create dashboard');
     }
-    closeContextMenu();
   };
 
-  const handleChangeImage = () => {
-    alert('Open image picker modal (not implemented)');
-    closeContextMenu();
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Delete this dashboard?')) {
-      alert(`Dashboard ${selectedDashboard.name} deleted.`);
+  const handleDeleteDashboard = async (id) => {
+    if (window.confirm('Are you sure you want to delete this dashboard?')) {
+      try {
+        await dashboardService.deleteDashboard(id);
+        await loadDashboards();
+      } catch (error) {
+        setError('Failed to delete dashboard');
+      }
     }
-    closeContextMenu();
   };
+
+  if (loading || !user) {
+    return <div className={styles.loading}>Loading...</div>;
+  }
+
+  const filteredDashboards = {
+    My: dashboards.filter(d => !d.is_template && d.user_id === user.id),
+    Templates: templates,
+    All: dashboards
+  };
+
+  const currentDashboards = filteredDashboards[activeTab] || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] text-gray-100 p-6" onClick={closeContextMenu}>
-      <h3 className="text-2xl font-semibold mb-6 text-green-300">Your Dashboards</h3>
+    <div className={styles.dashboardList}>
+      <div className={styles.header}>
+        <h1>Dashboards</h1>
+        <button 
+          onClick={() => setShowCreateForm(true)}
+          className={styles.createButton}
+        >
+          Create Dashboard
+        </button>
+      </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-4 mb-6">
-        {Object.keys(dashboardTabs).map((tab) => (
+      {error && (
+        <div className={styles.error}>
+          {error}
+          <button onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+
+      <div className={styles.tabs}>
+        {Object.keys(filteredDashboards).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-              activeTab === tab
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
+            className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
           >
-            {tab}
+            {tab} ({filteredDashboards[tab]?.length || 0})
           </button>
         ))}
       </div>
 
-      {activeTab === 'My' && (
-        <div className="mb-4">
-          <button
-            onClick={() => alert('Open Create Dashboard modal')}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md shadow"
-          >
-            + Create New Dashboard
-          </button>
+      {showCreateForm && (
+        <div className={styles.createForm}>
+          <h3>Create New Dashboard</h3>
+          <form onSubmit={handleCreateDashboard}>
+            <input
+              type="text"
+              placeholder="Dashboard Name"
+              value={newDashboard.name}
+              onChange={(e) => setNewDashboard({...newDashboard, name: e.target.value})}
+              required
+            />
+            <textarea
+              placeholder="Description"
+              value={newDashboard.description}
+              onChange={(e) => setNewDashboard({...newDashboard, description: e.target.value})}
+            />
+            <label>
+              <input
+                type="checkbox"
+                checked={newDashboard.is_template}
+                onChange={(e) => setNewDashboard({...newDashboard, is_template: e.target.checked})}
+              />
+              Is Template
+            </label>
+            <div className={styles.formButtons}>
+              <button type="submit">Create</button>
+              <button type="button" onClick={() => setShowCreateForm(false)}>Cancel</button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* Scrollable Horizontal Dashboard List */}
-      <div className="overflow-x-auto pb-4">
-        <ul className="flex space-x-6">
-          {dashboards.map((dashboard) => (
-            <li
-              key={dashboard.id}
-              onContextMenu={(e) => handleContextMenu(e, dashboard)}
-              className="rounded-xl border-2 border-gray-700 bg-[#020D0D] overflow-hidden shadow-lg hover:shadow-xl transition-shadow flex-none w-[300px] h-[350px]"
-            >
-              <Link
-                to={`/dashboard/${dashboard.id}`}
-                className="flex flex-col w-full h-full"
-              >
-                <img
-                  src={dashboard.img}
-                  alt={dashboard.name}
-                  className="w-full h-[250px] object-cover"
-                />
-                <h3 className="text-center border-t border-gray-700 py-4 text-lg font-medium bg-[#020D0D]">
-                  {dashboard.name}
-                </h3>
-              </Link>
-            </li>
-          ))}
-
-          {activeTab === 'My' && (
-            <li
-              onClick={() => alert('Open Create Dashboard modal')}
-              className="rounded-xl border-2 border-dashed border-gray-600 bg-gray-800 flex flex-col items-center justify-center h-[350px] w-[300px] cursor-pointer hover:bg-gray-700 transition flex-none"
-            >
-              <div className="text-6xl text-gray-400 mb-2">+</div>
-              <p className="text-gray-400 text-center">Create New Dashboard</p>
-            </li>
-          )}
-        </ul>
+      <div className={styles.dashboardGrid}>
+        {currentDashboards.map(dashboard => (
+          <div key={dashboard.id} className={styles.dashboardCard}>
+            <h3>{dashboard.name}</h3>
+            <p>{dashboard.description}</p>
+            <div className={styles.dashboardMeta}>
+              <span>Created: {new Date(dashboard.created_at).toLocaleDateString()}</span>
+              {dashboard.user_id === user.id && (
+                <button
+                  onClick={() => handleDeleteDashboard(dashboard.id)}
+                  className={styles.deleteButton}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Context Menu */}
-      {contextMenu && selectedDashboard && (
-        <div
-          className="fixed bg-gray-800 border border-gray-600 rounded shadow-md z-50"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <ul className="text-sm text-gray-200">
-            <li onClick={handleOpen} className="px-4 py-2 hover:bg-gray-700 cursor-pointer">Open</li>
-            <li onClick={handleRename} className="px-4 py-2 hover:bg-gray-700 cursor-pointer">Rename</li>
-            <li onClick={handleChangeImage} className="px-4 py-2 hover:bg-gray-700 cursor-pointer">Change Image</li>
-            <li onClick={handleDelete} className="px-4 py-2 hover:bg-red-700 text-red-400 cursor-pointer">Delete</li>
-          </ul>
+      {currentDashboards.length === 0 && (
+        <div className={styles.emptyState}>
+          <p>No {activeTab.toLowerCase()} dashboards found.</p>
         </div>
       )}
     </div>

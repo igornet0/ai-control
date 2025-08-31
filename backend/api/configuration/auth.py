@@ -1,19 +1,27 @@
 import asyncio
+import logging
 from typing import Optional, Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, Depends, status, Form
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 import re
+from passlib.context import CryptContext
 
 from core.settings import settings
 from core.database import User, orm_get_user_by_login
 
 from backend.api.configuration import TokenData, Server, UserResponse, UserLoginResponse
 
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+# Настройка хеширования паролей
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 TOKEN_TYPE_FIELD = "type"
-ACCESS_TOKEN_TYPE = "access"
-REFRESH_TOKEN_TYPE = "refresh"
+TOKEN_TYPE_ACCESS = "access"
+TOKEN_TYPE_REFRESH = "refresh"
 
 EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
 
@@ -21,208 +29,169 @@ def is_email(string: str) -> bool:
     """Проверяет, соответствует ли строка формату email"""
     return re.fullmatch(EMAIL_REGEX, string) is not None
 
-def verify_password(plain_password, hashed_password) -> bool:
-    return Server.pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Проверка пароля"""
+    return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password) -> str:
-    return Server.pwd_context.hash(password)
+def get_password_hash(password: str) -> str:
+    """Хеширование пароля"""
+    return pwd_context.hash(password)
 
-def create_access_token(payload: dict,
-                        private_key: str = settings.security.private_key_path.read_text(),
-                        algorithm: str = settings.security.algorithm,
-                        expires_delta: Optional[timedelta] = None):
-    to_encode = payload.copy()
-
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-
-    to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc), TOKEN_TYPE_FIELD: ACCESS_TOKEN_TYPE})
-
-    return jwt.encode(to_encode, private_key, algorithm=algorithm)
-
-def decode_access_token(token: str | bytes, public_key: str = settings.security.public_key_path.read_text(),
-                        algorithm: str = settings.security.algorithm):
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.security.access_token_expire_minutes)
     
-    return jwt.decode(token, public_key, algorithms=[algorithm])
+    to_encode.update({"exp": expire, TOKEN_TYPE_FIELD: TOKEN_TYPE_ACCESS})
+    
+    # Используем secret_key для HS256 и private_key для RS256
+    if settings.security.algorithm == "HS256":
+        key = settings.security.secret_key
+    else:
+        key = settings.security.private_key_path.read_text()
+    
+    encoded_jwt = jwt.encode(to_encode, key, algorithm=settings.security.algorithm)
+    return encoded_jwt
+
+def decode_access_token(token: str, algorithm: str = settings.security.algorithm):
+    try:
+        # Используем secret_key для HS256 и public_key для RS256
+        if algorithm == "HS256":
+            key = settings.security.secret_key
+        else:
+            key = settings.security.public_key_path.read_text()
+        
+        payload = jwt.decode(token, key, algorithms=[algorithm])
+        return payload
+        
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 def get_current_token_payload(
     token: str = Depends(Server.oauth2_scheme),
 ) -> dict:
     try:
-        payload = decode_access_token(
-            token=token,
-        )
+        payload = decode_access_token(token=token)
+        return payload
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"invalid token error: {e}",
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    return payload
 
-def validate_token_type(
-    payload: dict,
-    token_type: str,
-) -> bool:
-    
-    current_token_type = payload.get(TOKEN_TYPE_FIELD)
-
-    if current_token_type == token_type:
-        return True
-    
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=f"invalid token type {current_token_type!r} expected {token_type!r}",
-    )
-
-async def get_user_by_token_sub(payload: dict, session: Annotated[AsyncSession, Depends(Server.get_db)]) -> User:
-
-    username: str | None = payload.get("sub")
-
-    user = await orm_get_user_by_login(session, UserLoginResponse(login=username, password=""))
-
-    if user:
-        return user
-    
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="token invalid (user not found)",
-    )
-
-def get_auth_user_from_token_of_type(token_type: str):
-    async def get_auth_user_from_token(
-        payload: dict = Depends(get_current_token_payload),
-        session: AsyncSession = Depends(Server.get_db),
-    ) -> User:
-
-        validate_token_type(payload, token_type)
-        
-        return await get_user_by_token_sub(payload, session)
-
-    return get_auth_user_from_token
-
-def get_current_active_auth_user(
-    current_user,
-):
-    if current_user.active:
-        return current_user
-    
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="inactive user",
-    )
-
-async def validate_auth_user(
-        response: UserLoginResponse,
-        session: AsyncSession = Depends(Server.get_db),
-    ):
-
-    unauthed_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    user = await orm_get_user_by_login(session, response)
-
-    if not user:
-        raise unauthed_exc
-
-    if not verify_password(
-        plain_password=response.password,
-        hashed_password=user.password,
-    ):
-        raise unauthed_exc
-
-    if not user.is_active:
+def validate_token_type(payload: dict, expected_type: str):
+    token_type = payload.get(TOKEN_TYPE_FIELD)
+    if token_type != expected_type:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="user inactive",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token type: expected {expected_type}",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return user
-
-async def get_current_user(token: Annotated[str, Depends(Server.oauth2_scheme)], db: Annotated[AsyncSession, Depends(Server.get_db)]):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+async def get_user_by_token_sub(payload: dict, session: AsyncSession) -> User:
+    username: str | None = payload.get("sub")
+    
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     try:
-        payload = decode_access_token(token)
-
-        username: str = payload.get("sub")
-
-        if username is None:
-            raise credentials_exception
+        user = await orm_get_user_by_login(session, username)
         
-        token_data = TokenData(login=username)
+        if user:
+            return user
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during user lookup",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    except JWTError:
-        raise credentials_exception
-    
-    user = await orm_get_user_by_login(db, token_data)
-
-    if user is None:
-        raise credentials_exception
-    
-    return user
-
-async def verify_authorization(token: str = Depends(Server.oauth2_scheme), 
-                               session: AsyncSession = Depends(Server.get_db)):
-    
-    payload = get_current_token_payload(token)
-    validate_token_type(payload, "access")
-
-    user = await get_user_by_token_sub(payload, session)
-    
-    if user.is_active:
-        return user
-    
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="inactive user",
-    )
-
-async def verify_authorization_admin(token: str = Depends(Server.oauth2_scheme), 
-                               session: AsyncSession = Depends(Server.get_db)):
-    
-    payload = get_current_token_payload(token)
-    validate_token_type(payload, "access")
-
-    user = await get_user_by_token_sub(payload, session)
-    
-    if user.is_active and user.role == "admin":
-        return user
-    
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="inactive user",
-    )
-
-# Новые функции для проверки разрешений
-async def verify_authorization_with_permission(
-    resource: str,
-    action: str,
+async def verify_authorization(
     token: str = Depends(Server.oauth2_scheme),
     session: AsyncSession = Depends(Server.get_db)
 ):
-    """Проверка авторизации с проверкой разрешений"""
-    user = await verify_authorization(token, session)
-    
-    # Проверяем разрешения
-    from core.database import orm_check_user_permission
-    has_permission = await orm_check_user_permission(session, user.id, resource, action)
-    if not has_permission:
+    if not token:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Insufficient permissions for {action} on {resource}"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
+    try:
+        payload = get_current_token_payload(token)
+        validate_token_type(payload, TOKEN_TYPE_ACCESS)
+        user = await get_user_by_token_sub(payload, session)
+        
+        if hasattr(user, 'is_active') and user.is_active:
+            return user
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is not active",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during authorization",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+async def get_current_user(
+    token: str = Depends(Server.oauth2_scheme),
+    session: AsyncSession = Depends(Server.get_db)
+) -> User:
+    try:
+        payload = get_current_token_payload(token)
+        user = await get_user_by_token_sub(payload, session)
+        return user
+    except HTTPException:
+        raise
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+async def authenticate_user(session: AsyncSession, username: str, password: str):
+    user = await orm_get_user_by_login(session, username)
+    if not user:
+        return False
+    if not user.verify_password(password):
+        return False
     return user
 
+async def create_user(session: AsyncSession, user_data: dict):
+    user = User(**user_data)
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+# Функции для проверки ролей
 def require_role(required_role: str):
     """Декоратор для проверки роли пользователя"""
     async def role_checker(

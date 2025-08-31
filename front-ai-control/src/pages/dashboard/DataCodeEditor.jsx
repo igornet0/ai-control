@@ -137,7 +137,6 @@ const DataCodeEditor = ({ isOpen, onClose, code, setCode }) => {
       });
 
     } catch (error) {
-      console.error('Code execution error:', error);
       setError(error.response?.data?.detail || error.message || 'Failed to execute code');
       addExecutionLog({
         type: 'error',
@@ -164,7 +163,6 @@ const DataCodeEditor = ({ isOpen, onClose, code, setCode }) => {
   };
 
   const handleWebSocketMessage = (data) => {
-    console.log('WebSocket message:', data);
 
     switch (data.type) {
       case 'connection_established':
@@ -206,7 +204,8 @@ const DataCodeEditor = ({ isOpen, onClose, code, setCode }) => {
         break;
 
       default:
-        console.log('Unknown message type:', data.type);
+        // Handle unknown message types
+        break;
     }
   };
 

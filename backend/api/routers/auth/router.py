@@ -1,5 +1,6 @@
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, HTTPException, Depends, status, Body
 from fastapi.security import (HTTPBearer,
                               OAuth2PasswordRequestForm)
@@ -30,46 +31,109 @@ import logging
 
 http_bearer = HTTPBearer(auto_error=False)
 
-router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(http_bearer)])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 logger = logging.getLogger("app_fastapi.auth")
 
 
+@router.get("/test/")
+async def test_endpoint():
+    """Простой тестовый эндпоинт для проверки работы API"""
+    return {"message": "Auth API is working!", "status": "success"}
+
+@router.get("/test-token/")
+async def test_token_endpoint(token: str = Depends(Server.oauth2_scheme)):
+    """Тестовый эндпоинт для проверки токена"""
+    try:
+        from backend.api.configuration.auth import decode_access_token
+        payload = decode_access_token(token)
+        return {"message": "Token decoded successfully", "payload": payload}
+    except Exception as e:
+        return {"message": "Token decode failed", "error": str(e)}
+
+@router.get("/test-user-lookup/")
+async def test_user_lookup_endpoint(token: str = Depends(Server.oauth2_scheme), session: AsyncSession = Depends(Server.get_db)):
+    """Тестовый эндпоинт для проверки поиска пользователя"""
+    try:
+        from backend.api.configuration.auth import decode_access_token
+        from core.database import orm_get_user_by_login
+        from backend.api.configuration import UserLoginResponse
+        
+        payload = decode_access_token(token)
+        username = payload.get("sub")
+        
+        if not username:
+            return {"message": "No username in token", "payload": payload}
+        
+        user_response = UserLoginResponse(login=username, password="")
+        user = await orm_get_user_by_login(session, user_response)
+        
+        if user:
+            return {
+                "message": "User found successfully", 
+                "username": username,
+                "user_id": user.id,
+                "user_email": user.email,
+                "user_role": user.role
+            }
+        else:
+            return {
+                "message": "User not found", 
+                "username": username,
+                "user_response": str(user_response)
+            }
+    except Exception as e:
+        return {"message": "User lookup failed", "error": str(e)}
+
 @router.post("/register/", response_model=Token)
 async def register(user: UserRegisterResponse, session: AsyncSession = Depends(Server.get_db)):
+    try:
+        db_user = await orm_get_user(session, UserEmailResponse(login=user.email, password=user.password))
 
-    db_user = await orm_get_user(session, UserEmailResponse(login=user.email, password=user.password))
+        if db_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        db_user = await orm_get_user(session, UserLoginResponse(login=user.login, password=user.password))
 
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        if db_user:
+            raise HTTPException(status_code=400, detail="Login already registered")
+        
+        hashed_password = get_password_hash(user.password)
+
+        await orm_add_user(session, 
+                            username=user.username,
+                           login=user.login,
+                           hashed_password=hashed_password,
+                           email=user.email,
+                           role=user.role,
+                           position=user.position,
+                           phone=user.phone,
+                           manager_id=user.manager_id,
+                           department_id=user.department_id,
+                           organization_id=user.organization_id)
+        
+        access_token_expires = timedelta(minutes=settings.security.access_token_expire_minutes)
+
+        return {
+            "access_token": create_access_token(payload={"sub": user.login, "email": user.email}, 
+                                                expires_delta=access_token_expires),
+            "token_type": "bearer",
+            "message": "User registered successfully"
+        }
     
-    db_user = await orm_get_user(session, UserLoginResponse(login=user.login, password=user.password))
-
-    if db_user:
-        raise HTTPException(status_code=400, detail="Login already registered")
-    
-    hashed_password = get_password_hash(user.password)
-
-    await orm_add_user(session, 
-                        username=user.username,
-                       login=user.login,
-                       hashed_password=hashed_password,
-                       email=user.email,
-                       role=user.role,
-                       position=user.position,
-                       phone=user.phone,
-                       manager_id=user.manager_id,
-                       department_id=user.department_id,
-                       organization_id=user.organization_id)
-    
-    access_token_expires = timedelta(minutes=settings.security.access_token_expire_minutes)
-
-    return {
-        "access_token": create_access_token(payload={"sub": user.login, "email": user.email}, 
-                                            expires_delta=access_token_expires),
-        "token_type": "bearer",
-        "message": "User registered successfully"
-    }
+    except HTTPException:
+        # Перебрасываем HTTP исключения как есть
+        raise
+    except Exception as e:
+        # Обрабатываем ошибки базы данных
+        error_message = str(e)
+        if "uq_users_email" in error_message or "email" in error_message.lower():
+            raise HTTPException(status_code=400, detail="Email already registered")
+        elif "uq_users_login" in error_message or "login" in error_message.lower():
+            raise HTTPException(status_code=400, detail="Login already registered")
+        else:
+            logger.error(f"Registration error: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error during registration")
 
 
 @router.post("/login_user/", response_model=Token)
@@ -419,3 +483,23 @@ async def get_user_permissions(
         )
         for perm in permissions
     ]
+
+@router.get("/test-cors/")
+async def test_cors():
+    """Простой тестовый endpoint для проверки CORS"""
+    return {"message": "CORS test successful", "status": "ok"}
+
+@router.get("/test-auth-simple/")
+async def test_auth_simple(token: str = Depends(Server.oauth2_scheme)):
+    """Простой тестовый endpoint для проверки аутентификации"""
+    try:
+        from backend.api.configuration.auth import decode_access_token
+        payload = decode_access_token(token)
+        return {
+            "message": "Token decoded successfully", 
+            "payload": payload,
+            "username": payload.get("sub"),
+            "email": payload.get("email")
+        }
+    except Exception as e:
+        return {"message": "Token decode failed", "error": str(e)}

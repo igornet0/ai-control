@@ -74,40 +74,9 @@ const RegisterPage = () => {
       setFormData({ email: '', login: '', password: '', confirmPassword: '', username: '' });
       
     } catch (error) {
-        console.error('Registration error:', error.response);
-        if (error.response && error.response.data) {
-            const apiErrors = error.response.data;
-            
-            // Обработка специфических ошибок FastAPI
-            if (apiErrors.detail) {
-                if (typeof apiErrors.detail === 'string') {
-                    // Ошибка в формате строки
-                    if (apiErrors.detail.includes("Email")) {
-                    setErrors({ email: apiErrors.detail });
-                    } else if (apiErrors.detail.includes("Login")) {
-                    setErrors({ login: apiErrors.detail });
-                    } else {
-                    setErrors({ general: apiErrors.detail });
-                    }
-                } else if (Array.isArray(apiErrors.detail)) {
-                    // Ошибка в формате массива объектов
-                    const fieldErrors = {};
-                    apiErrors.detail.forEach(err => {
-                    if (err.loc && err.msg) {
-                        const field = err.loc[err.loc.length - 1];
-                        fieldErrors[field] = err.msg;
-                    }
-                    });
-                    setErrors(fieldErrors);
-                }
-            } else {
-                setErrors({ general: 'Ошибка регистрации. Пожалуйста, попробуйте позже.' });
-            }
-        } else {
-            setErrors({ general: 'Сервер недоступен. Пожалуйста, попробуйте позже.' });
-        }
+      setError(error.response?.data?.detail || error.message || 'Registration failed');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -118,14 +87,24 @@ const RegisterPage = () => {
         <div>
           <div className="p-8">
             {successMessage && (
-              <div>
-                {successMessage}
+              <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  {successMessage}
+                </div>
               </div>
             )}
             
             {errors.general && (
-              <div>
-                {errors.general}
+              <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {errors.general}
+                </div>
               </div>
             )}
             
@@ -158,7 +137,12 @@ const RegisterPage = () => {
                     disabled={isLoading}
                   />
                   {errors[name] && (
-                    <p className="mt-1 text-sm text-red-500">{errors[name]}</p>
+                    <div className="mt-1 flex items-center text-sm text-red-500">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      {errors[name]}
+                    </div>
                   )}
                 </div>
               ))}

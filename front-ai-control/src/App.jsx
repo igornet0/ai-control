@@ -13,7 +13,7 @@ import ProfilePage from './pages/profile/ProfilePage';
 import CanvasPage from './pages/canvas/CanvasApp';
 import TaskApp from './pages/taskManager/TaskApp';
 import styles from './App.module.css';
-import useAuth from './hooks/useAuth';
+import { useAuth } from './context/AuthContext';
 import spinner from './assets/pageload-spinner.gif';
 import logo from './assets/logo.png';
 
@@ -34,7 +34,8 @@ const FullPageSpinner = () => (
 
 const App = () => {
 
-  const { user, isAuthenticated, loading, login, logout } = useAuth();
+  const { user, loading, login, logout } = useAuth();
+  const isAuthenticated = !!user;
 
   if (loading) {
     return <FullPageSpinner />;

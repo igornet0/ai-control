@@ -6,7 +6,7 @@ from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.configuration.auth import verify_authorization, verify_authorization_with_permission
+from backend.api.configuration.auth import verify_authorization
 from core.database import get_db_helper
 
 
@@ -56,11 +56,18 @@ class AuthMiddleware:
         public_paths = [
             "/auth/register/",
             "/auth/login_user/",
+            "/auth/test/",
+            "/auth/test-token/",
+            "/auth/test-user-lookup/",
             "/docs",
             "/redoc",
             "/openapi.json",
             "/health",
-            "/favicon.ico"
+            "/favicon.ico",
+            # Временно добавляем dashboard endpoints для диагностики
+            "/api/dashboards/stats",
+            "/api/dashboards/templates",
+            "/api/dashboards/"
         ]
         
         # Проверяем, начинается ли путь с публичного

@@ -1,34 +1,39 @@
 import api from './api';
 
-export const register = async (userData) => {
-  // const data = new URLSearchParams();
-  // data.append('username', userData.username);
-  // data.append('login', userData.login);
-  // data.append('email', userData.email);
-  // data.append('password', userData.password);
+export const authService = {
+  async register(userData) {
+    try {
+      const response = await api.post('/auth/register_user/', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
-  const response = await api.post('/auth/register/', userData);
-  return response.data;
-};
+  async login(credentials) {
+    try {
+      const response = await api.post('/auth/login_user/', credentials);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
-export const login = async (credentials) => {
-  const data = new URLSearchParams();
-  data.append('username', credentials.username);
-  data.append('password', credentials.password);
-  data.append('grant_type', 'password');
-  
-  const response = await api.post('/auth/login_user/', data, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-  });
-  
-  return response.data.access_token;
-};
+  async getCurrentUser() {
+    try {
+      const response = await api.get('/auth/user/me/');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
-export const getCurrentUser = async () => {
-  const response = await api.get('auth/user/me/');
-  return response.data;
-};
-
-export const logout = () => {
-  localStorage.removeItem('access_token');
+  async refreshToken(refreshToken) {
+    try {
+      const response = await api.post('/auth/refresh/', { refresh: refreshToken });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 };

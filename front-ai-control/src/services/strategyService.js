@@ -59,7 +59,6 @@ export const get_available_features = async () => {
 }
 
 export const train_new_agent = async (agentData) => {
-  console.log(agentData);
   const response = await api.post('/api_db_agent/train_new_agent/', agentData,{
           headers: {
             'accept': 'application/json',
