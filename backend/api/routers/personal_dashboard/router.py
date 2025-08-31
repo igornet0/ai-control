@@ -129,6 +129,16 @@ class OverviewLayoutUpdateRequest(BaseModel):
     """Запрос на обновление layout карточек обзора"""
     cards: List[OverviewCardLayoutRequest] = Field(..., description="Список карточек с их позициями")
 
+class StatisticsCardLayoutRequest(BaseModel):
+    """Запрос на обновление расположения карточек статистики"""
+    card_id: str = Field(..., description="ID карточки (completed-tasks, overdue-tasks, user-teams, user-projects, feedback)")
+    position: int = Field(..., description="Позиция карточки в сетке (0-4)")
+    visible: bool = Field(True, description="Видимость карточки")
+
+class StatisticsLayoutUpdateRequest(BaseModel):
+    """Запрос на обновление layout карточек статистики"""
+    cards: List[StatisticsCardLayoutRequest] = Field(..., description="Список карточек с их позициями")
+
 
 class WidgetResponse(BaseModel):
     """Ответ с данными виджета"""
@@ -941,3 +951,110 @@ async def update_overview_layout(
     except Exception as e:
         logger.error(f"Error updating overview layout: {str(e)}")
         raise HTTPException(status_code=500, detail="Ошибка при обновлении layout карточек")
+
+
+@router.get("/statistics-layout")
+async def get_statistics_layout(
+    user: dict = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Получение layout карточек статистики"""
+    
+    try:
+        service = WidgetService(session)
+        preferences = await service.get_user_preferences(user.id)
+        
+        # Дефолтный layout для статистики
+        default_layout = {
+            "completed-tasks": {"position": 0, "visible": True},
+            "overdue-tasks": {"position": 1, "visible": True},
+            "user-teams": {"position": 2, "visible": True},
+            "user-projects": {"position": 3, "visible": True},
+            "feedback": {"position": 4, "visible": True}
+        }
+        
+        if preferences and preferences.dashboard_layout:
+            try:
+                if isinstance(preferences.dashboard_layout, str):
+                    import json
+                    saved_layout = json.loads(preferences.dashboard_layout)
+                else:
+                    saved_layout = preferences.dashboard_layout
+                
+                if isinstance(saved_layout, dict) and "statistics_cards" in saved_layout:
+                    return {"layout": saved_layout["statistics_cards"]}
+            except:
+                pass
+        
+        return {"layout": default_layout}
+        
+    except Exception as e:
+        logger.error(f"Error getting statistics layout: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении layout карточек статистики")
+
+
+@router.post("/statistics-layout")
+async def update_statistics_layout(
+    layout_update: StatisticsLayoutUpdateRequest,
+    user: dict = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """Обновление layout карточек статистики"""
+    
+    try:
+        service = WidgetService(session)
+        
+        # Получаем или создаем настройки пользователя
+        preferences = await service.get_user_preferences(user.id)
+        if not preferences:
+            # Создаем новые настройки
+            from core.database.models.personal_dashboard_model import UserPreference
+            preferences = UserPreference(user_id=user.id)
+            session.add(preferences)
+            try:
+                await session.flush()
+            except Exception as e:
+                # Если произошла ошибка дублирования, получаем существующую запись
+                await session.rollback()
+                preferences = await service.get_user_preferences(user.id)
+                if not preferences:
+                    raise e
+        
+        # Формируем новый layout из запроса
+        layout_dict = {}
+        for card in layout_update.cards:
+            layout_dict[card.card_id] = {
+                "position": card.position,
+                "visible": card.visible
+            }
+        
+        # Получаем текущий layout или создаем новый
+        current_layout = {}
+        if preferences.dashboard_layout:
+            try:
+                if isinstance(preferences.dashboard_layout, str):
+                    import json
+                    current_layout = json.loads(preferences.dashboard_layout)
+                else:
+                    current_layout = preferences.dashboard_layout
+            except:
+                current_layout = {}
+        
+        # Обновляем только секцию statistics_cards
+        current_layout["statistics_cards"] = layout_dict
+        
+        # Сохраняем в базу данных
+        import json
+        preferences.dashboard_layout = json.dumps(current_layout)
+        preferences.updated_at = datetime.now()
+        
+        await session.commit()
+        
+        return {
+            "message": "Layout карточек статистики успешно обновлен",
+            "layout": layout_dict
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating statistics layout: {str(e)}")
+        raise HTTPException(status_code=500, detail="Ошибка при обновлении layout карточек статистики")

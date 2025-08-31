@@ -15,29 +15,45 @@ import {
 } from '@dnd-kit/sortable';
 import DraggableCard from './DraggableCard';
 import { overviewLayoutService } from '../services/overviewLayoutService';
+import { statisticsLayoutService } from '../services/statisticsLayoutService';
 
 const DraggableGrid = ({ 
   children, 
   className = "", 
   user,
   onLayoutChange = null,
-  enableDragAndDrop = true 
+  enableDragAndDrop = true,
+  layoutType = "overview" // "overview" или "statistics"
 }) => {
   const [cards, setCards] = useState([]);
   const [layout, setLayout] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Определяем порядок карточек по умолчанию
-  const defaultCards = [
-    { id: 'priorities', title: 'Мои приоритеты на сегодня' },
-    { id: 'overdue', title: 'Просроченные задачи' },
-    { id: 'upcoming', title: 'Предстоящие дедлайны' },
-    { id: 'projects', title: 'Статусы проектов' },
-    { id: 'notes', title: 'Заметки' },
-    { id: 'checklist', title: 'Чек-лист' },
-    { id: 'time-management', title: 'Тайм-менеджмент на сегодня' }
-  ];
+  // Определяем порядок карточек по умолчанию в зависимости от типа layout
+  const getDefaultCards = () => {
+    if (layoutType === "statistics") {
+      return [
+        { id: 'completed-tasks', title: 'Выполненные задачи' },
+        { id: 'overdue-tasks', title: 'Просрочки' },
+        { id: 'user-teams', title: 'Команды пользователя' },
+        { id: 'user-projects', title: 'Проекты пользователя' },
+        { id: 'feedback', title: 'Жалобы и похвалы' }
+      ];
+    }
+    // Дефолтный overview layout
+    return [
+      { id: 'priorities', title: 'Мои приоритеты на сегодня' },
+      { id: 'overdue', title: 'Просроченные задачи' },
+      { id: 'upcoming', title: 'Предстоящие дедлайны' },
+      { id: 'projects', title: 'Статусы проектов' },
+      { id: 'notes', title: 'Заметки' },
+      { id: 'checklist', title: 'Чек-лист' },
+      { id: 'time-management', title: 'Тайм-менеджмент на сегодня' }
+    ];
+  };
+
+  const defaultCards = getDefaultCards();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -55,6 +71,10 @@ const DraggableGrid = ({
     loadLayout();
   }, [user]);
 
+  const getLayoutService = () => {
+    return layoutType === "statistics" ? statisticsLayoutService : overviewLayoutService;
+  };
+
   const loadLayout = async () => {
     if (!user || !enableDragAndDrop) {
       // Если drag and drop отключен или нет пользователя, используем дефолтный порядок
@@ -65,7 +85,10 @@ const DraggableGrid = ({
 
     try {
       setLoading(true);
-      const savedLayout = await overviewLayoutService.getOverviewLayout();
+      const layoutService = getLayoutService();
+      const savedLayout = layoutType === "statistics" 
+        ? await layoutService.getStatisticsLayout()
+        : await layoutService.getOverviewLayout();
       setLayout(savedLayout);
       
       // Сортируем карточки по позициям из layout
@@ -82,7 +105,11 @@ const DraggableGrid = ({
       console.error('Error loading layout:', error);
       // В случае ошибки используем дефолтный порядок
       setCards(defaultCards);
-      setLayout(overviewLayoutService.getDefaultLayout());
+      const defaultLayout = {};
+      defaultCards.forEach((card, index) => {
+        defaultLayout[card.id] = { position: index, visible: true };
+      });
+      setLayout(defaultLayout);
     } finally {
       setLoading(false);
     }
@@ -105,11 +132,19 @@ const DraggableGrid = ({
         };
       });
 
-      // Преобразуем в формат для API
-      const cardsForApi = overviewLayoutService.layoutToCards(newLayout);
-      
-      // Сохраняем в API
-      await overviewLayoutService.updateOverviewLayout(cardsForApi);
+      // Преобразуем в формат для API и сохраняем
+      const layoutService = getLayoutService();
+      if (layoutType === "statistics") {
+        const cardsForApi = Object.keys(newLayout).map(cardId => ({
+          card_id: cardId,
+          position: newLayout[cardId].position,
+          visible: newLayout[cardId].visible
+        }));
+        await layoutService.updateStatisticsLayout(cardsForApi);
+      } else {
+        const cardsForApi = overviewLayoutService.layoutToCards(newLayout);
+        await layoutService.updateOverviewLayout(cardsForApi);
+      }
       
       setLayout(newLayout);
       
