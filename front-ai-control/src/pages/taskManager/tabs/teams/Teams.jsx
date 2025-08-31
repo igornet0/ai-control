@@ -141,40 +141,41 @@ const Teams = () => {
 
   return (
     <div className="mt-6">
-      <div className={styles['teams-header']}>
-        <div className={styles['header-left']}>
-          <div className={styles['title-section']}>
-            <h1 className="text-2xl font-bold text-gray-100">Команды</h1>
-            {user ? (
-              <div className={styles['teams-counter']}>
-                <span className={styles['counter-label']}>Мои команды:</span>
-                <span className={styles['counter-value']}>
-                  {teams.filter(team => 
-                    team.members && team.members.some(member => 
-                      member.user_id === user.id && member.is_active
-                    )
-                  ).length}
-                </span>
-              </div>
-            ) : (
-              <div className={styles['teams-counter']}>
-                <span className={styles['counter-label']}>Загрузка пользователя...</span>
-              </div>
-            )}
-          </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="animate-slideInLeft">
+          <h1 className="text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
+            👥 Управление командами
+          </h1>
+          <p className="text-slate-400 mt-1">Создавайте и координируйте рабочие группы</p>
+          {user ? (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-sm text-slate-500">Мои команды:</span>
+              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-sm font-medium rounded-md">
+                {teams.filter(team => 
+                  team.members && team.members.some(member => 
+                    member.user_id === user.id && member.is_active
+                  )
+                ).length}
+              </span>
+            </div>
+          ) : (
+            <div className="mt-2">
+              <span className="text-sm text-slate-500">Загрузка пользователя...</span>
+            </div>
+          )}
         </div>
-        <div className={styles['header-actions']}>
+        <div className="flex flex-wrap gap-3 animate-slideInRight">
           {user ? (
             <button 
               onClick={() => setShowMyTeams(!showMyTeams)}
-              className={`${styles['my-teams-btn']} ${showMyTeams ? styles['my-teams-active'] : ''}`}
+              className={`btn ${showMyTeams ? 'btn-primary' : 'btn-outline'} transition-all duration-300`}
               title={showMyTeams ? "Показать все команды" : "Показать только мои команды"}
             >
               {showMyTeams ? '👥 Все команды' : '👤 Мои команды'}
             </button>
           ) : (
             <button 
-              className={`${styles['my-teams-btn']} ${styles['my-teams-disabled']}`}
+              className="btn btn-outline opacity-50 cursor-not-allowed"
               disabled
               title="Загрузка пользователя..."
             >
@@ -182,37 +183,44 @@ const Teams = () => {
             </button>
           )}
           <button 
-            className={styles['create-team-btn']}
+            className="btn btn-primary"
             onClick={() => setShowCreateModal(true)}
           >
-            Создать команду
+            ✨ Создать команду
           </button>
         </div>
       </div>
 
       {error && (
-        <div className={styles['error-message']}>
-          {error}
-          <button onClick={() => setError(null)}>✕</button>
+        <div className="bg-gradient-to-r from-red-500/20 to-rose-600/20 border border-red-500/30 text-red-300 p-4 rounded-xl mb-6 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <span>{error}</span>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-300 hover:text-red-100 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 
-      <div className={styles['teams-filters']}>
-        <div className={styles['search-box']}>
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
           <input
             type="text"
-            placeholder="Поиск по названию или описанию..."
+            placeholder="🔍 Поиск по названию или описанию..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles['search-input']}
+            className="form-input w-full"
           />
         </div>
 
-        <div className={styles['status-filter']}>
+        <div className="sm:w-48">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={styles['status-select']}
+            className="form-input w-full"
           >
             <option value="">Все статусы</option>
             <option value="active">Активные</option>
@@ -223,25 +231,36 @@ const Teams = () => {
         </div>
       </div>
 
-      <div className={styles['teams-grid']}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredTeams.length === 0 ? (
-          <div className={styles['no-teams']}>
-            {!user ? 'Загрузка пользователя...' :
-              showMyTeams 
-                ? 'Вы не состоите ни в одной команде' 
-                : searchTerm || statusFilter 
-                  ? 'Команды не найдены' 
-                  : 'Команды не созданы'
-            }
+          <div className="col-span-full text-center py-16">
+            <div className="text-6xl mb-4 opacity-50">👥</div>
+            <div className="text-slate-400 text-lg mb-2">
+              {!user ? 'Загрузка пользователя...' :
+                showMyTeams 
+                  ? 'Вы не состоите ни в одной команде' 
+                  : searchTerm || statusFilter 
+                    ? 'Команды не найдены' 
+                    : 'Команды не созданы'
+              }
+            </div>
+            {!showMyTeams && !searchTerm && !statusFilter && (
+              <p className="text-slate-500 text-sm">Создайте первую команду для начала работы</p>
+            )}
           </div>
         ) : (
-          filteredTeams.map(team => (
-            <TeamCard
-              key={team.id}
-              team={team}
-              onDelete={handleDeleteTeam}
-              onUpdate={handleUpdateTeam}
-            />
+          filteredTeams.map((team, index) => (
+            <div 
+              key={team.id} 
+              className="animate-fadeIn"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <TeamCard
+                team={team}
+                onDelete={handleDeleteTeam}
+                onUpdate={handleUpdateTeam}
+              />
+            </div>
           ))
         )}
       </div>

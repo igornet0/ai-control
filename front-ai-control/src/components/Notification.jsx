@@ -14,11 +14,11 @@ export default function Notification({ message, type = 'info', onClose, duration
     switch (type) {
       case 'success':
         return {
-          bg: 'bg-gradient-to-r from-emerald-500/90 to-teal-600/90',
-          border: 'border-emerald-400/50',
+          bg: 'bg-gradient-to-r from-slate-500/90 to-slate-600/90',
+          border: 'border-slate-400/50',
           text: 'text-white',
-          icon: '✨',
-          glow: 'shadow-emerald-500/25'
+          icon: '✅',
+          glow: 'shadow-slate-500/25'
         };
       case 'error':
         return {

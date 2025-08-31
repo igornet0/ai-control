@@ -209,35 +209,37 @@ const TaskApp = ({ user, onLogout }) => {
                     {/* Переключатель режимов отображения задач */}
                     <div className="flex items-center bg-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl overflow-hidden shadow-lg">
                       <button
-                        className={`px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                        className={`w-24 px-3 py-2.5 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-1 ${
                           viewMode === 'table' 
-                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg' 
-                            : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                            ? 'bg-slate-600 text-slate-100 shadow-md border-r border-slate-500' 
+                            : 'text-slate-300 bg-transparent hover:bg-slate-700/40 hover:text-slate-100'
                         }`}
                         onClick={() => setViewMode('table')}
                         title="Таблица"
                       >
-                        📊 Таблица
+                        <span className="text-xs">📊</span>
+                        <span>Таблица</span>
                       </button>
                       <button
-                        className={`px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                        className={`w-24 px-3 py-2.5 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-1 ${
                           viewMode === 'kanban' 
-                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg' 
-                            : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                            ? 'bg-slate-600 text-slate-100 shadow-md border-l border-slate-500' 
+                            : 'text-slate-300 bg-transparent hover:bg-slate-700/40 hover:text-slate-100'
                         }`}
                         onClick={() => setViewMode('kanban')}
                         title="Канбан-доска"
                       >
-                        🗂️ Канбан
+                        <span className="text-xs">🗂️</span>
+                        <span>Канбан</span>
                       </button>
                     </div>
                     
                     <button 
                       onClick={() => setShowCreateModal(true)}
-                      className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-2.5 rounded-xl
-                               hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 
+                      className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-6 py-2.5 rounded-xl
+                               hover:from-slate-700 hover:to-slate-800 transition-all duration-300 
                                transform hover:scale-105 hover:shadow-xl font-medium
-                               focus:outline-none focus:ring-4 focus:ring-emerald-500/50"
+                               focus:outline-none focus:ring-4 focus:ring-slate-500/50"
                     >
                       ✨ Новая задача
                     </button>

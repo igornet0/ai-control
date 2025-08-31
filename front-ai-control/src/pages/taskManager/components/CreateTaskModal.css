@@ -15,8 +15,8 @@
 }
 
 .modal-content {
-  background: var(--gradient-surface);
-  border: 1px solid var(--color-dark-border);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border: 1px solid #475569;
   border-radius: var(--radius-2xl);
   width: 100%;
   max-width: 600px;
@@ -24,7 +24,7 @@
   overflow-y: auto;
   position: relative;
   backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-2xl), var(--shadow-glow);
+  box-shadow: var(--shadow-2xl), 0 0 30px rgba(100, 116, 139, 0.4);
   animation: scaleIn var(--transition-base) ease-out;
 }
 
@@ -42,7 +42,7 @@
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   font-family: var(--font-family-base);
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #94a3b8, #cbd5e1);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -189,7 +189,7 @@
 }
 
 .submit-btn {
-  background: var(--gradient-secondary);
+  background: linear-gradient(135deg, #64748b, #475569);
   color: white;
   box-shadow: var(--shadow-md);
   border: 1px solid transparent;
@@ -197,8 +197,8 @@
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg), 0 0 20px rgba(16, 185, 129, 0.4);
-  background: linear-gradient(135deg, var(--color-secondary-light), var(--color-secondary));
+  box-shadow: var(--shadow-lg), 0 0 20px rgba(100, 116, 139, 0.6);
+  background: linear-gradient(135deg, #94a3b8, #64748b);
 }
 
 .submit-btn:disabled {

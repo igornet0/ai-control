@@ -27,7 +27,7 @@ export default function ProgressChart({ tasks = [] }) {
     <div className="card animate-fadeIn">
       <div className="card-body">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center">
             <span className="text-xl">📊</span>
           </div>
           <h3 className="text-lg font-semibold text-slate-100">Обзор статусов задач</h3>
@@ -45,7 +45,7 @@ export default function ProgressChart({ tasks = [] }) {
                 cy="18" 
               />
               <circle
-                className="stroke-emerald-500 transition-all duration-1000 ease-out"
+                className="stroke-slate-400 transition-all duration-1000 ease-out"
                 strokeWidth="3"
                 strokeDasharray={`${completedPercentage * 1.01} ${(100 - completedPercentage) * 1.01}`}
                 strokeDashoffset="0"
@@ -55,7 +55,7 @@ export default function ProgressChart({ tasks = [] }) {
                 cx="18"
                 cy="18"
                 style={{
-                  filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.5))'
+                  filter: 'drop-shadow(0 0 8px rgba(148, 163, 184, 0.5))'
                 }}
               />
             </svg>
@@ -69,7 +69,7 @@ export default function ProgressChart({ tasks = [] }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 transition-all duration-300 hover:bg-slate-700/50">
             <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50"></div>
+              <div className="w-3 h-3 rounded-full bg-slate-400 shadow-lg shadow-slate-400/50"></div>
               <span className="text-sm text-slate-300">Завершено</span>
             </div>
             <div className="flex items-center gap-2">

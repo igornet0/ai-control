@@ -531,8 +531,8 @@ export default function OverviewPage({ user }) {
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-100">Обзор</h1>
-        <div className="text-sm text-gray-400 hidden md:flex items-center gap-2">
+        <h1 className="text-3xl font-bold text-slate-100 tracking-tight">📊 Обзор</h1>
+        <div className="text-sm text-slate-400 hidden md:flex items-center gap-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="5" r="2"/>
             <circle cx="12" cy="12" r="2"/>
@@ -543,24 +543,25 @@ export default function OverviewPage({ user }) {
       </div>
 
         {loading ? (
-          <div className="text-gray-400">Загрузка...</div>
+          <div className="text-slate-400 mt-8">Загрузка...</div>
         ) : (
-          <DraggableGrid user={user} enableDragAndDrop={true}>
+          <div className="mt-8">
+            <DraggableGrid user={user} enableDragAndDrop={true}>
             {/* Мои приоритеты на сегодня */}
-            <div data-card-id="priorities" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
-              <h3 className="text-lg font-semibold mb-3">Мои приоритеты на сегодня</h3>
+            <div data-card-id="priorities" className="card overview-block">
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Мои приоритеты на сегодня</h3>
               <div className="block-content">
               {prioritiesToday.length === 0 ? (
-                <div className="text-gray-400">На сегодня приоритетов нет</div>
+                <div className="text-slate-400">На сегодня приоритетов нет</div>
               ) : (
                 <ul className="space-y-2">
                   {prioritiesToday.map(t => (
-                    <li key={t.id} className="p-3 rounded bg-[#16251C] flex justify-between items-center">
+                    <li key={t.id} className="p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 flex justify-between items-center transition-all duration-300 hover:bg-slate-700/40">
                       <div>
                         <div className="font-medium">{t.title}</div>
-                        <div className="text-xs text-gray-400">Приоритет: {t.priority || '—'}</div>
+                        <div className="text-xs text-slate-400">Приоритет: {t.priority || '—'}</div>
                       </div>
-                      <div className="text-xs text-gray-400">Дедлайн: {t.due_date ? new Date(t.due_date).toLocaleDateString('ru-RU') : '—'}</div>
+                      <div className="text-xs text-slate-400">Дедлайн: {t.due_date ? new Date(t.due_date).toLocaleDateString('ru-RU') : '—'}</div>
                     </li>
                   ))}
                 </ul>
@@ -569,17 +570,17 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Просроченные задачи */}
-            <div data-card-id="overdue" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
-              <h3 className="text-lg font-semibold mb-3">Просроченные задачи</h3>
+            <div data-card-id="overdue" className="card overview-block">
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Просроченные задачи</h3>
               <div className="block-content">
               {overdueTasks.length === 0 ? (
-                <div className="text-gray-400">Просроченных задач нет</div>
+                <div className="text-slate-400">Просроченных задач нет</div>
               ) : (
                 <ul className="space-y-2">
                   {overdueTasks.map(t => (
-                    <li key={t.id} className="p-3 rounded bg-[#16251C]">
-                      <div className="font-medium">{t.title}</div>
-                      <div className="text-xs text-gray-400">Дедлайн: {t.due_date ? new Date(t.due_date).toLocaleDateString('ru-RU') : '—'}</div>
+                    <li key={t.id} className="p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 transition-all duration-300 hover:bg-slate-700/40">
+                      <div className="font-medium text-slate-100">{t.title}</div>
+                      <div className="text-xs text-slate-400">Дедлайн: {t.due_date ? new Date(t.due_date).toLocaleDateString('ru-RU') : '—'}</div>
                     </li>
                   ))}
                 </ul>
@@ -588,17 +589,17 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Предстоящие дедлайны */}
-            <div data-card-id="upcoming" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
-              <h3 className="text-lg font-semibold mb-3">Предстоящие дедлайны</h3>
+            <div data-card-id="upcoming" className="card overview-block">
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Предстоящие дедлайны</h3>
               <div className="block-content">
               {upcomingTasks.length === 0 ? (
-                <div className="text-gray-400">Нет задач на завтра и послезавтра</div>
+                <div className="text-slate-400">Нет задач на завтра и послезавтра</div>
               ) : (
                 <ul className="space-y-2">
                   {upcomingTasks.map(t => (
-                    <li key={t.id} className="p-3 rounded bg-[#16251C] flex justify-between">
-                      <div className="font-medium">{t.title}</div>
-                      <div className="text-xs text-gray-400">{new Date(t.due_date).toLocaleDateString('ru-RU')}</div>
+                    <li key={t.id} className="p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 flex justify-between transition-all duration-300 hover:bg-slate-700/40">
+                      <div className="font-medium text-slate-100">{t.title}</div>
+                      <div className="text-xs text-slate-400">{new Date(t.due_date).toLocaleDateString('ru-RU')}</div>
                     </li>
                   ))}
                 </ul>
@@ -607,17 +608,17 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Статусы проектов */}
-            <div data-card-id="projects" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
-              <h3 className="text-lg font-semibold mb-3">Статусы проектов</h3>
+            <div data-card-id="projects" className="card overview-block">
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Статусы проектов</h3>
               <div className="block-content">
               {userProjects.length === 0 ? (
-                  <div className="text-gray-400">Нет доступных проектов</div>
+                  <div className="text-slate-400">Нет доступных проектов</div>
               ) : (
                 <ul className="space-y-2">
                   {userProjects.map(p => (
-                    <li key={p.id} className="p-3 rounded bg-[#16251C]">
-                      <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-gray-400">
+                    <li key={p.id} className="p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 transition-all duration-300 hover:bg-slate-700/40">
+                      <div className="font-medium text-slate-100">{p.name}</div>
+                        <div className="text-xs text-slate-400">
                           Статус: {p.status === 'planning' ? 'Планирование' : 
                                   p.status === 'active' ? 'Активный' :
                                   p.status === 'on_hold' ? 'На паузе' :
@@ -633,13 +634,13 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Заметки к задачам */}
-            <div data-card-id="notes" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
-              <h3 className="text-lg font-semibold mb-3">Заметки</h3>
+            <div data-card-id="notes" className="card overview-block">
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Заметки</h3>
               <div className="block-content flex flex-col gap-3">
                 <select 
                   value={selectedTaskIdForNote} 
                   onChange={(e) => setSelectedTaskIdForNote(e.target.value)} 
-                  className="bg-[#16251C] border border-gray-700 rounded px-3 py-2"
+                  className="form-input"
                   disabled={noteSaving}
                 >
                   <option value="">Выберите задачу</option>
@@ -654,7 +655,7 @@ export default function OverviewPage({ user }) {
                       value={noteText} 
                       onChange={(e) => setNoteText(e.target.value)} 
                       rows={4} 
-                      className="bg-[#16251C] border border-gray-700 rounded px-3 py-2" 
+                      className="form-input" 
                       placeholder="Напишите заметку..."
                       disabled={noteSaving}
                     />
@@ -690,10 +691,10 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Чек-лист */}
-            <div data-card-id="checklist" className={`bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block transition-opacity duration-400 ease-out ${
+            <div data-card-id="checklist" className={`card overview-block transition-opacity duration-400 ease-out ${
               activeTasksCount === 0 ? 'opacity-90' : 'opacity-100'
             }`}>
-              <h3 className="text-lg font-semibold mb-3">Чек-лист</h3>
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Чек-лист</h3>
               <div className={`block-content flex flex-col gap-3 checklist-content ${
                 activeTasksCount === 0 ? 'empty' : 'filled'
               }`}>
@@ -703,20 +704,20 @@ export default function OverviewPage({ user }) {
                     value={newChecklistItem}
                     onChange={(e) => setNewChecklistItem(e.target.value)}
                     onKeyPress={handleChecklistKeyPress}
-                    className="flex-1 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm"
+                    className="flex-1 form-input text-sm"
                     placeholder="Добавить быструю задачу..."
                   />
                   <button 
                     onClick={addChecklistItem}
                     disabled={!newChecklistItem.trim()}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded text-sm whitespace-nowrap transition-colors"
+                    className="btn btn-secondary btn-sm whitespace-nowrap"
                   >
                     Добавить
                   </button>
                 </div>
                 
                 {activeTasksCount === 0 ? (
-                  <div className="text-gray-400 text-sm italic transition-all duration-300 text-center">
+                  <div className="text-slate-400 text-sm italic transition-all duration-300 text-center">
                     Нет активных задач в чек-листе
                   </div>
                 ) : (
@@ -731,14 +732,14 @@ export default function OverviewPage({ user }) {
                         return (
                           <div 
                             key={item.id} 
-                            className={`flex items-center gap-3 p-3 bg-[#16251C] rounded border border-gray-700 transition-all duration-500 ease-out transform ${
+                            className={`flex items-center gap-3 p-3 bg-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700/50 transition-all duration-500 ease-out transform ${
                               isRemoving 
                                 ? 'opacity-0 scale-95 translate-x-4 pointer-events-none' 
                                 : isNewlyAdded
                                   ? 'opacity-100 scale-100 translate-x-0 animate-pulse border-green-500 shadow-lg'
                                   : isCompleted 
                                     ? 'opacity-60 line-through' 
-                                    : 'opacity-100 hover:border-green-500 hover:shadow-sm'
+                                    : 'opacity-100 hover:border-slate-500 hover:shadow-sm'
                             }`}
                             style={{
                               transformOrigin: 'left center',
@@ -753,13 +754,13 @@ export default function OverviewPage({ user }) {
                               disabled={isRemoving}
                             />
                             <span className={`flex-1 text-sm transition-all duration-300 ${
-                              isCompleted ? 'text-gray-500' : 'text-gray-200'
+                              isCompleted ? 'text-slate-500' : 'text-slate-200'
                             }`}>
                               {item.text}
                             </span>
                             <button 
                               onClick={() => removeChecklistItem(item.id, true)}
-                              className="text-gray-400 hover:text-red-400 transition-colors opacity-80 hover:opacity-100"
+                              className="text-slate-400 hover:text-red-400 transition-colors opacity-80 hover:opacity-100"
                               title="Удалить задачу"
                               disabled={isRemoving}
                             >
@@ -772,7 +773,7 @@ export default function OverviewPage({ user }) {
                 )}
                 
                 {activeTasksCount > 0 && (
-                  <div className="text-xs text-gray-500 text-center transition-opacity duration-300">
+                  <div className="text-xs text-slate-500 text-center transition-opacity duration-300">
                     💡 Отметьте галочкой, чтобы задача исчезла
                   </div>
                 )}
@@ -780,8 +781,8 @@ export default function OverviewPage({ user }) {
             </div>
 
             {/* Тайм-менеджмент на сегодня */}
-            <div data-card-id="time-management" className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 overview-block">
-              <h3 className="text-lg font-semibold mb-3">Тайм-менеджмент на сегодня</h3>
+            <div data-card-id="time-management" className="card overview-block">
+              <h3 className="text-lg font-semibold mb-3 text-slate-100">Тайм-менеджмент на сегодня</h3>
               <div className="block-content space-y-3">
                 {scheduleItems.map((item, idx) => {
                   const isRemoving = scheduleRemoving.has(idx);
@@ -805,7 +806,7 @@ export default function OverviewPage({ user }) {
                           </div>
                           <button 
                             onClick={() => removeScheduleItem(idx)} 
-                            className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition-colors flex items-center justify-center"
+                            className="btn btn-danger btn-sm flex items-center justify-center"
                             disabled={isRemoving}
                             title="Удалить пункт"
                           >
@@ -814,7 +815,7 @@ export default function OverviewPage({ user }) {
                         </div>
                     <input
                           type="text"
-                          className="w-full bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-400"
+                          className="w-full form-input text-sm"
                           placeholder="Деятельность"
                           value={item.activity}
                           onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
@@ -834,7 +835,7 @@ export default function OverviewPage({ user }) {
                         </div>
                     <input
                           type="text"
-                          className="flex-1 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-400"
+                          className="flex-1 form-input text-sm"
                       placeholder="Деятельность"
                       value={item.activity}
                       onChange={(e) => updateScheduleItem(idx, 'activity', e.target.value)}
@@ -842,7 +843,7 @@ export default function OverviewPage({ user }) {
                         />
                         <button 
                           onClick={() => removeScheduleItem(idx)} 
-                          className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition-colors flex items-center justify-center w-10 h-10"
+                          className="btn btn-danger btn-sm flex items-center justify-center w-10 h-10"
                           disabled={isRemoving}
                           title="Удалить пункт"
                         >
@@ -857,8 +858,8 @@ export default function OverviewPage({ user }) {
                 <div className="pt-2 border-t border-gray-700">
                   <button 
                     onClick={addScheduleItem} 
-                    className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 rounded text-white transition-colors flex items-center justify-center gap-2 font-medium"
-                    title="Добавить новый пункт"
+                    className="w-full btn btn-secondary py-3 flex items-center justify-center gap-2 font-medium"
+                    title="Добавить новый пукт"
                   >
                     <span className="text-lg">+</span>
                     <span>Добавить пункт</span>
@@ -866,7 +867,8 @@ export default function OverviewPage({ user }) {
                   </div>
               </div>
             </div>
-          </DraggableGrid>
+            </DraggableGrid>
+          </div>
         )}
     </div>
   );

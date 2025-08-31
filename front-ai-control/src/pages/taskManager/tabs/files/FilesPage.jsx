@@ -116,7 +116,7 @@ export default function FilesPage() {
   return (
     <div className="mt-6">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-100">Файлы</h1>
+        <h1 className="text-3xl font-bold text-slate-100 tracking-tight">📁 Файлы</h1>
       </div>
         <div className="flex items-center gap-3 mb-4">
           <div className="header-tabs ml-3">
@@ -140,7 +140,7 @@ export default function FilesPage() {
           <div>Загрузка...</div>
         ) : (
           <div className="overflow-auto">
-            <div className="text-xs text-gray-400 mb-2 px-2">
+            <div className="text-xs text-slate-400 mb-2 px-2">
               💡 Нажмите на заголовки колонок для сортировки файлов. Нажмите еще раз для изменения порядка.
               {sortConfig.field && (
                 <span className="ml-2 text-green-400">
@@ -148,9 +148,9 @@ export default function FilesPage() {
                 </span>
               )}
             </div>
-            <table className="w-full text-left text-gray-200">
+            <table className="w-full text-left text-slate-200">
               <thead>
-                <tr className="text-gray-400">
+                <tr className="text-slate-400">
                   <th className="py-2">Проект</th>
                   <th 
                     className="py-2 cursor-pointer hover:bg-[#1A2B24] transition-colors"
@@ -204,7 +204,7 @@ export default function FilesPage() {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="py-8 text-center text-gray-400">
+                    <td colSpan="8" className="py-8 text-center text-slate-400">
                       {tab === 'favorites' && 'Нет избранных файлов'}
                       {tab === 'my' && 'У вас нет загруженных файлов'}
                       {tab === 'all' && 'Файлы не найдены'}

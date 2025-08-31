@@ -10,13 +10,13 @@ export default function TeamRatings({ tasks = [], users = [] }) {
   ];
 
   const getEfficiencyColor = (efficiency) => {
-    if (efficiency >= 80) return 'text-emerald-400';
+    if (efficiency >= 80) return 'text-slate-300';
     if (efficiency >= 60) return 'text-amber-400';
     return 'text-red-400';
   };
 
   const getEfficiencyBg = (efficiency) => {
-    if (efficiency >= 80) return 'bg-emerald-500';
+    if (efficiency >= 80) return 'bg-slate-500';
     if (efficiency >= 60) return 'bg-amber-500';
     return 'bg-red-500';
   };
@@ -60,7 +60,7 @@ export default function TeamRatings({ tasks = [], users = [] }) {
                     className={`h-full transition-all duration-1000 ease-out ${getEfficiencyBg(member.efficiency)}`}
                     style={{ 
                       width: `${member.efficiency}%`,
-                      boxShadow: `0 0 10px ${member.efficiency >= 80 ? 'rgba(16, 185, 129, 0.5)' : 
+                      boxShadow: `0 0 10px ${member.efficiency >= 80 ? 'rgba(148, 163, 184, 0.5)' : 
                                                 member.efficiency >= 60 ? 'rgba(245, 158, 11, 0.5)' : 
                                                 'rgba(239, 68, 68, 0.5)'}`
                     }}
@@ -82,7 +82,7 @@ export default function TeamRatings({ tasks = [], users = [] }) {
         <div className="mt-6 pt-4 border-t border-slate-700/50">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <span className="block text-lg font-bold text-emerald-400">
+              <span className="block text-lg font-bold text-slate-300">
                 {teamMembers.reduce((sum, m) => sum + m.completed, 0)}
               </span>
               <span className="text-xs text-slate-400">Завершено</span>

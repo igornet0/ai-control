@@ -33,7 +33,7 @@ const typeRu = {
 function TaskCard({ task, currentUser, onTaskUpdate, onCardClick }) {
   return (
     <div 
-      className="bg-[#16251C] border border-gray-700 rounded-md p-3 text-sm text-gray-100 cursor-pointer hover:bg-[#1A2B24] transition-colors"
+      className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-lg p-3 text-sm text-slate-100 cursor-pointer hover:bg-slate-700/50 transition-all duration-300"
       onClick={() => onCardClick(task)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -46,13 +46,13 @@ function TaskCard({ task, currentUser, onTaskUpdate, onCardClick }) {
           'bg-gray-100 text-gray-800'
         }`}>{priorityRu[task.priority] || task.priority}</span>
       </div>
-      <div className="mt-2 text-xs text-gray-400 flex items-center gap-2">
-        <span className="px-2 py-0.5 rounded bg-[#0F1717] border border-gray-700">{statusRu[task.status] || task.status}</span>
+      <div className="mt-2 text-xs text-slate-400 flex items-center gap-2">
+        <span className="px-2 py-0.5 rounded bg-slate-700/50 border border-slate-600/50">{statusRu[task.status] || task.status}</span>
         {task.task_type && (
-          <span className="px-2 py-0.5 rounded bg-[#0F1717] border border-gray-700">{typeRu[task.task_type] || task.task_type}</span>
+          <span className="px-2 py-0.5 rounded bg-slate-700/50 border border-slate-600/50">{typeRu[task.task_type] || task.task_type}</span>
         )}
       </div>
-      <div className="mt-2 text-xs text-gray-400 flex items-center justify-between">
+      <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
         <span>Исполнитель: {task.executor_name || 'Не назначен'}</span>
         <span>Срок: {task.due_date ? new Date(task.due_date).toLocaleDateString('ru-RU') : '—'}</span>
       </div>
@@ -238,11 +238,11 @@ export default function KanbanBoard({ tasks = [], currentUser, onTaskUpdate }) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-[#0F1717] rounded-xl p-3 border border-gray-700">
+        <div className="card">
           <h3 className="text-sm font-semibold text-red-300 mb-2">С проблемой</h3>
           <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
             {columns.problem.length === 0 ? (
-              <div className="text-xs text-gray-500">Нет задач</div>
+              <div className="text-xs text-slate-500">Нет задач</div>
             ) : (
               columns.problem.map(t => (
                 <TaskCard 
@@ -257,11 +257,11 @@ export default function KanbanBoard({ tasks = [], currentUser, onTaskUpdate }) {
           </div>
         </div>
 
-        <div className="bg-[#0F1717] rounded-xl p-3 border border-gray-700">
+        <div className="card">
           <h3 className="text-sm font-semibold text-blue-300 mb-2">В работе</h3>
           <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
             {columns.inWork.length === 0 ? (
-              <div className="text-xs text-gray-500">Нет задач</div>
+              <div className="text-xs text-slate-500">Нет задач</div>
             ) : (
               columns.inWork.map(t => (
                 <TaskCard 
@@ -276,11 +276,11 @@ export default function KanbanBoard({ tasks = [], currentUser, onTaskUpdate }) {
           </div>
         </div>
 
-        <div className="bg-[#0F1717] rounded-xl p-3 border border-gray-700">
+        <div className="card">
           <h3 className="text-sm font-semibold text-yellow-300 mb-2">На проверке</h3>
           <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
             {columns.review.length === 0 ? (
-              <div className="text-xs text-gray-500">Нет задач</div>
+              <div className="text-xs text-slate-500">Нет задач</div>
             ) : (
               columns.review.map(t => (
                 <TaskCard 
@@ -295,11 +295,11 @@ export default function KanbanBoard({ tasks = [], currentUser, onTaskUpdate }) {
           </div>
         </div>
 
-        <div className="bg-[#0F1717] rounded-xl p-3 border border-gray-700">
-          <h3 className="text-sm font-semibold text-green-300 mb-2">Готово</h3>
+        <div className="card">
+          <h3 className="text-sm font-semibold text-slate-300 mb-2">Готово</h3>
           <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
             {columns.done.length === 0 ? (
-              <div className="text-xs text-gray-500">Нет задач</div>
+              <div className="text-xs text-slate-500">Нет задач</div>
             ) : (
               columns.done.map(t => (
                 <TaskCard 

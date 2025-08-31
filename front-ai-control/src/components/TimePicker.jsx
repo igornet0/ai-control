@@ -98,14 +98,14 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
           onChange={handleInputChange}
           disabled={disabled}
           placeholder={placeholder}
-          className="flex-1 bg-[#16251C] border border-gray-700 rounded-l px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[100px]"
+          className="flex-1 form-input text-sm rounded-l rounded-r-none min-w-[100px]" style={{borderRight: 'none'}}
           maxLength={5}
         />
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}
-          className="bg-[#16251C] border border-l-0 border-gray-700 rounded-r px-3 py-2 text-gray-400 hover:text-white hover:bg-[#1e2a1e] transition-colors focus:outline-none"
+          className="bg-slate-800/60 backdrop-blur-sm border border-l-0 border-slate-600/50 rounded-r px-3 py-2 text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none"
           title="Выбрать время"
         >
           🕐
@@ -113,9 +113,9 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
       </div>
 
       {isOpen && !disabled && (
-        <div className="absolute top-full left-0 mt-1 bg-[#1a251a] border border-gray-600 rounded-lg shadow-2xl z-50 w-80 min-w-max">
+        <div className="absolute top-full left-0 mt-1 bg-slate-800/90 backdrop-blur-xl border border-slate-600/50 rounded-lg shadow-2xl z-50 w-80 min-w-max">
           <div className="p-4">
-            <div className="text-xs text-gray-400 mb-4 text-center font-medium">Выберите время</div>
+            <div className="text-xs text-slate-400 mb-4 text-center font-medium">Выберите время</div>
             
             {/* Быстрый выбор */}
             <div className="grid grid-cols-4 gap-2 mb-4">
@@ -125,8 +125,8 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
                   onClick={() => handleTimeSelect(time)}
                   className={`px-3 py-2 text-sm rounded-md transition-all duration-200 whitespace-nowrap ${
                     value === time 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'bg-[#16251C] text-gray-300 hover:bg-[#1e2a1e] hover:text-white border border-gray-700'
+                      ? 'bg-slate-600 text-slate-100 shadow-md' 
+                      : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 hover:text-slate-100 border border-slate-600/50'
                   }`}
                 >
                   {time}
@@ -135,11 +135,11 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
             </div>
 
             {/* Ручной ввод времени */}
-            <div className="border-t border-gray-700 pt-4">
-              <div className="text-xs text-gray-400 mb-3">Или введите вручную:</div>
+            <div className="border-t border-slate-700/50 pt-4">
+              <div className="text-xs text-slate-400 mb-3">Или введите вручную:</div>
               <div className="flex gap-3 items-center justify-center">
                 <div className="flex flex-col items-center gap-1">
-                  <label className="text-xs text-gray-500">Часы</label>
+                  <label className="text-xs text-slate-500">Часы</label>
                   <input
                     type="number"
                     min="0"
@@ -147,7 +147,7 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
                     placeholder="ЧЧ"
                     value={value?.split(':')[0] || ''}
                     maxLength="2"
-                    className="w-20 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white text-center"
+                    className="w-20 bg-slate-800/60 backdrop-blur-sm border border-slate-600/50 rounded px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-slate-500/50"
                     onInput={(e) => {
                       // Ограничиваем до 2 символов
                       if (e.target.value.length > 2) {
@@ -165,9 +165,9 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
                     }}
                   />
                 </div>
-                <div className="text-gray-400 text-lg mt-6">:</div>
+                <div className="text-slate-400 text-lg mt-6">:</div>
                 <div className="flex flex-col items-center gap-1">
-                  <label className="text-xs text-gray-500">Минуты</label>
+                  <label className="text-xs text-slate-500">Минуты</label>
                   <input
                     type="number"
                     min="0"
@@ -175,7 +175,7 @@ const TimePicker = ({ value, onChange, disabled, placeholder = "09:30" }) => {
                     placeholder="ММ"
                     value={value?.split(':')[1] || ''}
                     maxLength="2"
-                    className="w-20 bg-[#16251C] border border-gray-700 rounded px-3 py-2 text-sm text-white text-center"
+                    className="w-20 bg-slate-800/60 backdrop-blur-sm border border-slate-600/50 rounded px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-slate-500/50"
                     onInput={(e) => {
                       // Ограничиваем до 2 символов
                       if (e.target.value.length > 2) {

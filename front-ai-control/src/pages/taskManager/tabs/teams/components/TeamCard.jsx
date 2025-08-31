@@ -47,13 +47,13 @@ const TeamCard = ({ team, onDelete, onUpdate }) => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return '#10b981';
-      case 'inactive': return '#6b7280';
-      case 'archived': return '#f59e0b';
-      case 'disbanded': return '#ef4444';
-      default: return '#6b7280';
-    }
+    const statusColors = {
+      'active': 'bg-slate-500',
+      'inactive': 'bg-gray-500',
+      'archived': 'bg-amber-500',
+      'disbanded': 'bg-red-500'
+    };
+    return statusColors[status] || 'bg-gray-500';
   };
 
   const getStatusText = (status) => {
@@ -72,115 +72,173 @@ const TeamCard = ({ team, onDelete, onUpdate }) => {
   };
 
   return (
-    <div className="team-card">
-      <div className="team-card-header">
-        <h3 className="team-name">{team.name}</h3>
-        <div 
-          className="team-status"
-          style={{ backgroundColor: getStatusColor(team.status) }}
-        >
-          {getStatusText(team.status)}
+    <div className="card animate-fadeIn hover-lift">
+      <div className="card-header">
+        <div className="team-title">
+          <h3 className="text-lg font-semibold text-slate-100">{team.name}</h3>
+          <div className="team-badges">
+            <span className={`badge ${getStatusColor(team.status)} text-white px-3 py-1 rounded-full text-xs font-medium`}>
+              {getStatusText(team.status)}
+            </span>
+          </div>
+        </div>
+        <div className="team-actions">
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="btn btn-ghost btn-sm"
+            title={showDetails ? 'Свернуть' : 'Развернуть'}
+          >
+            {showDetails ? '▼' : '▶'}
+          </button>
         </div>
       </div>
 
-      <div className="team-card-body">
+      <div className="card-body">
         {team.description && (
-          <p className="team-description">{team.description}</p>
+          <p className="text-slate-300 mb-4 leading-relaxed">
+            {team.description}
+          </p>
         )}
 
-        <div className="team-info">
-          <div className="info-item">
-            <span className="info-label">Участников:</span>
-            <span className="info-value">{team.member_count}</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
+            <span className="text-sm text-slate-400">Участников:</span>
+            <span className="text-sm font-semibold text-slate-100">{team.member_count || 0}</span>
           </div>
           
-          <div className="info-item">
-            <span className="info-label">Авторасформирование:</span>
-            <span className="info-value">{formatDate(team.auto_disband_date)}</span>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
+            <span className="text-sm text-slate-400">Авторасформирование:</span>
+            <span className="text-sm font-medium text-slate-200">{formatDate(team.auto_disband_date)}</span>
           </div>
 
-          {team.tags && team.tags.length > 0 && (
-            <div className="team-tags">
-              {team.tags.map((tag, index) => (
-                <span key={index} className="tag">{tag}</span>
-              ))}
+          {team.created_at && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
+              <span className="text-sm text-slate-400">Создана:</span>
+              <span className="text-sm font-medium text-slate-200">{formatDate(team.created_at)}</span>
             </div>
           )}
         </div>
 
-        <div className="team-actions">
-          <button 
-            className="btn btn-secondary"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? 'Скрыть' : 'Подробнее'}
-          </button>
-          
-          <button 
-            className="btn btn-primary"
+        {team.tags && team.tags.length > 0 && (
+          <div className="mt-4">
+            <div className="flex flex-wrap gap-2">
+              {team.tags.map((tag, index) => (
+                <span 
+                  key={index} 
+                  className="px-2 py-1 text-xs font-medium bg-slate-700/50 text-slate-300 rounded-md border border-slate-600/50"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {showDetails && (
+          <div className="mt-6 pt-6 border-t border-slate-700/50 space-y-6">
+            {/* Участники команды */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                  👥 Участники команды
+                </h4>
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setShowAddMemberModal(true)}
+                >
+                  ➕ Добавить
+                </button>
+              </div>
+              
+              {team.members && team.members.length > 0 ? (
+                <div className="space-y-3">
+                  {team.members.map(member => (
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/40 backdrop-blur-sm border border-slate-700/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center text-white font-semibold text-sm">
+                          {member.username ? member.username.charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-slate-200">{member.username}</span>
+                          <div className="text-xs text-slate-400">{member.role}</div>
+                        </div>
+                      </div>
+                      {member.role !== 'owner' && (
+                        <button 
+                          className="btn btn-ghost btn-sm text-red-400 hover:text-red-300"
+                          onClick={() => handleRemoveMember(member.user_id)}
+                          title="Удалить участника"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm">Участники не найдены</p>
+              )}
+            </div>
+
+            {/* Задачи команды */}
+            {team.tasks && team.tasks.length > 0 && (
+              <div>
+                <h4 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+                  📋 Задачи команды
+                </h4>
+                <div className="space-y-3">
+                  {team.tasks.map(task => (
+                    <div key={task.id} className="p-3 rounded-lg bg-slate-800/40 backdrop-blur-sm border border-slate-700/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-slate-200">{task.title}</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)} text-white`}>
+                          {task.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-slate-400">
+                        <span>Приоритет: {task.priority}</span>
+                        {task.due_date && (
+                          <span>Срок: {formatDate(task.due_date)}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="card-footer">
+        <div className="team-stats">
+          <span className="text-sm text-slate-400">
+            👥 {team.member_count || 0} участников
+          </span>
+          {team.tasks && (
+            <span className="text-sm text-slate-400">
+              📋 {team.tasks.length} задач
+            </span>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <button
             onClick={() => setShowEditModal(true)}
+            className="btn btn-outline btn-sm"
+            title="Редактировать команду"
           >
-            Редактировать
+            ✏️ Изменить
           </button>
-          
-          <button 
-            className="btn btn-danger"
+          <button
             onClick={handleDelete}
+            className="btn btn-danger btn-sm"
+            title="Удалить команду"
           >
-            Удалить
+            🗑️ Удалить
           </button>
         </div>
       </div>
-
-      {showDetails && (
-        <div className="team-details">
-          <div className="members-section">
-            <h4>Участники команды</h4>
-            <div className="members-list">
-              {team.members.map(member => (
-                <div key={member.id} className="member-item">
-                  <span className="member-name">{member.username}</span>
-                  <span className="member-role">{member.role}</span>
-                  <button 
-                    className="remove-member-btn"
-                    onClick={() => handleRemoveMember(member.user_id)}
-                    disabled={member.role === 'owner'}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            
-            <button 
-              className="btn btn-primary add-member-btn"
-              onClick={() => setShowAddMemberModal(true)}
-            >
-              Добавить участника
-            </button>
-          </div>
-
-          {team.tasks && team.tasks.length > 0 && (
-            <div className="tasks-section">
-              <h4>Задачи команды</h4>
-              <div className="tasks-list">
-                {team.tasks.map(task => (
-                  <div key={task.id} className="task-item">
-                    <span className="task-title">{task.title}</span>
-                    <span className="task-status">{task.status}</span>
-                    <span className="task-priority">{task.priority}</span>
-                    {task.due_date && (
-                      <span className="task-due-date">
-                        {formatDate(task.due_date)}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Модальное окно редактирования команды */}
       {showEditModal && (
@@ -193,12 +251,33 @@ const TeamCard = ({ team, onDelete, onUpdate }) => {
 
       {showAddMemberModal && (
         <div className="modal-overlay">
-          <div className="modal">
-            <h3>Добавить участника</h3>
-            {/* Форма добавления участника */}
-            <div className="modal-actions">
-              <button onClick={() => setShowAddMemberModal(false)}>Отмена</button>
-              <button onClick={() => handleAddMember({})}>Добавить</button>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Добавить участника</h2>
+              <button
+                onClick={() => setShowAddMemberModal(false)}
+                className="close-btn"
+              >
+                ×
+              </button>
+            </div>
+            <div className="task-form">
+              <p className="text-slate-300 mb-4">Форма добавления участника будет реализована позже</p>
+              <div className="form-actions">
+                <button 
+                  onClick={() => setShowAddMemberModal(false)}
+                  className="cancel-btn"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={() => handleAddMember({})}
+                  className="submit-btn"
+                  disabled={loading}
+                >
+                  {loading ? 'Добавление...' : 'Добавить'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

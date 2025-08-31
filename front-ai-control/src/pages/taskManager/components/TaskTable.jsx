@@ -24,7 +24,7 @@ const priorityOrder = {
 };
 
 const statusStyles = {
-  "created": "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+  "created": "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-slate-300",
   "in_progress": "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   "review": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
   "completed": "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -426,7 +426,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
         {currentUser && (
           <>
             <hr className="border-gray-600 my-2" />
-            <h4 className="font-semibold mb-1 text-gray-300">Быстрые действия:</h4>
+            <h4 className="font-semibold mb-1 text-slate-300">Быстрые действия:</h4>
             <div className="space-y-1">
               <button
                 onClick={() => {
@@ -468,14 +468,14 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
       
       {/* Галочка "Мои задачи" */}
       {currentUser && (
-        <label className="flex items-center space-x-2 px-3 py-2 bg-[#1A2B24] rounded-md border border-gray-600 hover:border-gray-500 transition-colors cursor-pointer">
+        <label className="flex items-center space-x-2 px-3 py-2 bg-slate-800/60 backdrop-blur-sm rounded-md border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer">
           <input
             type="checkbox"
             checked={myTasksFilter}
             onChange={(e) => setMyTasksFilter(e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
           />
-          <span className="text-sm text-gray-300 whitespace-nowrap">
+          <span className="text-sm text-slate-300 whitespace-nowrap">
             🎯 Мои задачи
           </span>
         </label>
@@ -542,7 +542,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
     </div>
 
     <div className="overflow-x-auto max-h-[400px] overflow-y-auto rounded-md">
-      <div className="text-xs text-gray-400 mb-2 px-2">
+      <div className="text-xs text-slate-400 mb-2 px-2">
         💡 Нажмите на заголовки колонок для сортировки задач. Нажмите еще раз для изменения порядка.
         {sortConfig.field && (
           <span className="ml-2 text-green-400">
@@ -555,14 +555,14 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
             <span>
               🎯 Показано <strong>{filteredTasks.length}</strong> ваших задач
               {tasks.length !== filteredTasks.length && (
-                <span className="text-gray-400"> (отфильтровано из {tasks.length} всего)</span>
+                <span className="text-slate-400"> (отфильтровано из {tasks.length} всего)</span>
               )}
             </span>
           ) : (
             <span>
               📋 Показано <strong>{filteredTasks.length}</strong> задач
               {tasks.length !== filteredTasks.length && (
-                <span className="text-gray-400"> (отфильтровано из {tasks.length} всего)</span>
+                <span className="text-slate-400"> (отфильтровано из {tasks.length} всего)</span>
               )}
             </span>
           )}
@@ -570,78 +570,78 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
       </div>
       <table className="w-full text-left border-separate border-spacing-y-2">
         <thead>
-          <tr className="text-gray-300 text-sm bg-[#16251C] sticky top-0 z-10">
+          <tr className="text-slate-300 text-sm bg-slate-800/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-700/50">
             <th
-              className="px-3 py-2 cursor-pointer relative hover:bg-[#1A2B24] transition-colors"
+              className="px-3 py-2 cursor-pointer relative hover:bg-slate-700/60 transition-colors"
               onClick={() => handleSort("status")}
               onContextMenu={(e) => handleContextMenu(e, "status")}
             >
               <div className="flex items-center justify-between">
                 Статус
-                <span className="ml-2 text-green-400">
+                <span className="ml-2 text-slate-400">
                   {sortConfig.field === "status" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
             </th>
             <th 
-              className="px-3 py-2 cursor-pointer hover:bg-[#1A2B24] transition-colors"
+              className="px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
               onClick={() => handleSort("title")}
             >
               <div className="flex items-center justify-between">
                 Задача
-                <span className="ml-2 text-green-400">
+                <span className="ml-2 text-slate-400">
                   {sortConfig.field === "title" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
             </th>
             <th
-              className="px-3 py-2 cursor-pointer hover:bg-[#1A2B24] transition-colors"
+              className="px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
               onClick={() => handleSort("executor")}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   Исполнитель
                   {myTasksFilter && (
-                    <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">
+                    <span className="text-xs bg-slate-600 text-white px-2 py-1 rounded-full">
                       🎯 Мои задачи
                     </span>
                   )}
                 </div>
-                <span className="ml-2 text-green-400">
+                <span className="ml-2 text-slate-400">
                   {sortConfig.field === "executor" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
             </th>
             <th
-              className="px-3 py-2 cursor-pointer hover:bg-[#1A2B24] transition-colors"
+              className="px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
               onClick={() => handleSort("created_at")}
             >
               <div className="flex items-center justify-between">
                 Создано
-                <span className="ml-2 text-green-400">
+                <span className="ml-2 text-slate-400">
                   {sortConfig.field === "created_at" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
             </th>
             <th
-              className="px-3 py-2 cursor-pointer hover:bg-[#1A2B24] transition-colors"
+              className="px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
               onClick={() => handleSort("due_date")}
             >
               <div className="flex items-center justify-between">
                 Срок
-                <span className="ml-2 text-green-400">
+                <span className="ml-2 text-slate-400">
                   {sortConfig.field === "due_date" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
             </th>
             <th
-              className="px-3 py-2 cursor-pointer hover:bg-[#1A2B24] transition-colors"
+              className="px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
               onClick={() => handleSort("priority")}
               onContextMenu={(e) => handleContextMenu(e, "priority")}
             >
               <div className="flex items-center justify-between">
                 Приоритет
-                <span className="ml-2 text-green-400">
+                <span className="ml-2 text-slate-400">
                   {sortConfig.field === "priority" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                 </span>
               </div>
@@ -652,7 +652,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
         <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="text-center py-6 text-gray-400">
+                <td colSpan="7" className="text-center py-6 text-slate-400">
                   Загрузка задач... 🔄
                 </td>
               </tr>
@@ -660,7 +660,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               filteredTasks.map((task, i) => (
                 <tr
                   key={i}
-                  className="bg-[#16251C] dark:bg-[#0f1b16] hover:bg-[#1A2B24] transition-colors cursor-pointer"
+                  className="bg-slate-800/40 backdrop-blur-sm hover:bg-slate-700/50 transition-all duration-300 cursor-pointer border border-slate-700/30"
                   onClick={() => onRowClick(task)}
                 >
                   <td className="px-3 py-2">
@@ -670,7 +670,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                     <div>
                       <div className="font-medium">{task.title}</div>
                       {task.description && (
-                        <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">
+                        <div className="text-xs text-slate-400 mt-1 truncate max-w-xs">
                           {task.description}
                         </div>
                       )}
@@ -688,7 +688,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-gray-300">
+                  <td className="px-3 py-2 text-slate-300">
                     <div className="flex items-center">
                       <div className={`w-6 h-6 rounded-full mr-2 flex items-center justify-center text-xs text-white ${
                         task.executor_id === currentUser?.id 
@@ -707,14 +707,14 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                       </span>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-gray-300 text-sm">
+                  <td className="px-3 py-2 text-slate-300 text-sm">
                     {new Date(task.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "2-digit"
                     })}
                   </td>
-                  <td className="px-3 py-2 text-gray-300">
+                  <td className="px-3 py-2 text-slate-300">
                     {task.due_date ? 
                       new Date(task.due_date).toLocaleDateString("en-US", {
                         month: "short",
@@ -723,7 +723,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
                       <span className="text-gray-500 italic">Без срока</span>
                     }
                   </td>
-                  <td className="px-3 py-2 text-gray-300">
+                  <td className="px-3 py-2 text-slate-300">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       task.priority === 'urgent' ? 'bg-red-100 text-red-800' :
                       task.priority === 'critical' ? 'bg-orange-100 text-orange-800' :
@@ -845,7 +845,7 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="text-center py-6 text-gray-400">
+                <td colSpan="7" className="text-center py-6 text-slate-400">
                   {tasks.length === 0 ? 'Задачи не найдены. Создайте первую задачу!' : 'Задачи не найдены по вашим фильтрам 🔍'}
                 </td>
               </tr>
@@ -873,13 +873,13 @@ export default function TaskTable({ tasks = [], loading = false, onTaskUpdate, c
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Confirm Delete
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-gray-600 dark:text-slate-300 mb-6">
               Are you sure you want to delete this task? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                className="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-gray-200 transition-colors"
               >
                 Cancel
               </button>
