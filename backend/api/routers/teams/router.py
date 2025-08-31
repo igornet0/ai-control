@@ -34,6 +34,10 @@ class TeamCreateRequest(BaseModel):
     member_ids: Optional[List[int]] = None
 
 
+class TeamMemberUpdateRequest(BaseModel):
+    user_id: int
+    role: TeamRole = TeamRole.MEMBER
+
 class TeamUpdateRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -41,6 +45,7 @@ class TeamUpdateRequest(BaseModel):
     auto_disband_date: Optional[datetime] = None
     status: Optional[TeamStatus] = None
     tags: Optional[List[str]] = None
+    members: Optional[List[TeamMemberUpdateRequest]] = None
 
 
 class TeamMemberAddRequest(BaseModel):
@@ -137,15 +142,16 @@ async def get_teams(
     # Формируем ответ
     response_teams = []
     for team in teams:
-        # Получаем задачи команды
-        tasks_query = select(Task).where(
-            or_(
-                Task.organization_id == team.organization_id,
-                Task.department_id == team.department_id
+        # Получаем задачи команды - только те, что назначены участникам команды
+        team_member_ids = [m.user_id for m in team.members if m.is_active]
+        
+        tasks = []
+        if team_member_ids:
+            tasks_query = select(Task).where(
+                Task.executor_id.in_(team_member_ids)
             )
-        )
-        tasks_result = await session.execute(tasks_query)
-        tasks = tasks_result.scalars().all()
+            tasks_result = await session.execute(tasks_query)
+            tasks = tasks_result.scalars().all()
         
         team_data = TeamResponse(
             id=team.id,
@@ -213,15 +219,16 @@ async def get_team(
     ):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Получаем задачи команды
-    tasks_query = select(Task).where(
-        or_(
-            Task.organization_id == team.organization_id,
-            Task.department_id == team.department_id
+    # Получаем задачи команды - только те, что назначены участникам команды
+    team_member_ids = [m.user_id for m in team.members if m.is_active]
+    
+    tasks = []
+    if team_member_ids:
+        tasks_query = select(Task).where(
+            Task.executor_id.in_(team_member_ids)
         )
-    )
-    tasks_result = await session.execute(tasks_query)
-    tasks = tasks_result.scalars().all()
+        tasks_result = await session.execute(tasks_query)
+        tasks = tasks_result.scalars().all()
     
     return TeamResponse(
         id=team.id,
@@ -348,6 +355,35 @@ async def update_team(
         team.status = team_data.status
     if team_data.tags is not None:
         team.tags = team_data.tags
+    
+    # Обновляем участников команды, если предоставлены
+    if team_data.members is not None:
+        # Получаем текущих участников
+        current_members_query = select(TeamMember).where(TeamMember.team_id == team_id)
+        current_members_result = await session.execute(current_members_query)
+        current_members = {member.user_id: member for member in current_members_result.scalars().all()}
+        
+        # Получаем новый список участников
+        new_member_ids = {member.user_id for member in team_data.members}
+        
+        # Удаляем участников, которых больше нет в списке
+        for user_id, member in current_members.items():
+            if user_id not in new_member_ids:
+                await session.delete(member)
+        
+        # Добавляем/обновляем участников
+        for member_data in team_data.members:
+            if member_data.user_id in current_members:
+                # Обновляем роль существующего участника
+                current_members[member_data.user_id].role = member_data.role
+            else:
+                # Добавляем нового участника
+                new_member = TeamMember(
+                    team_id=team_id,
+                    user_id=member_data.user_id,
+                    role=member_data.role
+                )
+                session.add(new_member)
     
     team.updated_at = datetime.now()
     

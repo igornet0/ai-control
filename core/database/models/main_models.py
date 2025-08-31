@@ -66,6 +66,7 @@ class User(Base):
     document_attachments: Mapped[List["DocumentAttachment"]] = relationship("DocumentAttachment", back_populates="user")
     document_watchers: Mapped[List["DocumentWatcher"]] = relationship("DocumentWatcher", back_populates="user")
     document_templates: Mapped[List["DocumentTemplate"]] = relationship("DocumentTemplate", back_populates="created_by_user")
+    favorite_files: Mapped[List["FavoriteFile"]] = relationship("FavoriteFile", back_populates="user")
     
     # Личный кабинет
     personal_dashboard: Mapped[Optional["PersonalDashboard"]] = relationship("PersonalDashboard", back_populates="user", uselist=False)

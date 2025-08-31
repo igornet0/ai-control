@@ -1,6 +1,6 @@
 __all__ = ("Database", "get_db_helper", "get_session",
            "Base", "User", "Organization", "Department", "Permission", "RolePermission",
-           "Task", "TaskComment", "TaskTimeLog", "TaskTag", "TaskAttachment",
+           "Task", "TaskComment", "TaskTimeLog", "TaskTag", "TaskAttachment", "TaskUserNote",
            "Calendar", "CalendarEvent", "CalendarEventParticipant",
            "Chat", "ChatMessage", "ChatParticipant", "ChatAttachment",
            "Dashboard", "DashboardWidget", "Widget", "WidgetData",
@@ -14,7 +14,7 @@ __all__ = ("Database", "get_db_helper", "get_session",
 
 from .main_models import (User, Organization, Department, Permission, RolePermission)
 from .task_model import (
-    Task, TaskComment, TaskTimeLog, TaskDependency, TaskWatcher, TaskLabel, TaskTemplate,
+    Task, TaskComment, TaskTimeLog, TaskDependency, TaskWatcher, TaskLabel, TaskTemplate, TaskUserNote,
     TaskStatus, TaskPriority, TaskType, TaskVisibility
 )
 from .dashboard_model import (
@@ -28,7 +28,7 @@ from .kpi_model import (
     KPIType, KPITrend, KPIStatus
 )
 from .document_model import (
-    Document, DocumentWorkflowStep, DocumentSignature, DocumentComment, DocumentAttachment, DocumentWatcher, DocumentTemplate,
+    Document, DocumentWorkflowStep, DocumentSignature, DocumentComment, DocumentAttachment, DocumentWatcher, DocumentTemplate, FavoriteFile,
     DocumentStatus, DocumentType, DocumentPriority, DocumentVisibility
 )
 from .personal_dashboard_model import (

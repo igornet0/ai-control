@@ -154,3 +154,199 @@
   .modal-header h2 { font-size: 1.125rem; }
   .form-group input, .form-group textarea, .form-group select { padding: 0.5rem; font-size: 0.875rem; }
 }
+
+/* Стили для чекбокса публичности */
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.checkbox-label:hover {
+  background: #111827;
+  border-color: #374151;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  margin-top: 0.125rem;
+}
+
+.checkbox-text {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: normal;
+}
+
+/* Стили для тегов */
+.tags-input-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tag-input {
+  flex: 1;
+}
+
+.add-tag-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.add-tag-btn:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.375rem;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.remove-tag-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  width: 1rem;
+  height: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+.remove-tag-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Стили для управления участниками */
+.members-add-section {
+  margin-bottom: 1rem;
+}
+
+.member-select {
+  width: 100%;
+}
+
+.members-list {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.members-list h4 {
+  margin: 0 0 0.75rem 0;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.member-item:hover {
+  background: #1e293b;
+  border-color: #374151;
+  transform: translateY(-1px);
+}
+
+.member-item:last-child {
+  margin-bottom: 0;
+}
+
+.member-name {
+  flex: 1;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.member-role-select {
+  width: auto;
+  min-width: 120px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.remove-member-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.remove-member-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* Увеличиваем высоту модального окна для новых полей */
+.modal-content {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-width: 700px;
+  width: 100%;
+  max-height: 95vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid #475569;
+  animation: slideIn 0.4s ease-out;
+}

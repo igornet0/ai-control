@@ -218,6 +218,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 20px;
+  width: 100%;
+  position: relative;
+  isolation: isolate;
 }
 
 .no-projects {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
-import { listProjectFiles, toggleFavoriteFile, downloadProjectFile } from '../../services/filesService';
+import { listProjectFiles, addFileToFavorites, removeFileFromFavorites, listFavoriteFiles, downloadProjectFile } from '../../services/filesService';
 import { authFetch } from '../../services/http';
 import HeaderTabs from '../taskManager/components/HeaderTabs';
 
@@ -13,7 +13,7 @@ export default function FilesPage() {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ field: 'name', direction: 'asc' });
-  const [tab, setTab] = useState('all'); // all | my
+  const [tab, setTab] = useState('all'); // all | my | favorites
 
 
 
@@ -38,15 +38,31 @@ export default function FilesPage() {
     setItems([]);
     setLoading(true);
     try {
-      // global list via /api/projects/attachments
-      const params = new URLSearchParams();
-      if (query) params.set('search', query);
-      params.set('sort_by', sortConfig.field === 'type' ? 'type' : sortConfig.field === 'size' ? 'size' : sortConfig.field === 'name' ? 'name' : 'uploaded_at');
-      params.set('sort_order', sortConfig.direction);
-      if (tab === 'my') params.set('only_my', 'true');
-      params.set('limit', '10');
-      const data = await authFetch(`/api/projects/attachments?${params.toString()}`);
+      let data;
+      
+      if (tab === 'favorites') {
+        // Загружаем избранные файлы
+        data = await listFavoriteFiles({
+          search: query,
+          sortBy: sortConfig.field === 'type' ? 'type' : sortConfig.field === 'size' ? 'size' : sortConfig.field === 'name' ? 'name' : 'added_at',
+          sortOrder: sortConfig.direction,
+          limit: 10
+        });
+      } else {
+        // Загружаем все файлы или только мои файлы
+        const params = new URLSearchParams();
+        if (query) params.set('search', query);
+        params.set('sort_by', sortConfig.field === 'type' ? 'type' : sortConfig.field === 'size' ? 'size' : sortConfig.field === 'name' ? 'name' : 'uploaded_at');
+        params.set('sort_order', sortConfig.direction);
+        if (tab === 'my') params.set('only_my', 'true');
+        params.set('limit', '10');
+        data = await authFetch(`/api/projects/attachments?${params.toString()}`);
+      }
+      
       setItems((data && data.items) || []);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -55,8 +71,20 @@ export default function FilesPage() {
   useEffect(() => { fetchData(); // eslint-disable-next-line
   }, [query, sortConfig.field, sortConfig.direction, tab]);
 
-  const onToggleFavorite = async (filename, isFav) => {
-    // Favorites functionality removed - files are view-only
+  const onToggleFavorite = async (projectId, filename, isFav) => {
+    try {
+      if (isFav) {
+        await removeFileFromFavorites({ projectId, filename });
+      } else {
+        await addFileToFavorites({ projectId, filename });
+      }
+      
+      // Обновляем список файлов
+      await fetchData();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      alert('Ошибка при изменении избранного');
+    }
   };
 
   const onDownload = (filename, pid) => {
@@ -76,6 +104,7 @@ export default function FilesPage() {
           <div className="header-tabs ml-3">
             <button className={`tab-button ${tab==='all'?'active':''}`} onClick={() => setTab('all')}>Все файлы</button>
             <button className={`tab-button ${tab==='my'?'active':''}`} onClick={() => setTab('my')}>Мои файлы</button>
+            <button className={`tab-button ${tab==='favorites'?'active':''}`} onClick={() => setTab('favorites')}>Избранные файлы</button>
           </div>
         </div>
 
@@ -150,6 +179,7 @@ export default function FilesPage() {
                       </span>
                     </div>
                   </th>
+                  <th className="py-2">Избранное</th>
                   <th className="py-2">Действия</th>
                 </tr>
               </thead>
@@ -162,6 +192,15 @@ export default function FilesPage() {
                     <td className="py-2">{(f.size || 0).toLocaleString()} B</td>
                     <td className="py-2">{f.uploaded_by || '-'}</td>
                     <td className="py-2">{f.uploaded_at || '-'}</td>
+                    <td className="py-2">
+                      <button 
+                        onClick={() => onToggleFavorite(f.project_id, f.filename, f.is_favorite)}
+                        className={`px-3 py-1 rounded text-sm ${f.is_favorite ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+                        title={f.is_favorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+                      >
+                        {f.is_favorite ? '★' : '☆'}
+                      </button>
+                    </td>
                     <td className="py-2">
                       <button onClick={()=>onDownload(f.filename, f.project_id)} className="bg-blue-600 px-3 py-1 rounded">Скачать</button>
                     </td>

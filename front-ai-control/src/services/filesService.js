@@ -11,10 +11,27 @@ export async function listProjectFiles({ projectId, search, sortBy, sortOrder, o
   return res;
 }
 
-export async function toggleFavoriteFile({ projectId, filename, favorite }) {
-  const res = await authFetch(`/api/projects/${projectId}/attachments/${encodeURIComponent(filename)}/favorite?favorite=${favorite ? 'true' : 'false'}`, {
+export async function addFileToFavorites({ projectId, filename }) {
+  const res = await authFetch(`/api/projects/${projectId}/attachments/${encodeURIComponent(filename)}/favorite`, {
     method: 'POST'
   });
+  return res;
+}
+
+export async function removeFileFromFavorites({ projectId, filename }) {
+  const res = await authFetch(`/api/projects/${projectId}/attachments/${encodeURIComponent(filename)}/favorite`, {
+    method: 'DELETE'
+  });
+  return res;
+}
+
+export async function listFavoriteFiles({ search, sortBy, sortOrder, limit }) {
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (sortBy) params.set('sort_by', sortBy);
+  if (sortOrder) params.set('sort_order', sortOrder);
+  if (limit) params.set('limit', limit.toString());
+  const res = await authFetch(`/api/projects/favorites/attachments?${params.toString()}`);
   return res;
 }
 

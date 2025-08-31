@@ -81,23 +81,48 @@ const Projects = () => {
 
   // Создание проекта
   const handleCreateProject = async (projectData, files = [], onProgress) => {
+    let createdProject = null;
     try {
-      const newProject = await projectService.createProject(projectData);
-      let projectWithAttachments = newProject;
-      if (newProject && newProject.id && files && files.length > 0) {
+      // Сначала создаем проект
+      createdProject = await projectService.createProject(projectData);
+      
+      // Если есть файлы, обязательно загружаем их
+      if (createdProject && createdProject.id && files && files.length > 0) {
         try {
-          // загрузим вложения и получим обновленный проект с attachments
-          projectWithAttachments = await projectService.uploadProjectAttachments(newProject.id, files, onProgress);
-        } catch (e) {
-          console.error('Failed to upload attachments for new project:', e);
+          // Загружаем вложения - КРИТИЧНО для успешного создания
+          const projectWithAttachments = await projectService.uploadProjectAttachments(createdProject.id, files, onProgress);
+          
+          // Только если все файлы загрузились успешно, добавляем проект в список
+          setProjects(prev => [projectWithAttachments, ...prev]);
+          setError(null);
+          return projectWithAttachments;
+        } catch (uploadError) {
+          console.error('Failed to upload files for new project:', uploadError);
+          
+          // Если файлы не загрузились, удаляем созданный проект
+          try {
+            await projectService.deleteProject(createdProject.id);
+            console.log('Project deleted due to failed file upload');
+          } catch (deleteError) {
+            console.error('Failed to cleanup project after upload failure:', deleteError);
+          }
+          
+          // Показываем ошибку пользователю
+          setError('Ошибка при загрузке файлов. Проект не был создан.');
+          throw new Error('Файлы не были загружены');
         }
+      } else {
+        // Нет файлов - просто добавляем проект
+        setProjects(prev => [createdProject, ...prev]);
+        setError(null);
+        return createdProject;
       }
-      setProjects(prev => [projectWithAttachments, ...prev]);
-      setError(null);
-      return projectWithAttachments;
     } catch (err) {
-      setError('Ошибка при создании проекта');
+      if (err.message !== 'Файлы не были загружены') {
+        setError('Ошибка при создании проекта');
+      }
       console.error('Error creating project:', err);
+      throw err;
     }
   };
 
@@ -116,9 +141,15 @@ const Projects = () => {
   };
 
   // Обновление проекта
-  const handleUpdateProject = async (projectId, projectData) => {
+  const handleUpdateProject = async (projectId, updatedProjectData) => {
     try {
-      const updatedProject = await projectService.updateProject(projectId, projectData);
+      // Если updatedProjectData уже содержит обновленный проект, используем его
+      // Иначе делаем API запрос
+      let updatedProject = updatedProjectData;
+      if (!updatedProjectData || Object.keys(updatedProjectData).length === 0) {
+        updatedProject = await projectService.updateProject(projectId, updatedProjectData);
+      }
+      
       setProjects(prev => prev.map(project => 
         project.id === projectId ? updatedProject : project
       ));

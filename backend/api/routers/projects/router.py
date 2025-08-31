@@ -9,7 +9,7 @@ from datetime import datetime, timezone, date
 from pydantic import BaseModel
 
 from backend.api.configuration.server import Server
-from core.database.models import Project, ProjectTeam, ProjectStatus, ProjectPriority, User, Task, Team
+from core.database.models import Project, ProjectTeam, ProjectStatus, ProjectPriority, User, Task, Team, TeamMember
 from core.database.models.project_model import ProjectAttachmentFavorite
 from backend.api.configuration.auth import get_current_user
 
@@ -45,6 +45,13 @@ class ProjectUpdateRequest(BaseModel):
     tags: Optional[List[str]] = None
 
 
+class TeamMemberResponse(BaseModel):
+    user_id: int
+    username: str
+    role: str
+    is_active: bool
+
+
 class ProjectTeamResponse(BaseModel):
     id: int
     team_id: int
@@ -53,6 +60,7 @@ class ProjectTeamResponse(BaseModel):
     joined_at: datetime
     disbanded_at: Optional[date]
     is_active: bool
+    members: List[TeamMemberResponse]
 
 
 class ProjectTaskResponse(BaseModel):
@@ -114,7 +122,7 @@ async def get_projects(
     """Получить список проектов с фильтрацией"""
     query = select(Project).options(
         selectinload(Project.tasks).selectinload(Task.executor),
-        selectinload(Project.teams).selectinload(ProjectTeam.team),
+        selectinload(Project.teams).selectinload(ProjectTeam.team).selectinload(Team.members).selectinload(TeamMember.user),
         joinedload(Project.manager),
         joinedload(Project.organization),
         joinedload(Project.department)
@@ -161,6 +169,16 @@ async def get_projects(
 
         teams: List[ProjectTeamResponse] = []
         for pt in project.teams:
+            # Получаем участников команды
+            team_members: List[TeamMemberResponse] = []
+            for member in pt.team.members:
+                team_members.append(TeamMemberResponse(
+                    user_id=member.user_id,
+                    username=member.user.username,
+                    role=member.role,
+                    is_active=member.is_active
+                ))
+            
             teams.append(ProjectTeamResponse(
                 id=pt.id,
                 team_id=pt.team_id,
@@ -168,7 +186,8 @@ async def get_projects(
                 role=pt.role,
                 joined_at=pt.joined_at,
                 disbanded_at=pt.disbanded_at,
-                is_active=pt.is_active
+                is_active=pt.is_active,
+                members=team_members
             ))
 
         # Получаем имя пользователя, который обновил проект
@@ -216,7 +235,7 @@ async def get_project(
     """Получить проект по ID"""
     query = select(Project).where(Project.id == project_id).options(
         selectinload(Project.tasks).selectinload(Task.executor),
-        selectinload(Project.teams).selectinload(ProjectTeam.team),
+        selectinload(Project.teams).selectinload(ProjectTeam.team).selectinload(Team.members).selectinload(TeamMember.user),
         joinedload(Project.manager),
         joinedload(Project.organization),
         joinedload(Project.department)
@@ -253,6 +272,16 @@ async def get_project(
             else:
                 disbanded_date = pt.disbanded_at
         
+        # Получаем участников команды
+        team_members: List[TeamMemberResponse] = []
+        for member in pt.team.members:
+            team_members.append(TeamMemberResponse(
+                user_id=member.user_id,
+                username=member.user.username,
+                role=member.role,
+                is_active=member.is_active
+            ))
+        
         teams.append(ProjectTeamResponse(
             id=pt.id,
             team_id=pt.team_id,
@@ -260,7 +289,8 @@ async def get_project(
             role=pt.role,
             joined_at=pt.joined_at,
             disbanded_at=disbanded_date,
-            is_active=pt.is_active
+            is_active=pt.is_active,
+            members=team_members
         ))
 
     # Получаем имя пользователя, который обновил проект
@@ -384,6 +414,7 @@ async def update_project(
 
     # Устанавливаем информацию о том, кто и когда обновил проект
     project.updated_by = current_user.id
+    project.updated_at = datetime.now()
 
     await session.commit()
     await session.refresh(project)
@@ -398,6 +429,8 @@ async def delete_project(
     session = Depends(Server.get_db)
 ):
     """Удалить проект"""
+    from core.database.models.task_model import TaskUserNote
+    
     query = select(Project).where(Project.id == project_id)
     result = await session.execute(query)
     project = result.scalar_one_or_none()
@@ -409,10 +442,32 @@ async def delete_project(
     if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
         raise HTTPException(status_code=403, detail="Not enough permissions to delete this project")
 
-    await session.delete(project)
-    await session.commit()
-
-    return {"message": "Project deleted successfully"}
+    try:
+        # Сначала отвязываем задачи от проекта (НЕ удаляем задачи!)
+        
+        # 1. Получаем все задачи проекта
+        project_tasks_query = select(Task).where(Task.project_id == project_id)
+        project_tasks_result = await session.execute(project_tasks_query)
+        project_tasks = project_tasks_result.scalars().all()
+        
+        # 2. Отвязываем задачи от проекта (задачи остаются в системе)
+        for task in project_tasks:
+            task.project_id = None
+            await session.merge(task)
+        
+        # 3. Удаляем заметки пользователей только для тех задач, которые не имеют других связей
+        # (Заметки остаются, так как задачи остаются)
+        
+        # 4. Теперь можно безопасно удалить проект (задачи НЕ удаляются)
+        await session.delete(project)
+        await session.commit()
+        
+        return {"message": "Project deleted successfully"}
+        
+    except Exception as e:
+        await session.rollback()
+        print(f"Error deleting project {project_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting project: {str(e)}")
 
 
 @router.post("/{project_id}/teams")
@@ -494,74 +549,6 @@ async def remove_team_from_project(
     return {"message": "Team removed from project"}
 
 
-@router.post("/{project_id}/attachments", response_model=ProjectResponse)
-async def upload_project_attachments(
-    project_id: int,
-    files: list[UploadFile] = File(default=None),
-    current_user: User = Depends(get_current_user),
-    session = Depends(Server.get_db)
-):
-    """Загрузить вложения для проекта. Допускаются: .pdf .doc .pages .csv .epub"""
-    # Проверяем существование проекта и права
-    result = await session.execute(select(Project).where(Project.id == project_id))
-    project = result.scalar_one_or_none()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
-        raise HTTPException(status_code=403, detail="Not enough permissions to modify this project")
-
-    if not files:
-        # Ничего не загружено — просто вернем проект
-        return await get_project(project.id, current_user, session)
-
-    import os
-    from pathlib import Path
-
-    allowed_ext = {".pdf", ".doc", ".pages", ".csv", ".cvs", ".epub"}
-    base_dir = Path("/app/uploads/projects")
-    base_dir.mkdir(parents=True, exist_ok=True)
-    proj_dir = base_dir / str(project.id)
-    proj_dir.mkdir(parents=True, exist_ok=True)
-
-    attachments = []
-    for f in files:
-        name = f.filename or "upload"
-        ext = os.path.splitext(name)[1].lower()
-        if ext not in allowed_ext:
-            raise HTTPException(status_code=400, detail=f"File type not allowed: {ext}")
-
-        target_path = proj_dir / name
-        # Разрешим коллизии имен — допишем индекс
-        idx = 1
-        while target_path.exists():
-            stem = os.path.splitext(name)[0]
-            target_path = proj_dir / f"{stem}_{idx}{ext}"
-            idx += 1
-
-        content = await f.read()
-        with open(target_path, "wb") as out:
-            out.write(content)
-
-        attachments.append({
-            "filename": os.path.basename(target_path),
-            "path": str(target_path),
-            "content_type": f.content_type,
-            "size": len(content),
-            "uploaded_by": current_user.id,
-            "uploaded_at": datetime.utcnow().isoformat()
-        })
-
-    # Сохраняем метаданные вложений в custom_fields.attachments
-    cf = project.custom_fields or {}
-    existing = cf.get("attachments", [])
-    cf["attachments"] = existing + attachments
-    project.custom_fields = cf
-
-    await session.commit()
-    await session.refresh(project)
-
-    return await get_project(project.id, current_user, session)
-
 
 @router.get("/{project_id}/attachments")
 async def list_project_attachments(
@@ -629,53 +616,81 @@ async def list_all_project_attachments(
     current_user: User = Depends(get_current_user),
     session = Depends(Server.get_db)
 ):
-    # Получаем проекты (минимальный набор полей)
-    proj_res = await session.execute(select(Project))
-    projects = proj_res.scalars().all()
+    """Получить список всех файлов проектов"""
+    try:
+        print(f"DEBUG: current_user = {current_user}")
+        print(f"DEBUG: current_user.id = {current_user.id if current_user else 'None'}")
+        print(f"DEBUG: Parameters - search={search}, sort_by={sort_by}, sort_order={sort_order}, only_my={only_my}, limit={limit}")
+        
+        # Получаем проекты (минимальный набор полей)
+        proj_res = await session.execute(select(Project))
+        projects = proj_res.scalars().all()
+        print(f"DEBUG: Found {len(projects)} projects")
 
-    rows: list[dict] = []
-    for p in projects:
-        cf = p.custom_fields or {}
-        atts = cf.get("attachments", []) or []
-        for a in atts:
-            # фильтр only_my
-            if only_my and a.get("uploaded_by") != current_user.id:
-                continue
-            rec = {
-                "project_id": p.id,
-                "project_name": p.name,
-                "filename": a.get("filename"),
-                "content_type": a.get("content_type"),
-                "size": a.get("size"),
-                "uploaded_by": a.get("uploaded_by"),
-                "uploaded_at": a.get("uploaded_at"),
-            }
-            rows.append(rec)
+        # Получаем избранные файлы пользователя
+        from core.database.models.document_model import FavoriteFile
+        fav_query = select(FavoriteFile).where(FavoriteFile.user_id == current_user.id)
+        fav_result = await session.execute(fav_query)
+        favorites = fav_result.scalars().all()
+        print(f"DEBUG: Found {len(favorites)} favorite files")
+        
+        # Создаем набор избранных файлов для быстрого поиска
+        favorite_files = {(fav.project_id, fav.filename) for fav in favorites}
 
-    # Поиск
-    if search:
-        q = search.lower()
-        rows = [r for r in rows if q in (r.get("filename") or "").lower() or q in (r.get("project_name") or "").lower()]
+        rows: list[dict] = []
+        for p in projects:
+            cf = p.custom_fields or {}
+            atts = cf.get("attachments", []) or []
+            for a in atts:
+                # фильтр only_my
+                if only_my and a.get("uploaded_by") != current_user.id:
+                    continue
+                rec = {
+                    "project_id": p.id,
+                    "project_name": p.name,
+                    "filename": a.get("filename"),
+                    "content_type": a.get("content_type"),
+                    "size": a.get("size"),
+                    "uploaded_by": a.get("uploaded_by"),
+                    "uploaded_at": a.get("uploaded_at"),
+                    "is_favorite": (p.id, a.get("filename")) in favorite_files
+                }
+                rows.append(rec)
 
-    # Сортировка
-    def key_fn(r: dict):
-        if sort_by == "size":
-            return r.get("size") or 0
-        if sort_by == "type":
-            return r.get("content_type") or ""
-        if sort_by == "name":
-            return r.get("filename") or ""
-        # uploaded_at
-        return r.get("uploaded_at") or ""
+        print(f"DEBUG: Found {len(rows)} files total")
 
-    reverse = sort_order == "desc"
-    rows.sort(key=key_fn, reverse=reverse)
+        # Поиск
+        if search:
+            q = search.lower()
+            rows = [r for r in rows if q in (r.get("filename") or "").lower() or q in (r.get("project_name") or "").lower()]
+            print(f"DEBUG: After search filter: {len(rows)} files")
 
-    total = len(rows)
-    if limit and limit > 0:
-        rows = rows[:limit]
+        # Сортировка
+        def key_fn(r: dict):
+            if sort_by == "size":
+                return r.get("size") or 0
+            if sort_by == "type":
+                return r.get("content_type") or ""
+            if sort_by == "name":
+                return r.get("filename") or ""
+            # uploaded_at
+            return r.get("uploaded_at") or ""
 
-    return {"items": rows, "total": total}
+        reverse = sort_order == "desc"
+        rows.sort(key=key_fn, reverse=reverse)
+
+        total = len(rows)
+        if limit and limit > 0:
+            rows = rows[:limit]
+
+        print(f"DEBUG: Returning {len(rows)} files")
+        return {"items": rows, "total": len(rows)}
+        
+    except Exception as e:
+        print(f"ERROR in list_all_project_attachments: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/{project_id}/attachments/{filename}/favorite")
@@ -793,3 +808,286 @@ async def remove_task_from_project(
     task.project_id = None
     await session.commit()
     return {"message": "Task unlinked from project"}
+
+
+@router.post("/{project_id}/attachments")
+async def upload_project_attachments(
+    project_id: int,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Загрузить файлы в проект"""
+    # Проверяем существование проекта
+    query = select(Project).where(Project.id == project_id)
+    result = await session.execute(query)
+    project = result.scalar_one_or_none()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Проверяем права доступа
+    if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
+        raise HTTPException(status_code=403, detail="Not enough permissions to upload files to this project")
+
+    import os
+    from pathlib import Path
+    
+    # Создаем директорию для файлов проекта
+    upload_dir = Path(f"uploads/projects/{project_id}")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    uploaded_files = []
+    
+    for file in files:
+        # Сохраняем файл
+        file_path = upload_dir / file.filename
+        
+        # Записываем файл
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        uploaded_files.append({
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size": len(content),
+            "path": str(file_path)
+        })
+
+    # Сохраняем информацию о файлах в custom_fields проекта
+    if not project.custom_fields:
+        project.custom_fields = {}
+    
+    if "attachments" not in project.custom_fields:
+        project.custom_fields["attachments"] = []
+    
+    project.custom_fields["attachments"].extend(uploaded_files)
+    
+    # Обновляем проект
+    await session.commit()
+    await session.refresh(project)
+
+    return {
+        "message": f"Successfully uploaded {len(files)} files",
+        "files": uploaded_files
+    }
+
+
+@router.get("/{project_id}/attachments/{filename}")
+async def download_project_attachment(
+    project_id: int,
+    filename: str,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Скачать файл из проекта"""
+    from fastapi.responses import FileResponse
+    import os
+    from pathlib import Path
+    
+    # Проверяем существование проекта
+    query = select(Project).where(Project.id == project_id)
+    result = await session.execute(query)
+    project = result.scalar_one_or_none()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Проверяем права доступа (можем расширить логику доступа)
+    if project.manager_id != current_user.id and current_user.role not in ['admin', 'CEO']:
+        # Проверяем, является ли пользователь участником команды проекта
+        is_team_member = False
+        if project.teams:
+            for project_team in project.teams:
+                team = project_team.team
+                if team and team.members:
+                    for member in team.members:
+                        if member.user_id == current_user.id and member.is_active:
+                            is_team_member = True
+                            break
+                if is_team_member:
+                    break
+        
+        if not is_team_member:
+            raise HTTPException(status_code=403, detail="Not enough permissions to download files from this project")
+
+    # Путь к файлу
+    file_path = Path(f"uploads/projects/{project_id}/{filename}")
+    
+    # Проверяем существование файла
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Проверяем, что файл действительно принадлежит проекту
+    if project.custom_fields and "attachments" in project.custom_fields:
+        file_exists_in_project = False
+        for attachment in project.custom_fields["attachments"]:
+            if attachment.get("filename") == filename:
+                file_exists_in_project = True
+                break
+        
+        if not file_exists_in_project:
+            raise HTTPException(status_code=404, detail="File not found in project")
+    else:
+        raise HTTPException(status_code=404, detail="No attachments found in project")
+
+    # Возвращаем файл для скачивания
+    return FileResponse(
+        path=str(file_path),
+        filename=filename,
+        media_type='application/octet-stream'
+    )
+
+
+# ==================== ИЗБРАННЫЕ ФАЙЛЫ ====================
+
+@router.post("/{project_id}/attachments/{filename}/favorite")
+async def add_file_to_favorites(
+    project_id: int,
+    filename: str,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Добавить файл в избранное"""
+    from core.database.models.document_model import FavoriteFile
+    from sqlalchemy.exc import IntegrityError
+    
+    # Проверяем существование проекта
+    query = select(Project).where(Project.id == project_id)
+    result = await session.execute(query)
+    project = result.scalar_one_or_none()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Проверяем существование файла в проекте
+    cf = project.custom_fields or {}
+    attachments = cf.get("attachments", [])
+    file_exists = any(a.get("filename") == filename for a in attachments)
+    
+    if not file_exists:
+        raise HTTPException(status_code=404, detail="File not found in project")
+    
+    try:
+        # Создаем запись избранного файла
+        favorite = FavoriteFile(
+            user_id=current_user.id,
+            project_id=project_id,
+            filename=filename
+        )
+        session.add(favorite)
+        await session.commit()
+        
+        return {"message": "File added to favorites"}
+        
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail="File is already in favorites")
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding file to favorites: {str(e)}")
+
+
+@router.delete("/{project_id}/attachments/{filename}/favorite")
+async def remove_file_from_favorites(
+    project_id: int,
+    filename: str,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Удалить файл из избранного"""
+    from core.database.models.document_model import FavoriteFile
+    
+    # Находим запись избранного файла
+    query = select(FavoriteFile).where(
+        FavoriteFile.user_id == current_user.id,
+        FavoriteFile.project_id == project_id,
+        FavoriteFile.filename == filename
+    )
+    result = await session.execute(query)
+    favorite = result.scalar_one_or_none()
+    
+    if not favorite:
+        raise HTTPException(status_code=404, detail="File not found in favorites")
+    
+    try:
+        await session.delete(favorite)
+        await session.commit()
+        
+        return {"message": "File removed from favorites"}
+        
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error removing file from favorites: {str(e)}")
+
+
+@router.get("/favorites/attachments")
+async def list_favorite_files(
+    search: Optional[str] = None,
+    sort_by: str = "added_at",  # added_at | name | size | type
+    sort_order: str = "desc",
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    session = Depends(Server.get_db)
+):
+    """Получить список избранных файлов пользователя"""
+    from core.database.models.document_model import FavoriteFile
+    
+    # Получаем избранные файлы пользователя
+    query = select(FavoriteFile).options(
+        selectinload(FavoriteFile.project)
+    ).where(FavoriteFile.user_id == current_user.id)
+    
+    result = await session.execute(query)
+    favorites = result.scalars().all()
+    
+    # Собираем информацию о файлах
+    rows: list[dict] = []
+    for fav in favorites:
+        project = fav.project
+        if not project:
+            continue
+            
+        cf = project.custom_fields or {}
+        attachments = cf.get("attachments", []) or []
+        
+        # Находим файл в attachments проекта
+        for a in attachments:
+            if a.get("filename") == fav.filename:
+                rows.append({
+                    "project_id": project.id,
+                    "project_name": project.name,
+                    "filename": a.get("filename", ""),
+                    "content_type": a.get("content_type", ""),
+                    "size": a.get("size", 0),
+                    "uploaded_by": a.get("uploaded_by", ""),
+                    "uploaded_at": a.get("uploaded_at", ""),
+                    "added_to_favorites_at": fav.added_at.isoformat() if fav.added_at else "",
+                    "is_favorite": True
+                })
+                break
+    
+    # Фильтрация по поиску
+    if search:
+        search_lower = search.lower()
+        rows = [r for r in rows if search_lower in r["filename"].lower()]
+    
+    # Сортировка
+    reverse = sort_order.lower() == "desc"
+    if sort_by == "name":
+        rows.sort(key=lambda x: x["filename"].lower(), reverse=reverse)
+    elif sort_by == "size":
+        rows.sort(key=lambda x: x["size"] or 0, reverse=reverse)
+    elif sort_by == "type":
+        rows.sort(key=lambda x: x["content_type"].lower(), reverse=reverse)
+    elif sort_by == "added_at":
+        rows.sort(key=lambda x: x["added_to_favorites_at"], reverse=reverse)
+    else:  # default: added_at
+        rows.sort(key=lambda x: x["added_to_favorites_at"], reverse=reverse)
+    
+    # Ограничение количества
+    if limit > 0:
+        rows = rows[:limit]
+    
+    return {"items": rows, "total": len(rows)}

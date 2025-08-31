@@ -121,5 +121,37 @@ export const projectService = {
       console.error('Error removing task from project:', error);
       throw error;
     }
+  },
+
+  // Скачать файл проекта
+  async downloadProjectFile(projectId, filename) {
+    try {
+      const response = await api.get(`/api/projects/${projectId}/attachments/${filename}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/octet-stream'
+        }
+      });
+      
+      // Создаем blob URL для скачивания
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      
+      // Создаем временную ссылку для скачивания
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Очищаем ресурсы
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return true;
+    } catch (error) {
+      console.error('Error downloading project file:', error);
+      throw error;
+    }
   }
 };

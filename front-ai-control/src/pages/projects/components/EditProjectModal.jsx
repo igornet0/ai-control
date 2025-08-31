@@ -313,23 +313,6 @@ const EditProjectModal = ({ project, onClose, onSubmit }) => {
             )}
           </div>
 
-          <div className="form-group">
-            <label>Добавить новые вложения (.pdf, .doc, .pages, .csv, .epub)</label>
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.doc,.pages,.csv,.epub,application/pdf,application/msword,text/csv,application/epub+zip"
-              onChange={(e) => setFiles(e.target.files)}
-            />
-            {uploading && (
-              <div className="upload-progress">
-                Загрузка файлов: {uploadProgress}%
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${uploadProgress}%` }}></div>
-                </div>
-              </div>
-            )}
-          </div>
 
           <div className="form-group">
             <label>Команды</label>
@@ -360,6 +343,57 @@ const EditProjectModal = ({ project, onClose, onSubmit }) => {
             />
           </div>
 
+          <div className="form-group">
+            <label>Загрузить файлы</label>
+            <input
+              type="file"
+              multiple
+              onChange={(e) => setFiles(e.target.files)}
+              className="file-input"
+            />
+            {files && files.length > 0 && (
+              <div className="selected-files">
+                <p>Выбрано файлов: {files.length}</p>
+                <ul>
+                  {Array.from(files).map((file, index) => (
+                    <li key={index} title={file.name} className="file-item">
+                      <div className="file-info">
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">({Math.round(file.size / 1024)} KB)</span>
+                      </div>
+                      <div className="file-status">
+                        {uploading ? (
+                          <span className="status-uploading">⏳ Загружается...</span>
+                        ) : (
+                          <span className="status-ready">✅ Готов</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {uploading && (
+              <div className="upload-progress">
+                <div className="progress-header">
+                  <span className="progress-text">Загрузка файлов...</span>
+                  <span className="progress-percent">{uploadProgress}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                {uploadProgress < 100 && (
+                  <div className="progress-message">
+                    <small>⚠️ Дождитесь завершения загрузки всех файлов</small>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="form-actions">
             <button
               type="button"
@@ -370,10 +404,15 @@ const EditProjectModal = ({ project, onClose, onSubmit }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploading}
               className="submit-btn"
             >
-              {loading ? 'Обновление...' : 'Обновить проект'}
+              {uploading && uploadProgress < 100 
+                ? `Загрузка файлов... ${uploadProgress}%` 
+                : loading 
+                ? 'Обновление...' 
+                : 'Обновить проект'
+              }
             </button>
           </div>
         </form>

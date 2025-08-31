@@ -6,6 +6,9 @@
   margin-bottom: 20px;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .project-card:hover {
@@ -419,4 +422,98 @@
     font-size: 10px;
     padding: 3px 6px;
   }
+}
+
+/* Стили для файлов проекта */
+.project-attachments {
+  margin-top: 16px;
+  position: relative;
+  overflow: visible;
+  width: 100%;
+  clear: both;
+}
+
+.project-attachments h4 {
+  color: #e2e8f0;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  background: #1e293b;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.attachment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.attachment-title {
+  color: #e2e8f0;
+  font-weight: 500;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 12px;
+}
+
+.download-btn {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.attachment-details {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.attachment-size,
+.attachment-type {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.download-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.download-btn:active {
+  transform: translateY(0);
+}
+
+.no-attachments {
+  color: #64748b;
+  font-style: italic;
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px dashed #334155;
+  border-radius: 6px;
 }

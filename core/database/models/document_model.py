@@ -1,6 +1,6 @@
 # модели для документооборота
 from typing import List, Optional, Dict, Any
-from sqlalchemy import DateTime, ForeignKey, Float, String, BigInteger, func, Integer, Boolean, Text, JSON, Enum as SQLEnum
+from sqlalchemy import DateTime, ForeignKey, Float, String, BigInteger, func, Integer, Boolean, Text, JSON, Enum as SQLEnum, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from enum import Enum
@@ -285,3 +285,28 @@ class DocumentTemplate(Base):
     created_by_user: Mapped["User"] = relationship("User", back_populates="document_templates")
     organization: Mapped[Optional["Organization"]] = relationship("Organization", back_populates="document_templates")
     department: Mapped[Optional["Department"]] = relationship("Department", back_populates="document_templates")
+
+
+class FavoriteFile(Base):
+    """Модель для избранных файлов пользователей"""
+    __tablename__ = "favorite_files"
+    
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    
+    # Метаданные
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    
+    # Отношения
+    user: Mapped["User"] = relationship("User", back_populates="favorite_files")
+    project: Mapped["Project"] = relationship("Project")
+    
+    # Уникальное ограничение - один пользователь не может добавить один файл в избранное дважды
+    __table_args__ = (
+        Index("idx_favorite_files_user_id", "user_id"),
+        Index("idx_favorite_files_project_filename", "project_id", "filename"),
+        # Уникальное ограничение: пользователь + проект + файл
+        Index("idx_favorite_files_unique", "user_id", "project_id", "filename", unique=True),
+    )

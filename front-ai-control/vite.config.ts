@@ -10,15 +10,35 @@ export default defineConfig({
 
   server: {
     https: false,
+    host: '0.0.0.0',
+    port: 3000,
     proxy: {
       '/auth': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://backend:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/auth/, ''),
+        secure: false,
+      },
+      '/api': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+        secure: false,
       },
     }
   },
-  // corePlugins: {
-  //   preflight: false
-  // }
+  
+  optimizeDeps: {
+    exclude: [],
+    force: true
+  },
+  
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+          return;
+        }
+        warn(warning);
+      }
+    }
+  }
 })

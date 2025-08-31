@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import HeaderTabs from '../taskManager/components/HeaderTabs';
 import { getTasks } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
+import { getCurrentUserNoteForTask, createOrUpdateUserNote, deleteUserNote } from '../../services/notesService';
 
 export default function OverviewPage({ user }) {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ export default function OverviewPage({ user }) {
 
   const [selectedTaskIdForNote, setSelectedTaskIdForNote] = useState('');
   const [noteText, setNoteText] = useState('');
+  const [currentNote, setCurrentNote] = useState(null);
+  const [noteSaving, setNoteSaving] = useState(false);
   const [scheduleItems, setScheduleItems] = useState([{ time: '', activity: '' }]);
 
   useEffect(() => {
@@ -30,6 +33,34 @@ export default function OverviewPage({ user }) {
     };
     fetchData();
   }, []);
+
+  // Загружаем заметку при выборе задачи
+  useEffect(() => {
+    const loadNote = async () => {
+      if (!selectedTaskIdForNote || !user) {
+        setNoteText('');
+        setCurrentNote(null);
+        return;
+      }
+
+      try {
+        const note = await getCurrentUserNoteForTask(parseInt(selectedTaskIdForNote), user);
+        if (note) {
+          setNoteText(note.note_text);
+          setCurrentNote(note);
+        } else {
+          setNoteText('');
+          setCurrentNote(null);
+        }
+      } catch (error) {
+        console.error('Error loading note:', error);
+        setNoteText('');
+        setCurrentNote(null);
+      }
+    };
+
+    loadNote();
+  }, [selectedTaskIdForNote, user]);
 
   const today = new Date();
   const isSameDay = (dateA, dateB) => dateA.getFullYear() === dateB.getFullYear() && dateA.getMonth() === dateB.getMonth() && dateA.getDate() === dateB.getDate();
@@ -78,9 +109,15 @@ export default function OverviewPage({ user }) {
 
   const userProjects = useMemo(() => {
     if (!user) return [];
+    // Показываем проекты, которые создал пользователь (где он является менеджером) 
+    // И проекты, где он является участником команды
     return (projects || []).filter(p => {
       const isManager = p.manager_id === user.id || p.manager_username === user.username;
-      const isMember = (p.teams || []).some(team => (team.members || []).some(m => m.user_id === user.id));
+      const isMember = (p.teams || []).some(team => 
+        (team.members || []).some(member => 
+          member.user_id === user.id && member.is_active
+        )
+      );
       return isManager || isMember;
     });
   }, [projects, user]);
@@ -88,6 +125,48 @@ export default function OverviewPage({ user }) {
   const addScheduleItem = () => setScheduleItems(prev => [...prev, { time: '', activity: '' }]);
   const updateScheduleItem = (idx, key, value) => setScheduleItems(prev => prev.map((it, i) => i === idx ? { ...it, [key]: value } : it));
   const removeScheduleItem = (idx) => setScheduleItems(prev => prev.filter((_, i) => i !== idx));
+
+  // Функции для работы с заметками
+  const handleSaveNote = async () => {
+    if (!selectedTaskIdForNote || !noteText.trim()) {
+      return;
+    }
+
+    try {
+      setNoteSaving(true);
+      const savedNote = await createOrUpdateUserNote(parseInt(selectedTaskIdForNote), noteText.trim());
+      setCurrentNote(savedNote);
+      console.log('Note saved successfully');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      alert('Ошибка при сохранении заметки');
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!selectedTaskIdForNote || !currentNote) {
+      return;
+    }
+
+    if (!window.confirm('Вы уверены, что хотите удалить заметку?')) {
+      return;
+    }
+
+    try {
+      setNoteSaving(true);
+      await deleteUserNote(parseInt(selectedTaskIdForNote));
+      setNoteText('');
+      setCurrentNote(null);
+      console.log('Note deleted successfully');
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      alert('Ошибка при удалении заметки');
+    } finally {
+      setNoteSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0D1414] to-[#16251C] p-6 text-sm text-gray-100">
@@ -159,13 +238,20 @@ export default function OverviewPage({ user }) {
             <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Статусы проектов</h3>
               {userProjects.length === 0 ? (
-                <div className="text-gray-400">Нет проектов</div>
+                <div className="text-gray-400">Нет доступных проектов</div>
               ) : (
                 <ul className="space-y-2">
                   {userProjects.map(p => (
                     <li key={p.id} className="p-3 rounded bg-[#16251C]">
                       <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-gray-400">Команд: {(p.teams || []).length}</div>
+                      <div className="text-xs text-gray-400">
+                        Статус: {p.status === 'planning' ? 'Планирование' : 
+                                p.status === 'active' ? 'Активный' :
+                                p.status === 'on_hold' ? 'На паузе' :
+                                p.status === 'completed' ? 'Завершен' :
+                                p.status === 'cancelled' ? 'Отменен' :
+                                p.status === 'archived' ? 'Архивирован' : p.status} • Команд: {(p.teams || []).length}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -176,14 +262,56 @@ export default function OverviewPage({ user }) {
             <div className="bg-[#0F1717] rounded-xl p-4 border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Заметки</h3>
               <div className="flex flex-col gap-3">
-                <select value={selectedTaskIdForNote} onChange={(e) => setSelectedTaskIdForNote(e.target.value)} className="bg-[#16251C] border border-gray-700 rounded px-3 py-2">
+                <select 
+                  value={selectedTaskIdForNote} 
+                  onChange={(e) => setSelectedTaskIdForNote(e.target.value)} 
+                  className="bg-[#16251C] border border-gray-700 rounded px-3 py-2"
+                  disabled={noteSaving}
+                >
                   <option value="">Выберите задачу</option>
                   {tasks.map(t => (
                     <option key={t.id} value={t.id}>{t.title}</option>
                   ))}
                 </select>
-                <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={4} className="bg-[#16251C] border border-gray-700 rounded px-3 py-2" placeholder="Напишите заметку..." />
-                <button className="self-start bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Сохранить (заглушка)</button>
+                
+                {selectedTaskIdForNote && (
+                  <>
+                    <textarea 
+                      value={noteText} 
+                      onChange={(e) => setNoteText(e.target.value)} 
+                      rows={4} 
+                      className="bg-[#16251C] border border-gray-700 rounded px-3 py-2" 
+                      placeholder="Напишите заметку..."
+                      disabled={noteSaving}
+                    />
+                    
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleSaveNote}
+                        disabled={noteSaving || !noteText.trim()}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded text-sm"
+                      >
+                        {noteSaving ? 'Сохранение...' : (currentNote ? 'Обновить' : 'Сохранить')}
+                      </button>
+                      
+                      {currentNote && (
+                        <button 
+                          onClick={handleDeleteNote}
+                          disabled={noteSaving}
+                          className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded text-sm"
+                        >
+                          Удалить
+                        </button>
+                      )}
+                    </div>
+                    
+                    {currentNote && (
+                      <div className="text-xs text-gray-400">
+                        Последнее обновление: {new Date(currentNote.updated_at).toLocaleString('ru-RU')}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 

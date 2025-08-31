@@ -67,7 +67,7 @@ async def orm_get_user(session: AsyncSession, response: Union[Dict, object]) -> 
     return result.scalars().first()
     
 async def orm_get_user_by_login(session: AsyncSession, response) -> User | None:
-    if not response.login:
+    if not response or not hasattr(response, 'login') or not response.login:
         return None
     
     query = select(User).where(User.login == response.login)

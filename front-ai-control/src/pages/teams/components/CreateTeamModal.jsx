@@ -9,7 +9,8 @@ const CreateTeamModal = ({ onClose, onSubmit }) => {
     is_public: false,
     auto_disband_date: '',
     tags: '',
-    member_ids: []
+    member_ids: [],
+    no_deadline: true  // Добавляем флаг "Без срока"
   });
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,7 +109,7 @@ const CreateTeamModal = ({ onClose, onSubmit }) => {
       const teamData = {
         ...formData,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
-        auto_disband_date: formData.auto_disband_date ? new Date(formData.auto_disband_date).toISOString() : null
+        auto_disband_date: formData.no_deadline ? null : (formData.auto_disband_date ? new Date(formData.auto_disband_date).toISOString() : null)
       };
 
       await onSubmit(teamData);
@@ -168,22 +169,37 @@ const CreateTeamModal = ({ onClose, onSubmit }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="auto_disband_date">Дата автоматического расформирования</label>
-            <input
-              type="datetime-local"
-              id="auto_disband_date"
-              name="auto_disband_date"
-              value={formData.auto_disband_date}
-              onChange={handleInputChange}
-              className={errors.auto_disband_date ? 'error' : ''}
-            />
-            {errors.auto_disband_date && (
-              <span className="error-text">{errors.auto_disband_date}</span>
-            )}
-            <small className="warning-text">
-              ⚠️ Это действие нельзя отменить! Команда будет автоматически расформирована в указанную дату.
-            </small>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                name="no_deadline"
+                checked={formData.no_deadline}
+                onChange={handleInputChange}
+              />
+              Без срока расформирования
+            </label>
+            <small>Команда будет существовать без автоматического расформирования</small>
           </div>
+
+          {!formData.no_deadline && (
+            <div className="form-group">
+              <label htmlFor="auto_disband_date">Дата автоматического расформирования</label>
+              <input
+                type="datetime-local"
+                id="auto_disband_date"
+                name="auto_disband_date"
+                value={formData.auto_disband_date}
+                onChange={handleInputChange}
+                className={errors.auto_disband_date ? 'error' : ''}
+              />
+              {errors.auto_disband_date && (
+                <span className="error-text">{errors.auto_disband_date}</span>
+              )}
+              <small className="warning-text">
+                ⚠️ Это действие нельзя отменить! Команда будет автоматически расформирована в указанную дату.
+              </small>
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="tags">Теги (через запятую)</label>

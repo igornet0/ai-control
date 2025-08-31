@@ -57,7 +57,7 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Не указана';
+    if (!dateString) return 'Без срока';
     return new Date(dateString).toLocaleDateString('ru-RU');
   };
 
@@ -115,6 +115,15 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
     }
   };
 
+  const handleDownloadFile = async (filename) => {
+    try {
+      await projectService.downloadProjectFile(project.id, filename);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Ошибка при скачивании файла');
+    }
+  };
+
   const handleAddTask = async () => {
     const id = parseInt(selectedTaskId, 10);
     if (!id) return;
@@ -131,22 +140,35 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
 
   const handleEditProject = async (projectData, files, onProgress) => {
     try {
-      // Обновляем проект
+      // Сначала обновляем проект
       const updatedProject = await projectService.updateProject(project.id, projectData);
       
-      // Если есть файлы, загружаем их
+      // Если есть файлы, ОБЯЗАТЕЛЬНО загружаем их
       if (files && files.length > 0) {
-        await projectService.uploadProjectAttachments(project.id, files, onProgress);
+        try {
+          await projectService.uploadProjectAttachments(project.id, files, onProgress);
+        } catch (uploadError) {
+          console.error('Failed to upload files for project update:', uploadError);
+          
+          // Показываем ошибку и не закрываем модальное окно
+          alert('Ошибка при загрузке файлов. Данные проекта обновлены, но файлы не загружены.');
+          throw uploadError;
+        }
       }
       
-      // Уведомляем родительский компонент об обновлении
+      // Уведомляем родительский компонент об обновлении ТОЛЬКО при успешной загрузке всех файлов
       if (onUpdate) {
-        try { await onUpdate(project.id, {}); } catch {}
+        try { 
+          await onUpdate(project.id, updatedProject); 
+        } catch (updateError) {
+          console.error('Error notifying parent component:', updateError);
+        }
       }
       
       setShowEditModal(false);
     } catch (err) {
       console.error('Edit project error:', err);
+      // Модальное окно не закрываем при ошибке, чтобы пользователь мог попробовать снова
     }
   };
 
@@ -304,24 +326,38 @@ const ProjectCard = ({ project, onDelete, onUpdate }) => {
 
             {/* Вложения проекта */}
             <div className="project-attachments">
-              <h4>Вложения</h4>
-              <div className="attach-actions">
-                <label className="upload-btn">
-                  {attachUploading ? 'Загрузка...' : 'Загрузить файлы'}
-                  <input type="file" multiple style={{ display: 'none' }} onChange={handleUpload} />
-                </label>
-              </div>
+              <h4>Файлы проекта</h4>
               {project.attachments && project.attachments.length > 0 ? (
-                <ul className="attachments-list">
+                <div className="attachments-list">
                   {project.attachments.map((a, idx) => (
-                    <li key={idx} className="attachment-item">
-                      <span className="att-name">{a.filename}</span>
-                      <span className="att-size">{a.size ? `${a.size} B` : ''}</span>
-                    </li>
+                    <div key={idx} className="attachment-item">
+                      <div className="attachment-header">
+                        <span className="attachment-title" title={a.filename}>
+                          📄 {a.filename}
+                        </span>
+                        <button 
+                          className="download-btn"
+                          onClick={() => handleDownloadFile(a.filename)}
+                          title={`Скачать ${a.filename}`}
+                        >
+                          Скачать
+                        </button>
+                      </div>
+                      <div className="attachment-details">
+                        <span className="attachment-size">
+                          Размер: {a.size ? `${Math.round(a.size / 1024)} KB` : 'неизвестен'}
+                        </span>
+                        {a.content_type && (
+                          <span className="attachment-type">
+                            Тип: {a.content_type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <p className="no-attachments">Файлы не прикреплены</p>
+                <p className="no-attachments">Файлы не добавлены</p>
               )}
             </div>
 

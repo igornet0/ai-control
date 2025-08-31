@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { teamService } from '../../../services/teamService';
+import EditTeamModal from './EditTeamModal';
 import styles from './TeamCard.module.css';
 
 const TeamCard = ({ team, onDelete, onUpdate }) => {
@@ -66,7 +67,7 @@ const TeamCard = ({ team, onDelete, onUpdate }) => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Не указана';
+    if (!dateString) return 'Без срока';
     return new Date(dateString).toLocaleDateString('ru-RU');
   };
 
@@ -93,12 +94,10 @@ const TeamCard = ({ team, onDelete, onUpdate }) => {
             <span className="info-value">{team.member_count}</span>
           </div>
           
-          {team.auto_disband_date && (
-            <div className="info-item">
-              <span className="info-label">Авторасформирование:</span>
-              <span className="info-value">{formatDate(team.auto_disband_date)}</span>
-            </div>
-          )}
+          <div className="info-item">
+            <span className="info-label">Авторасформирование:</span>
+            <span className="info-value">{formatDate(team.auto_disband_date)}</span>
+          </div>
 
           {team.tags && team.tags.length > 0 && (
             <div className="team-tags">
@@ -183,18 +182,13 @@ const TeamCard = ({ team, onDelete, onUpdate }) => {
         </div>
       )}
 
-      {/* Модальные окна будут добавлены позже */}
+      {/* Модальное окно редактирования команды */}
       {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Редактировать команду</h3>
-            {/* Форма редактирования */}
-            <div className="modal-actions">
-              <button onClick={() => setShowEditModal(false)}>Отмена</button>
-              <button onClick={() => handleUpdate({})}>Сохранить</button>
-            </div>
-          </div>
-        </div>
+        <EditTeamModal
+          team={team}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={handleUpdate}
+        />
       )}
 
       {showAddMemberModal && (

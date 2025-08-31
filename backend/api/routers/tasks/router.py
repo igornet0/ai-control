@@ -16,7 +16,7 @@ from sqlalchemy import select, and_, or_, func, desc, asc
 from sqlalchemy.orm import selectinload, joinedload
 
 from core.database.models.task_model import (
-    Task, TaskComment, TaskTimeLog, TaskDependency, TaskWatcher, TaskLabel, TaskTemplate,
+    Task, TaskComment, TaskTimeLog, TaskDependency, TaskWatcher, TaskLabel, TaskTemplate, TaskUserNote,
     TaskStatus, TaskPriority, TaskType, TaskVisibility
 )
 from core.database.models.main_models import User, Organization, Department
@@ -239,6 +239,23 @@ class TaskTemplateResponse(BaseModel):
     organization_id: Optional[int]
     department_id: Optional[int]
     is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+class TaskUserNoteCreateRequest(BaseModel):
+    """Запрос на создание/обновление заметки пользователя к задаче"""
+    note_text: str = Field(..., min_length=1, description="Текст заметки")
+
+class TaskUserNoteUpdateRequest(BaseModel):
+    """Запрос на обновление заметки пользователя к задаче"""
+    note_text: str = Field(..., min_length=1, description="Текст заметки")
+
+class TaskUserNoteResponse(BaseModel):
+    """Ответ с данными заметки пользователя"""
+    id: int
+    task_id: int
+    user_id: int
+    note_text: str
     created_at: datetime
     updated_at: datetime
 
@@ -919,4 +936,205 @@ async def create_task_comment(
         raise
     except Exception as e:
         logger.error(f"Error creating task comment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Заметки пользователей к задачам
+
+@router.get("/{task_id}/notes/{user_id}", response_model=Optional[TaskUserNoteResponse])
+async def get_user_note_for_task(
+    task_id: int,
+    user_id: int,
+    current_user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """
+    Получение заметки пользователя к задаче
+    """
+    try:
+        # Проверяем права доступа - пользователь может видеть только свои заметки
+        if current_user.id != user_id and current_user.role not in ["admin", "CEO"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Проверяем существование задачи
+        task = await session.get(Task, task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        # Получаем заметку
+        result = await session.execute(
+            select(TaskUserNote).where(
+                and_(TaskUserNote.task_id == task_id, TaskUserNote.user_id == user_id)
+            )
+        )
+        note = result.scalar_one_or_none()
+        
+        if not note:
+            return None
+        
+        return TaskUserNoteResponse(
+            id=note.id,
+            task_id=note.task_id,
+            user_id=note.user_id,
+            note_text=note.note_text,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user note: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/{task_id}/notes", response_model=TaskUserNoteResponse)
+async def create_or_update_user_note(
+    task_id: int,
+    request: TaskUserNoteCreateRequest,
+    user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """
+    Создание или обновление заметки пользователя к задаче
+    """
+    try:
+        # Проверяем существование задачи
+        task = await session.get(Task, task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        # Проверяем права доступа к задаче
+        if not await _can_access_task(task, user, session):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Проверяем, есть ли уже заметка
+        result = await session.execute(
+            select(TaskUserNote).where(
+                and_(TaskUserNote.task_id == task_id, TaskUserNote.user_id == user.id)
+            )
+        )
+        existing_note = result.scalar_one_or_none()
+        
+        if existing_note:
+            # Обновляем существующую заметку
+            existing_note.note_text = request.note_text
+            existing_note.updated_at = datetime.now()
+            await session.commit()
+            await session.refresh(existing_note)
+            note = existing_note
+        else:
+            # Создаем новую заметку
+            note = TaskUserNote(
+                task_id=task_id,
+                user_id=user.id,
+                note_text=request.note_text
+            )
+            session.add(note)
+            await session.commit()
+            await session.refresh(note)
+        
+        logger.info(f"User note {'updated' if existing_note else 'created'}: task={task_id}, user={user.id}")
+        
+        return TaskUserNoteResponse(
+            id=note.id,
+            task_id=note.task_id,
+            user_id=note.user_id,
+            note_text=note.note_text,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating/updating user note: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.put("/{task_id}/notes", response_model=TaskUserNoteResponse)
+async def update_user_note(
+    task_id: int,
+    request: TaskUserNoteUpdateRequest,
+    user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """
+    Обновление заметки пользователя к задаче
+    """
+    try:
+        # Проверяем существование задачи
+        task = await session.get(Task, task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        # Получаем заметку
+        result = await session.execute(
+            select(TaskUserNote).where(
+                and_(TaskUserNote.task_id == task_id, TaskUserNote.user_id == user.id)
+            )
+        )
+        note = result.scalar_one_or_none()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Обновляем заметку
+        note.note_text = request.note_text
+        note.updated_at = datetime.now()
+        
+        await session.commit()
+        await session.refresh(note)
+        
+        logger.info(f"User note updated: task={task_id}, user={user.id}")
+        
+        return TaskUserNoteResponse(
+            id=note.id,
+            task_id=note.task_id,
+            user_id=note.user_id,
+            note_text=note.note_text,
+            created_at=note.created_at,
+            updated_at=note.updated_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user note: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/{task_id}/notes")
+async def delete_user_note(
+    task_id: int,
+    user = Depends(verify_authorization),
+    session: AsyncSession = Depends(Server.get_db)
+):
+    """
+    Удаление заметки пользователя к задаче
+    """
+    try:
+        # Получаем заметку
+        result = await session.execute(
+            select(TaskUserNote).where(
+                and_(TaskUserNote.task_id == task_id, TaskUserNote.user_id == user.id)
+            )
+        )
+        note = result.scalar_one_or_none()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Удаляем заметку
+        await session.delete(note)
+        await session.commit()
+        
+        logger.info(f"User note deleted: task={task_id}, user={user.id}")
+        
+        return {"message": "Note deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user note: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

@@ -13,7 +13,8 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
     due_date: '',
     budget: '',
     tags: [],
-    team_ids: []
+    team_ids: [],
+    no_deadline: true  // Добавляем флаг "Без срока"
   });
 
   const [teams, setTeams] = useState([]);
@@ -98,7 +99,7 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
       newErrors.name = 'Название проекта обязательно';
     }
     
-    if (projectData.start_date && projectData.due_date) {
+    if (!projectData.no_deadline && projectData.start_date && projectData.due_date) {
       if (new Date(projectData.start_date) > new Date(projectData.due_date)) {
         newErrors.due_date = 'Дата окончания должна быть позже даты начала';
       }
@@ -126,8 +127,8 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
       const submitData = {
         ...projectData,
         budget: projectData.budget ? parseFloat(projectData.budget) : null,
-        start_date: projectData.start_date ? new Date(projectData.start_date).toISOString() : null,
-        due_date: projectData.due_date ? new Date(projectData.due_date).toISOString() : null
+        start_date: projectData.no_deadline ? null : (projectData.start_date ? new Date(projectData.start_date).toISOString() : null),
+        due_date: projectData.no_deadline ? null : (projectData.due_date ? new Date(projectData.due_date).toISOString() : null)
       };
 
       setUploading(true);
@@ -138,10 +139,22 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
           setUploadProgress(percent);
         }
       });
+      
+      // Проект успешно создан со всеми файлами
       onClose();
     } catch (error) {
       console.error('Error creating project:', error);
-      setErrors({ general: 'Ошибка при создании проекта' });
+      
+      // Определяем тип ошибки для пользователя
+      if (error.message === 'Файлы не были загружены') {
+        setErrors({ general: 'Ошибка при загрузке файлов. Проект не был создан. Попробуйте еще раз.' });
+      } else if (error.response && error.response.status === 413) {
+        setErrors({ general: 'Файлы слишком большие. Уменьшите размер файлов и попробуйте снова.' });
+      } else if (error.message && error.message.includes('File type not allowed')) {
+        setErrors({ general: 'Недопустимый тип файла. Проверьте форматы файлов.' });
+      } else {
+        setErrors({ general: 'Ошибка при создании проекта. Проверьте данные и попробуйте снова.' });
+      }
     } finally {
       setLoading(false);
       setUploading(false);
@@ -217,27 +230,49 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Дата начала</label>
+          <div className="form-group">
+            <label className="checkbox-label">
               <input
-                type="date"
-                value={projectData.start_date}
-                onChange={(e) => handleChange('start_date', e.target.value)}
+                type="checkbox"
+                checked={projectData.no_deadline}
+                onChange={(e) => handleChange('no_deadline', e.target.checked)}
               />
-            </div>
-
-            <div className="form-group">
-              <label>Дата окончания</label>
-              <input
-                type="date"
-                value={projectData.due_date}
-                onChange={(e) => handleChange('due_date', e.target.value)}
-                className={errors.due_date ? 'error-input' : ''}
-              />
-              {errors.due_date && <span className="error-text">{errors.due_date}</span>}
-            </div>
+              Без срока
+            </label>
+            <small>Проект будет выполняться без ограничений по времени</small>
           </div>
+
+          {!projectData.no_deadline && (
+            <div className="form-row">
+              <div className="form-group">
+                <label>Дата начала</label>
+                <input
+                  type="date"
+                  value={projectData.start_date}
+                  onChange={(e) => handleChange('start_date', e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Дата окончания</label>
+                <input
+                  type="date"
+                  value={projectData.due_date}
+                  onChange={(e) => handleChange('due_date', e.target.value)}
+                  className={errors.due_date ? 'error-input' : ''}
+                />
+                {errors.due_date && <span className="error-text">{errors.due_date}</span>}
+              </div>
+            </div>
+          )}
+
+          {projectData.no_deadline && (
+            <div className="form-group">
+              <div className="deadline-status">
+                Срок выполнения: <strong>Без срока</strong>
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label>Бюджет (₽)</label>
@@ -290,19 +325,52 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
           </div>
 
           <div className="form-group">
-            <label>Вложения (.pdf, .doc, .pages, .csv, .epub)</label>
+            <label>Загрузить файлы</label>
             <input
               type="file"
               multiple
-              accept=".pdf,.doc,.pages,.csv,.epub,application/pdf,application/msword,text/csv,application/epub+zip"
               onChange={(e) => setFiles(e.target.files)}
+              className="file-input"
             />
+            {files && files.length > 0 && (
+              <div className="selected-files">
+                <p>Выбрано файлов: {files.length}</p>
+                <ul>
+                  {Array.from(files).map((file, index) => (
+                    <li key={index} title={file.name} className="file-item">
+                      <div className="file-info">
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">({Math.round(file.size / 1024)} KB)</span>
+                      </div>
+                      <div className="file-status">
+                        {uploading ? (
+                          <span className="status-uploading">⏳ Загружается...</span>
+                        ) : (
+                          <span className="status-ready">✅ Готов</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {uploading && (
               <div className="upload-progress">
-                Загрузка файлов: {uploadProgress}%
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${uploadProgress}%` }}></div>
+                <div className="progress-header">
+                  <span className="progress-text">Загрузка файлов...</span>
+                  <span className="progress-percent">{uploadProgress}%</span>
                 </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                {uploadProgress < 100 && (
+                  <div className="progress-message">
+                    <small>⚠️ Дождитесь завершения загрузки всех файлов</small>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -346,10 +414,15 @@ const CreateProjectModal = ({ onClose, onSubmit }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploading}
               className="submit-btn"
             >
-              {loading ? 'Создание...' : 'Создать проект'}
+              {uploading && uploadProgress < 100 
+                ? `Загрузка файлов... ${uploadProgress}%` 
+                : loading 
+                ? 'Создание...' 
+                : 'Создать проект'
+              }
             </button>
           </div>
         </form>

@@ -233,6 +233,23 @@ class TaskTemplate(Base):
     department: Mapped[Optional["Department"]] = relationship("Department", back_populates="task_templates")
 
 
+class TaskUserNote(Base):
+    """Модель для персональных заметок пользователей к задачам"""
+    __tablename__ = "task_user_notes"
+    
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    note_text: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Отношения
+    task: Mapped["Task"] = relationship("Task")
+    user: Mapped["User"] = relationship("User")
+
+
 # Устаревшие модели (оставляем для обратной совместимости)
 class TaskStatusOld(Base):
     """Модель для хранения статусов задач."""
