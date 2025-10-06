@@ -6,15 +6,20 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),],
+    tailwindcss(),
+  ],
 
   server: {
     https: false,
     proxy: {
       '/auth': {
-        target: 'https://127.0.0.1:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/auth/, ''),
+      },
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
       },
     }
   },

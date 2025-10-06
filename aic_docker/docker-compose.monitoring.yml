@@ -1,0 +1,193 @@
+# Docker Compose configuration for monitoring stack
+# Usage: docker-compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d
+
+version: '3.8'
+
+services:
+  # Prometheus - Metrics collection and alerting
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: ai-control-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+
+  # Grafana - Visualization and dashboards
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: ai-control-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ../monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # AlertManager - Alert handling and notifications
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    container_name: ai-control-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ../monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    container_name: ai-control-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+
+  # PostgreSQL Exporter - Database metrics
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.2
+    container_name: ai-control-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://ai_control_user:ai_control_password@postgres:5432/ai_control_dev?sslmode=disable
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  # Redis Exporter - Cache metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.52.0
+    container_name: ai-control-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  # RabbitMQ Exporter - Message queue metrics
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:v1.0.0
+    container_name: ai-control-rabbitmq-exporter
+    ports:
+      - "9419:9419"
+    environment:
+      - RABBIT_URL=http://rabbitmq:15672
+      - RABBIT_USER=guest
+      - RABBIT_PASSWORD=guest
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+
+  # Jaeger - Distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.47
+    container_name: ai-control-jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+
+  # Elasticsearch - Log storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: ai-control-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+
+  # Kibana - Log visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: ai-control-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  # Logstash - Log processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    container_name: ai-control-logstash
+    volumes:
+      - ../monitoring/logstash/pipeline:/usr/share/logstash/pipeline
+      - ../monitoring/logstash/config:/usr/share/logstash/config
+    networks:
+      - ai-control-network
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+  elasticsearch_data:
+
+networks:
+  ai-control-network:
+    external: true

@@ -1,0 +1,136 @@
+# Alert rules for AI Control System
+
+groups:
+  - name: ai-control-health
+    rules:
+      - alert: DatabaseDown
+        expr: up{job="ai-control-health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database is down"
+          description: "Database service has been down for more than 1 minute"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 90% for more than 5 minutes"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_avail_bytes) / node_filesystem_size_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is above 90% for more than 5 minutes"
+
+  - name: ai-control-application
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_error_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate"
+          description: "HTTP error rate is above 10% for more than 2 minutes"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_ms_bucket[5m])) > 5000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time"
+          description: "95th percentile response time is above 5 seconds for more than 5 minutes"
+
+      - alert: LowRequestRate
+        expr: rate(http_requests_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low request rate"
+          description: "Request rate is below 0.1 requests per second for more than 10 minutes"
+
+  - name: ai-control-business
+    rules:
+      - alert: HighTaskCreationRate
+        expr: rate(tasks_created_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High task creation rate"
+          description: "Task creation rate is above 10 tasks per minute for more than 5 minutes"
+
+      - alert: LowUserActivity
+        expr: rate(user_logins_total[1h]) < 1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low user activity"
+          description: "User login rate is below 1 login per hour for more than 30 minutes"
+
+      - alert: DataCodeServiceDown
+        expr: up{job="ai-control-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DataCode service is down"
+          description: "DataCode service has been down for more than 2 minutes"
+
+  - name: ai-control-infrastructure
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 1 minute"
+
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ message broker has been down for more than 1 minute"
+
+      - alert: HighPostgreSQLConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High PostgreSQL connections"
+          description: "PostgreSQL connection usage is above 80% for more than 5 minutes"
+
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is above 90% for more than 5 minutes"

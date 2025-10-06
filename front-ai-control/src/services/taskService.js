@@ -238,3 +238,11 @@ export const taskService = {
     }
   }
 };
+
+// Export individual functions for backward compatibility
+export const getTasks = () => taskService.getTasks();
+export const getTaskComments = (taskId) => taskService.getTaskComments(taskId);
+export const addTaskComment = (taskId, commentData) => taskService.addTaskComment(taskId, commentData);
+export const createTask = (taskData) => taskService.createTask(taskData);
+export const deleteTask = (taskId) => taskService.deleteTask(taskId);
+export const updateTask = (taskId, taskData) => taskService.updateTask(taskId, taskData);

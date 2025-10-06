@@ -23,6 +23,4 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
-export const logout = () => {
-  localStorage.removeItem('access_token');
-};
+// logout function moved to authService.js to avoid conflicts

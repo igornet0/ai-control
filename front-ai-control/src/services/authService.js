@@ -12,7 +12,16 @@ export const authService = {
 
   async login(credentials) {
     try {
-      const response = await api.post('/auth/login_user/', credentials);
+      // Convert to form data for OAuth2PasswordRequestForm
+      const formData = new FormData();
+      formData.append('username', credentials.username);
+      formData.append('password', credentials.password);
+      
+      const response = await api.post('/auth/login_user/', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -35,5 +44,19 @@ export const authService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  logout() {
+    // Clear tokens from localStorage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    // Redirect to login page or handle logout logic
+    window.location.href = '/login';
   }
 };
+
+// Export individual functions for backward compatibility
+export const getCurrentUser = () => authService.getCurrentUser();
+export const login = (credentials) => authService.login(credentials);
+export const register = (userData) => authService.register(userData);
+export const logout = () => authService.logout();

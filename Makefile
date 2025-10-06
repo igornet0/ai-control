@@ -14,7 +14,7 @@ YELLOW = \033[1;33m
 BLUE = \033[0;34m
 NC = \033[0m # No Color
 
-.PHONY: help dev prod build clean logs shell test lint migrate
+.PHONY: help dev prod build clean logs shell test lint migrate create-admin create-admin-quick list-admins
 
 # Default target
 help:
@@ -48,6 +48,16 @@ help:
 	@echo "  make migrate      - Run database migrations"
 	@echo "  make migrate-create - Create new migration"
 	@echo "  make db-reset     - Reset database"
+	@echo "  make create-admin - Create system administrator"
+	@echo "  make create-admin-quick - Create admin with default credentials"
+	@echo "  make list-admins - List all system administrators"
+	@echo ""
+	@echo "$(GREEN)Monitoring:$(NC)"
+	@echo "  make monitoring   - Start monitoring stack"
+	@echo "  make monitoring-down - Stop monitoring stack"
+	@echo "  make monitoring-logs - Show monitoring logs"
+	@echo "  make grafana      - Open Grafana dashboard"
+	@echo "  make prometheus   - Open Prometheus dashboard"
 	@echo ""
 	@echo "$(GREEN)Utilities:$(NC)"
 	@echo "  make clean        - Clean up containers and volumes"
@@ -119,6 +129,31 @@ test-coverage:
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
 	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest --cov=backend --cov=core --cov-report=html
 
+# New test structure commands
+test-new:
+	@echo "$(GREEN)Running new test structure...$(NC)"
+	python -m pytest -c pytest_new.ini
+
+test-new-unit:
+	@echo "$(GREEN)Running new unit tests...$(NC)"
+	python -m pytest -c pytest_new.ini tests_new/unit/ -m unit
+
+test-new-integration:
+	@echo "$(GREEN)Running new integration tests...$(NC)"
+	python -m pytest -c pytest_new.ini tests_new/integration/ -m integration
+
+test-new-coverage:
+	@echo "$(GREEN)Running new tests with coverage...$(NC)"
+	python -m pytest -c pytest_new.ini --cov=src --cov-report=html --cov-report=term-missing
+
+test-new-auth:
+	@echo "$(GREEN)Running authentication tests...$(NC)"
+	python -m pytest -c pytest_new.ini -m auth
+
+test-new-api:
+	@echo "$(GREEN)Running API tests...$(NC)"
+	python -m pytest -c pytest_new.ini -m api
+
 # Code quality commands
 lint:
 	@echo "$(GREEN)Running linting...$(NC)"
@@ -147,6 +182,36 @@ db-reset:
 	@echo "$(RED)Resetting database...$(NC)"
 	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic downgrade base
 	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic upgrade head
+
+create-admin:
+	@echo "$(GREEN)Creating system administrator...$(NC)"
+	@if [ -f scripts/create_admin.py ]; then \
+		docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python /app/scripts/create_admin.py; \
+	else \
+		echo "$(RED)Error: scripts/create_admin.py not found!$(NC)"; \
+		echo "$(YELLOW)Please ensure the script exists in the project root.$(NC)"; \
+		exit 1; \
+	fi
+
+create-admin-quick:
+	@echo "$(GREEN)Creating system administrator with default credentials...$(NC)"
+	@if [ -f scripts/create_admin.py ]; then \
+		docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python /app/scripts/create_admin.py --login admin --email admin@localhost --password admin123 --username "System Administrator"; \
+	else \
+		echo "$(RED)Error: scripts/create_admin.py not found!$(NC)"; \
+		echo "$(YELLOW)Please ensure the script exists in the project root.$(NC)"; \
+		exit 1; \
+	fi
+
+list-admins:
+	@echo "$(GREEN)Listing system administrators...$(NC)"
+	@if [ -f scripts/list_admins.py ]; then \
+		docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python /app/scripts/list_admins.py; \
+	else \
+		echo "$(RED)Error: scripts/list_admins.py not found!$(NC)"; \
+		echo "$(YELLOW)Please ensure the script exists in the project root.$(NC)"; \
+		exit 1; \
+	fi
 
 # Utility commands
 clean:
@@ -195,6 +260,7 @@ setup-dev: check-env
 	@sleep 10
 	@make migrate
 	@echo "$(GREEN)Development environment setup complete!$(NC)"
+	@echo "$(YELLOW)To create an admin user, run: make create-admin$(NC)"
 
 # Production setup
 setup-prod: check-env
@@ -202,3 +268,29 @@ setup-prod: check-env
 	@make prod-build
 	@make prod
 	@echo "$(GREEN)Production environment setup complete!$(NC)"
+
+# Monitoring commands
+monitoring: check-env
+	@echo "$(GREEN)Starting monitoring stack...$(NC)"
+	docker-compose -f $(DOCKER_COMPOSE_DEV) -f aic_docker/docker-compose.monitoring.yml up -d
+	@echo "$(GREEN)Monitoring stack started!$(NC)"
+	@echo "$(YELLOW)Prometheus: http://localhost:9090$(NC)"
+	@echo "$(YELLOW)Grafana: http://localhost:3001 (admin/admin123)$(NC)"
+	@echo "$(YELLOW)AlertManager: http://localhost:9093$(NC)"
+	@echo "$(YELLOW)Jaeger: http://localhost:16686$(NC)"
+	@echo "$(YELLOW)Kibana: http://localhost:5601$(NC)"
+
+monitoring-down:
+	@echo "$(YELLOW)Stopping monitoring stack...$(NC)"
+	docker-compose -f $(DOCKER_COMPOSE_DEV) -f aic_docker/docker-compose.monitoring.yml down
+
+monitoring-logs:
+	docker-compose -f $(DOCKER_COMPOSE_DEV) -f aic_docker/docker-compose.monitoring.yml logs -f
+
+grafana:
+	@echo "$(GREEN)Opening Grafana dashboard...$(NC)"
+	@open http://localhost:3001 || echo "$(YELLOW)Please open http://localhost:3001 in your browser$(NC)"
+
+prometheus:
+	@echo "$(GREEN)Opening Prometheus dashboard...$(NC)"
+	@open http://localhost:9090 || echo "$(YELLOW)Please open http://localhost:9090 in your browser$(NC)"

@@ -1,44 +1,33 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import Header from './components/main_page/Header';
+import Header from './pages/main_page/Header';
 import { EditModeProvider } from './context/EditModeContext';
 import DashboardHeader from './pages/dashboard/DashboardHeader';
 import ProfileHeader from './pages/profile/ProfileHeader';
-import Hero from './components/main_page/Hero';
-import Auth from './components/auth/Auth';
+import Hero from './pages/main_page/Hero';
+import ModernAuth from './components/auth/ModernAuth';
 import DashboardList from './pages/dashboard/DashboardList';
 import DashboardDetail from './pages/dashboard/DashboardDetail';
 import ProfilePage from './pages/profile/ProfilePage';
 // import PrivateRoute from './components/PrivateRoute';
 import CanvasPage from './pages/canvas/CanvasApp';
 import TaskApp from './pages/taskManager/TaskApp';
+import CreateTaskPage from './pages/tasks/CreateTaskPage';
+import LoadingPage from './components/LoadingPage';
 import styles from './App.module.css';
 import { useAuth } from './context/AuthContext';
-import spinner from './assets/pageload-spinner.gif';
-import logo from './assets/logo.png';
 
-const FullPageSpinner = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-700 to-green-1000">
-    <div className="flex flex-col items-center">
-      <img 
-        src={logo} 
-        alt="AI Trading Logo" 
-        className="w-40 h-auto"
-      />
-      <p className="mt-4 text-xl text-blue-200 font-semibold">
-        Loading...
-      </p>
-    </div>
-  </div>
-);
+// Удаляем старый компонент FullPageSpinner, так как теперь используем LoadingPage
 
 const App = () => {
-
   const { user, loading, login, logout } = useAuth();
   const isAuthenticated = !!user;
 
+  console.log('App render - loading:', loading, 'user:', user, 'isAuthenticated:', isAuthenticated);
+
   if (loading) {
-    return <FullPageSpinner />;
+    console.log('Showing loading page');
+    return <LoadingPage message="Инициализация приложения..." />;
   }
 
   return (
@@ -69,8 +58,8 @@ const AppContent = ({ user, isAuthenticated, login, logout }) => {
 
         <Route path="/signin" element={
            isAuthenticated 
-            ? <Navigate to="/profile" /> : <Auth login={login} />} />
-        <Route path="/signup" element={<Auth login={login} />} />
+            ? <Navigate to="/profile" /> : <ModernAuth login={login} />} />
+        <Route path="/signup" element={<ModernAuth login={login} />} />
 
         <Route path="/profile" element={
           isAuthenticated 
@@ -97,6 +86,13 @@ const AppContent = ({ user, isAuthenticated, login, logout }) => {
             element={
           isAuthenticated 
             ? <TaskApp user={user} onLogout={logout} /> 
+            : <Navigate to="/signin" />
+        } />
+        <Route
+            path="/tasks/create"
+            element={
+          isAuthenticated 
+            ? <CreateTaskPage user={user} onLogout={logout} /> 
             : <Navigate to="/signin" />
         } />
       </Routes> 

@@ -106,7 +106,9 @@ async def get_user_by_token_sub(payload: dict, session: AsyncSession) -> User:
         )
     
     try:
-        user = await orm_get_user_by_login(session, username)
+        # Create a simple object with login field
+        login_obj = type('LoginObj', (), {'login': username})()
+        user = await orm_get_user_by_login(session, login_obj)
         
         if user:
             return user

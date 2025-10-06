@@ -6,7 +6,7 @@ import React from 'react';
  */
 export default function Card({ children, className = '' }) {
   return (
-    <div className={`bg-black rounded-lg shadow p-6 ${className}`}>
+    <div className={`card ${className}`}>
       {children}
     </div>
   );

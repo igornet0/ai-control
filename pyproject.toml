@@ -1,75 +1,251 @@
 [project]
 name = "ai-control"
 version = "0.1.0"
-description = ""
+description = "AI-powered enterprise management system with Clean Architecture"
 authors = [
-    {name = "igornet0"}
+    {name = "igornet0", email = "igor@example.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12, <4.0"
-dependencies = [
-    "sqlalchemy[asyncio] (>=2.0.41,<3.0.0)",
-    "fastapi[standard] (>=0.115.14,<0.116.0)",
-    "pydantic-settings (>=2.10.1,<3.0.0)",
-    "passlib (>=1.7.4,<2.0.0)",
-    "asyncpg (>=0.30.0,<0.31.0)",
-    "alembic (>=1.16.2,<2.0.0)",
-    "python-jose[cryptography] (>=3.5.0,<4.0.0)",
-    "aio-pika (>=9.5.5,<10.0.0)",
-    "bcrypt (>=4.3.0,<5.0.0)",
-    "websockets (>=14.1,<15.0.0)",
-    "aiofiles (>=24.1.0,<25.0.0)",
-    "celery[redis] (>=5.4.0,<6.0.0)",
-    "flower (>=2.0.0,<3.0.0)",
+license = {text = "MIT"}
+keywords = ["ai", "enterprise", "management", "fastapi", "clean-architecture"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 
+dependencies = [
+    # Core Framework
+    "fastapi[standard]>=0.115.14,<0.116.0",
+    "uvicorn[standard]>=0.30.0,<1.0.0",
+    
+    # Database & ORM
+    "sqlalchemy[asyncio]>=2.0.41,<3.0.0",
+    "asyncpg>=0.30.0,<0.31.0",
+    "alembic>=1.16.2,<2.0.0",
+    
+    # Data Validation & Settings
+    "pydantic>=2.10.1,<3.0.0",
+    "pydantic-settings>=2.10.1,<3.0.0",
+    
+    # Security & Authentication
+    "passlib[bcrypt]>=1.7.4,<2.0.0",
+    "python-jose[cryptography]>=3.5.0,<4.0.0",
+    "python-multipart>=0.0.12,<1.0.0",
+    
+    # Messaging & Background Tasks
+    "aio-pika>=9.5.5,<10.0.0",
+    "celery[redis]>=5.4.0,<6.0.0",
+    "flower>=2.0.0,<3.0.0",
+    
+    # HTTP & WebSocket
+    "httpx>=0.28.1,<1.0.0",
+    "websockets>=14.1,<15.0.0",
+    
+    # File Handling
+    "aiofiles>=24.1.0,<25.0.0",
+    "python-magic>=0.4.27,<1.0.0",
+    
+    # Utilities
+    "python-dateutil>=2.9.0,<3.0.0",
+    "pytz>=2024.1,<2025.0",
+    "structlog>=24.1.0,<25.0.0",
+]
 
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=8.4.1,<9.0.0",
+    "pytest-asyncio>=1.1.0,<2.0.0",
+    "pytest-cov>=6.2.1,<7.0.0",
+    "pytest-mock>=3.14.0,<4.0.0",
+    "pytest-xdist>=3.6.0,<4.0.0",
+    "httpx>=0.28.1,<1.0.0",
+    "factory-boy>=3.3.0,<4.0.0",
+    "faker>=33.0.0,<34.0.0",
+    
+    # Code Quality
+    "black>=24.10.0,<25.0.0",
+    "isort>=5.13.0,<6.0.0",
+    "flake8>=7.1.1,<8.0.0",
+    "flake8-docstrings>=1.7.0,<2.0.0",
+    "flake8-bugbear>=24.10.0,<25.0.0",
+    "mypy>=1.13.0,<2.0.0",
+    "pre-commit>=4.0.1,<5.0.0",
+    
+    # Documentation
+    "mkdocs>=1.6.0,<2.0.0",
+    "mkdocs-material>=9.5.0,<10.0.0",
+    "mkdocstrings[python]>=0.26.0,<1.0.0",
+]
+
+prod = [
+    "gunicorn>=23.0.0,<24.0.0",
+    "psycopg2-binary>=2.9.10,<3.0.0",
+    "redis>=5.2.0,<6.0.0",
+    "sentry-sdk[fastapi]>=2.19.0,<3.0.0",
+]
+
+monitoring = [
+    "prometheus-client>=0.21.0,<1.0.0",
+    "structlog>=24.1.0,<25.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/igornet0/ai-control"
+Documentation = "https://ai-control.readthedocs.io"
+Repository = "https://github.com/igornet0/ai-control.git"
+Issues = "https://github.com/igornet0/ai-control/issues"
+
+[project.scripts]
+ai-control = "src.main:main"
+
+# Pytest Configuration
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=backend",
+    "--cov=src",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
     "--cov-fail-under=80",
     "-v",
-    "-n0"
+    "--tb=short",
+    "--maxfail=10",
 ]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
+testpaths = ["tests_new"]
+python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [
     "unit: Unit tests",
     "integration: Integration tests",
-    "docker: Tests requiring Docker",
+    "e2e: End-to-end tests",
     "slow: Slow running tests",
+    "docker: Tests requiring Docker",
     "rabbitmq: Tests requiring RabbitMQ",
-    "websocket: WebSocket functionality tests"
+    "websocket: WebSocket functionality tests",
+    "database: Database tests",
+    "external: External service tests",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning"
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning",
 ]
 asyncio_mode = "auto"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
+# Coverage Configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/env/*",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
-pytest-asyncio = "^1.1.0"
-pytest-cov = "^6.2.1"
-httpx = "^0.28.1"
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
 
-[project.optional-dependencies]
-test = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "httpx>=0.24.0",
-    "pyyaml>=6.0.0"
+# Black Configuration
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort Configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["src"]
+known_third_party = ["fastapi", "sqlalchemy", "pydantic"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+skip_glob = ["*/migrations/*"]
+
+# MyPy Configuration
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "flower.*",
+    "aio_pika.*",
+    "asyncpg.*",
+    "alembic.*",
+]
+ignore_missing_imports = true
+
+# Flake8 Configuration
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503", "E501"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".venv",
+    "venv",
+    "migrations",
+]
+per-file-ignores = [
+    "__init__.py:F401",
+    "tests/*:S101",
 ]
 
 [build-system]

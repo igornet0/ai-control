@@ -1,0 +1,437 @@
+/* Контейнер формы */
+.formContainer {
+  width: 100%;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Заголовок формы */
+.formHeader {
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.formTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-2);
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.formSubtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-medium);
+}
+
+/* Сообщения об ошибках и успехе */
+.errorMessage,
+.successMessage {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  animation: slideInDown 0.3s ease-out;
+}
+
+.errorMessage {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--color-accent-red);
+}
+
+.successMessage {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--color-accent-green);
+}
+
+.errorIcon,
+.successIcon {
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+
+/* Форма */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+
+/* Группа полей ввода */
+.inputGroup {
+  position: relative;
+}
+
+.inputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Поле ввода */
+.input {
+  width: 100%;
+  padding: var(--spacing-4) var(--spacing-4) var(--spacing-4) var(--spacing-12);
+  background: rgba(51, 65, 85, 0.3);
+  border: 2px solid rgba(100, 116, 139, 0.3);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base);
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+
+.input::placeholder {
+  color: transparent;
+}
+
+.input:focus {
+  border-color: var(--color-accent-primary);
+  background: rgba(51, 65, 85, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.input.focused {
+  border-color: var(--color-accent-primary);
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.input.error {
+  border-color: var(--color-accent-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Метка поля */
+.label {
+  position: absolute;
+  left: var(--spacing-12);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  pointer-events: none;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  z-index: 2;
+}
+
+.input:focus + .label,
+.input:not(:placeholder-shown) + .label {
+  top: 0;
+  left: var(--spacing-3);
+  font-size: var(--text-xs);
+  color: var(--color-accent-primary);
+  background: rgba(30, 41, 59, 0.9);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(10px);
+}
+
+.labelIcon {
+  font-size: var(--text-sm);
+  opacity: 0.7;
+}
+
+/* Кнопка показа пароля */
+.passwordToggle {
+  position: absolute;
+  right: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  padding: var(--spacing-1);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  z-index: 3;
+}
+
+.passwordToggle:hover {
+  color: var(--color-text-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Граница поля ввода */
+.inputBorder {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-accent);
+  transition: width var(--transition-base);
+  border-radius: var(--radius-full);
+}
+
+.input:focus ~ .inputBorder {
+  width: 100%;
+}
+
+/* Ошибки полей */
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-2);
+  font-size: var(--text-xs);
+  color: var(--color-accent-red);
+  font-weight: var(--font-medium);
+}
+
+/* Индикатор силы пароля */
+.passwordStrength {
+  margin-top: var(--spacing-2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.strengthBar {
+  flex: 1;
+  height: 4px;
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.strengthFill {
+  height: 100%;
+  transition: all var(--transition-base);
+  border-radius: var(--radius-full);
+}
+
+.strengthText {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Опции формы */
+.formOptions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--spacing-2) 0;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent-primary);
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+  line-height: 1.4;
+}
+
+.forgotLink,
+.link {
+  color: var(--color-accent-primary);
+  text-decoration: none;
+  font-weight: var(--font-semibold);
+  transition: color var(--transition-fast);
+}
+
+.forgotLink:hover,
+.link:hover {
+  color: var(--color-accent-secondary);
+  text-decoration: underline;
+}
+
+/* Кнопка отправки */
+.submitButton {
+  width: 100%;
+  padding: var(--spacing-4) var(--spacing-6);
+  background: var(--gradient-accent);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: white;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-4);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submitButton.loading {
+  background: var(--gradient-slate);
+}
+
+.buttonIcon {
+  font-size: var(--text-lg);
+}
+
+/* Спиннер загрузки */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Футер формы */
+.formFooter {
+  text-align: center;
+  margin-top: var(--spacing-6);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+.footerText {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-medium);
+}
+
+.footerLink {
+  color: var(--color-accent-primary);
+  text-decoration: none;
+  font-weight: var(--font-semibold);
+  margin-left: var(--spacing-1);
+  transition: color var(--transition-fast);
+  background: none;
+  border: none;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.footerLink:hover {
+  color: var(--color-accent-secondary);
+  text-decoration: underline;
+}
+
+/* Адаптивный дизайн */
+@media (max-width: 768px) {
+  .formTitle {
+    font-size: var(--text-xl);
+  }
+
+  .formSubtitle {
+    font-size: var(--text-xs);
+  }
+
+  .input {
+    padding: var(--spacing-3) var(--spacing-3) var(--spacing-3) var(--spacing-10);
+  }
+
+  .label {
+    left: var(--spacing-10);
+  }
+
+  .labelIcon {
+    font-size: var(--text-xs);
+  }
+
+  .formOptions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+  }
+
+  .submitButton {
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .input {
+    padding: var(--spacing-3) var(--spacing-3) var(--spacing-3) var(--spacing-8);
+  }
+
+  .label {
+    left: var(--spacing-8);
+  }
+
+  .passwordToggle {
+    right: var(--spacing-2);
+    font-size: var(--text-base);
+  }
+}
+
+/* Анимации */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

@@ -21,33 +21,63 @@ export default function Profile({ activeTab, user }) {
   const revenue = '$ 12.4k';
 
   return (
-    <div className="p-6 bg-gradient-to-b from-[#0D1414] to-[#16251C] min-h-screen space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       {/* Верхний блок с аватаром, именем и email */}
-      <Card className="flex items-center space-x-4">
-        {/* <img src={user.avatar} alt="Avatar" className="w-16 h-16 rounded-full" /> */}
-        <div>
-          <h1 className="text-xl font-semibold">{user.username}</h1>
-          <p className="text-gray-600">{user.email}</p>
+      <div className="card animate-slideInLeft">
+        <div className="flex items-center space-x-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white">
+            {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+              {user.username || 'User'}
+            </h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              {user.email || 'user@example.com'}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-300">
+                Active
+              </span>
+              <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300">
+                {user.role || 'User'}
+              </span>
+            </div>
+          </div>
         </div>
-      </Card>
+      </div>
 
       {/* Метрики: Performance, Issues, Revenue */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <MetricsCard title="Performance" value={performance} />
-        <MetricsCard title="Issues" value={issuesCount} />
-        <MetricsCard title="Revenue" value={revenue} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="animate-slideInLeft" style={{ animationDelay: '0.1s' }}>
+          <MetricsCard title="Performance" value={performance} />
+        </div>
+        <div className="animate-slideInLeft" style={{ animationDelay: '0.2s' }}>
+          <MetricsCard title="Issues" value={issuesCount} />
+        </div>
+        <div className="animate-slideInLeft" style={{ animationDelay: '0.3s' }}>
+          <MetricsCard title="Revenue" value={revenue} />
+        </div>
       </div>
 
       {/* Два графика: Issues и Revenue */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ChartCard title="Issues" />
-        <ChartCard title="Revenue" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="animate-slideInRight" style={{ animationDelay: '0.4s' }}>
+          <ChartCard title="Issues" />
+        </div>
+        <div className="animate-slideInRight" style={{ animationDelay: '0.5s' }}>
+          <ChartCard title="Revenue" />
+        </div>
       </div>
 
       {/* График прогноза и карточка "Open Issues" рядом */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ChartCard title="Forecast" />
-        <MetricsCard title="Open Issues" value={issuesCount} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="animate-slideInLeft" style={{ animationDelay: '0.6s' }}>
+          <ChartCard title="Forecast" />
+        </div>
+        <div className="animate-slideInRight" style={{ animationDelay: '0.7s' }}>
+          <MetricsCard title="Open Issues" value={issuesCount} />
+        </div>
       </div>
     </div>
   );

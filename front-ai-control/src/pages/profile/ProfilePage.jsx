@@ -10,20 +10,21 @@ const ProfilePage = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
 
   return (
-    <div className="max-h-screen bg-gray-100 flex">
+    <div className="min-h-screen flex" style={{ background: 'var(--gradient-secondary)' }}>
       <ProfileSidebar 
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           onLogout={onLogout}
       />
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"></div>
-        <Profile 
-            activeTab={activeTab} 
-            user={user}
-            setActiveTab={setActiveTab} 
-            onLogout={onLogout} 
-            />
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-7xl mx-auto">
+          <Profile 
+              activeTab={activeTab} 
+              user={user}
+              setActiveTab={setActiveTab} 
+              onLogout={onLogout} 
+              />
+        </div>
       </div>
     </div>
   );

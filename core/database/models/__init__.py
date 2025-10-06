@@ -12,7 +12,9 @@ __all__ = ('User', 'Task', 'TaskComment', 'TaskTimeLog', 'TaskDependency', 'Task
            'PersonalDashboard', 'PersonalWidget', 'PersonalDashboardSettings', 'WidgetPermission',
            'WidgetPlugin', 'WidgetInstallation', 'QuickAction', 'UserPreference',
            'WidgetCategory', 'WidgetType',
-           'NotificationTemplate', 'Notification', 'NotificationDelivery', 'UserNotificationPreference', 'NotificationBatch', 'NotificationWebhook')
+           'NotificationTemplate', 'Notification', 'NotificationDelivery', 'UserNotificationPreference', 'NotificationBatch', 'NotificationWebhook',
+           'EmailAccount', 'EmailTemplate', 'Email', 'EmailAttachment', 'EmailFolder', 'EmailRecipient', 'EmailLabel', 'EmailFilter', 'EmailAutoReply', 'EmailFolderMapping',
+           'Calendar', 'CalendarEvent', 'EventAttendee', 'EventReminder', 'CalendarShare', 'EventType', 'EventPriority', 'EventStatus', 'RecurrenceType')
 
 from .main_models import (User, Organization, Department, Permission, RolePermission)
 from .task_model import (
@@ -48,4 +50,9 @@ from .email_model import (
     EmailAccount, EmailTemplate, Email, EmailAttachment,
     EmailFolder, EmailRecipient, EmailLabel, EmailFilter,
     EmailAutoReply, EmailFolderMapping
+)
+
+from .calendar_model import (
+    Calendar, CalendarEvent, EventAttendee, EventReminder, CalendarShare,
+    EventType, EventPriority, EventStatus, RecurrenceType
 )

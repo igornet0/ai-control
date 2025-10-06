@@ -17,22 +17,34 @@ export const AuthProvider = ({ children }) => {
 
   const loadCurrentUser = async () => {
     try {
+      console.log('Loading current user...');
       const userData = await authService.getCurrentUser();
+      console.log('User loaded:', userData);
       setUser(userData);
     } catch (error) {
-      // Keep token for retry, but set user to null
+      console.log('Auth error:', error);
+      // Clear invalid token
+      localStorage.removeItem('access_token');
       setUser(null);
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('AuthContext useEffect running');
     const token = localStorage.getItem('access_token');
+    console.log('Token found:', !!token);
+    
     if (token) {
+      // If we have a token, try to load the user
       loadCurrentUser();
     } else {
+      // No token, set loading to false immediately
+      console.log('No token found, setting loading to false');
       setLoading(false);
+      setUser(null);
     }
   }, []);
 

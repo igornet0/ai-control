@@ -64,6 +64,7 @@ services:
       - ../core:/app/core
       - ../settings:/app/settings
       - ../tests:/app/tests
+      - ../scripts:/app/scripts
       - ../alembic.ini:/app/alembic.ini
       - ../pyproject.toml:/app/pyproject.toml
       - ../poetry.lock:/app/poetry.lock
@@ -88,8 +89,14 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ../front-ai-control:/app
-      - /app/node_modules
+      - ../front-ai-control/src:/app/src
+      - ../front-ai-control/public:/app/public
+      - ../front-ai-control/index.html:/app/index.html
+      - ../front-ai-control/vite.config.ts:/app/vite.config.ts
+      - ../front-ai-control/tsconfig.json:/app/tsconfig.json
+      - ../front-ai-control/tsconfig.app.json:/app/tsconfig.app.json
+      - ../front-ai-control/tsconfig.node.json:/app/tsconfig.node.json
+      - ../front-ai-control/eslint.config.js:/app/eslint.config.js
     depends_on:
       - backend
     networks:
@@ -112,6 +119,7 @@ services:
       - ../backend:/app/backend
       - ../core:/app/core
       - ../settings:/app/settings
+      - ../scripts:/app/scripts
     depends_on:
       - postgres
       - redis
@@ -136,6 +144,7 @@ services:
       - ../backend:/app/backend
       - ../core:/app/core
       - ../settings:/app/settings
+      - ../scripts:/app/scripts
     depends_on:
       - postgres
       - redis

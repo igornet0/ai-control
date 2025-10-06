@@ -115,7 +115,7 @@ async def register(user: UserRegisterResponse, session: AsyncSession = Depends(S
         access_token_expires = timedelta(minutes=settings.security.access_token_expire_minutes)
 
         return {
-            "access_token": create_access_token(payload={"sub": user.login, "email": user.email}, 
+            "access_token": create_access_token(data={"sub": user.login, "email": user.email}, 
                                                 expires_delta=access_token_expires),
             "token_type": "bearer",
             "message": "User registered successfully"
@@ -170,7 +170,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token_expires = timedelta(minutes=settings.security.access_token_expire_minutes)
 
     access_token = create_access_token(
-        payload={"sub": user.login, "email": user.email}, expires_delta=access_token_expires
+        data={"sub": user.login, "email": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, 
             "token_type": "bearer",
@@ -187,7 +187,7 @@ async def refresh_token(refresh_token: str):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     
-    new_access_token = create_access_token(payload={"sub": username})
+    new_access_token = create_access_token(data={"sub": username})
     # new_refresh_token = create_refresh_token(data={"sub": username})
     
     return {
@@ -198,7 +198,7 @@ async def refresh_token(refresh_token: str):
 
 @router.get("/user/me/", response_model=UserResponse)
 async def auth_user_check_self_info(
-    user: str = Depends(verify_authorization)
+    user = Depends(verify_authorization)
 ):
     return user
 

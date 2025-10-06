@@ -1,0 +1,80 @@
+# AlertManager configuration for AI Control System
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@ai-control.local'
+  smtp_auth_username: 'alerts@ai-control.local'
+  smtp_auth_password: 'password'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 5m
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+    - match:
+        severity: info
+      receiver: 'info-alerts'
+      group_wait: 1m
+      repeat_interval: 2h
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://backend:8000/api/v1/monitoring/webhooks/alertmanager'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@ai-control.local'
+        subject: '[CRITICAL] AI Control System Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Instance: {{ .Labels.instance }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+    webhook_configs:
+      - url: 'http://backend:8000/api/v1/monitoring/webhooks/alertmanager'
+        send_resolved: true
+
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'admin@ai-control.local'
+        subject: '[WARNING] AI Control System Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Instance: {{ .Labels.instance }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+    webhook_configs:
+      - url: 'http://backend:8000/api/v1/monitoring/webhooks/alertmanager'
+        send_resolved: true
+
+  - name: 'info-alerts'
+    webhook_configs:
+      - url: 'http://backend:8000/api/v1/monitoring/webhooks/alertmanager'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']

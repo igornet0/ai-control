@@ -16,7 +16,9 @@ function CustomSelect({ options, value, onChange }) {
   }, []);
 
   const handleSelect = (val) => {
-    onChange(val);
+    // Handle both string and object options
+    const selectedValue = typeof val === 'object' ? val.value : val;
+    onChange(selectedValue);
     setOpen(false);
   };
 
@@ -27,7 +29,7 @@ function CustomSelect({ options, value, onChange }) {
         onClick={() => setOpen((o) => !o)}
         className="w-full bg-[#0f1b16] border border-gray-600 rounded-md px-3 py-2 text-left text-white flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-green-500"
       >
-        <span>{value}</span>
+        <span>{typeof options[0] === 'object' ? options.find(opt => opt.value === value)?.label || value : value}</span>
         <svg
           className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
             open ? "rotate-180" : "rotate-0"
@@ -45,17 +47,21 @@ function CustomSelect({ options, value, onChange }) {
       {open && (
         <ul style={{ gap: 0}} 
         className="absolute w-full overflow-auto rounded-md bg-[#16251C] border border-gray-700 text-white shadow-lg flex flex-col">
-          {options.map((opt) => (
-            <li
-              key={opt}
-              onClick={() => handleSelect(opt)}
-              className={`cursor-pointer px-4 py-2 hover:bg-green-600 ${
-                opt === value ? "bg-green-700 font-semibold" : ""
-              }`}
-            >
-              {opt}
-            </li>
-          ))}
+          {options.map((opt) => {
+            const optionValue = typeof opt === 'object' ? opt.value : opt;
+            const optionLabel = typeof opt === 'object' ? opt.label : opt;
+            return (
+              <li
+                key={optionValue}
+                onClick={() => handleSelect(opt)}
+                className={`cursor-pointer px-4 py-2 hover:bg-green-600 ${
+                  optionValue === value ? "bg-green-700 font-semibold" : ""
+                }`}
+              >
+                {optionLabel}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

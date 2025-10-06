@@ -25,54 +25,88 @@ const DashboardHeader = ({ isAuthenticated }) => {
   };
 
   return (
-    <header className={styles.header}>
-      <nav className={styles.nav}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <button
-              onClick={() => setIsEditing((prev) => !prev)}
-              style={{
-                marginRight: '10px',
-                padding: '5px 5px',
-                minWidth: '100px',
-                backgroundColor: isEditing ? '#05521C' : '#09AA39',
-                border: 'none',
-                borderRadius: '25px',
-                cursor: 'pointer',
-                color: '#fff',
-                textAlign: 'center'
-              }}
-            >
-              {isEditing ? 'Save' : 'Redact'}
-            </button>
+    <header className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ 
+      background: 'rgba(15, 23, 42, 0.8)', 
+      borderColor: 'var(--color-border-muted)' 
+    }}>
+      <nav className="max-w-7xl mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-8">
+            <a href="/" className="text-2xl font-bold text-gradient hover:opacity-80 transition-opacity">
+              AI-CONTROL
+            </a>
+            
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsEditing((prev) => !prev)}
+                className={`btn btn-sm ${
+                  isEditing 
+                    ? 'btn-danger' 
+                    : 'btn-primary'
+                }`}
+              >
+                <span>{isEditing ? '💾' : '✏️'}</span>
+                {isEditing ? 'Save' : 'Edit'}
+              </button>
 
-            <h3 style={{ color: '#32e87f', marginRight: '10px' }}>Dashboard {id}</h3>
-            <select
-              value={sheetId}
-              onChange={handleSheetChange}
-              style={{
-                backgroundColor: '#222',
-                color: '#32e87f',
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: '1px solid #444'
-              }}
-            >
-              {sheets.map(sheet => (
-                <option key={sheet.id} value={sheet.id}>{sheet.name}</option>
-              ))}
-            </select>
+              <h3 className="text-xl font-semibold text-gradient">Dashboard {id}</h3>
+              <select
+                value={sheetId}
+                onChange={handleSheetChange}
+                className="form-input w-auto min-w-32"
+              >
+                {sheets.map(sheet => (
+                  <option key={sheet.id} value={sheet.id}>{sheet.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <ul style={{ display: 'flex', alignItems: 'center', listStyle: 'none', margin: 0, padding: 0 }}>
-            <li style={{ marginRight: '15px' }}><a href="/dashboard">Dashboard</a></li>
-            <li style={{ marginRight: '15px' }}><a href="/tasks">Tasks</a></li>
-            <li style={{ marginRight: '15px' }}><a href="/support">Support</a></li>
+          <ul className="hidden md:flex items-center space-x-6">
+            <li>
+              <a 
+                href="/dashboard" 
+                className="text-sm font-medium transition-colors hover:text-gradient"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                📊 Dashboard
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/tasks" 
+                className="text-sm font-medium transition-colors hover:text-gradient"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                📋 Tasks
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/support" 
+                className="text-sm font-medium transition-colors hover:text-gradient"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                🆘 Support
+              </a>
+            </li>
             <li>
               {isAuthenticated ? (
-                <a href="/profile" className={styles.profileLink}>Profile</a>
+                <a 
+                  href="/profile" 
+                  className="btn btn-outline btn-sm"
+                >
+                  <span>👤</span>
+                  Profile
+                </a>
               ) : (
-                <a href="/signin" className={styles.signIn}>Sign In</a>
+                <a 
+                  href="/signin" 
+                  className="btn btn-primary btn-sm"
+                >
+                  <span>🔐</span>
+                  Sign In
+                </a>
               )}
             </li>
           </ul>

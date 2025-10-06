@@ -31,6 +31,7 @@ class TaskCreateRequest(BaseModel):
     """Запрос на создание задачи"""
     title: str = Field(..., min_length=1, max_length=255, description="Название задачи")
     description: Optional[str] = Field(None, description="Описание задачи")
+    status: TaskStatus = Field(default=TaskStatus.CREATED, description="Статус задачи")
     task_type: TaskType = Field(default=TaskType.TASK, description="Тип задачи")
     priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="Приоритет")
     visibility: TaskVisibility = Field(default=TaskVisibility.TEAM, description="Видимость")
@@ -297,8 +298,23 @@ async def create_task(
         await session.commit()
         await session.refresh(task)
         
+        # Перезагружаем задачу с отношениями для корректного формирования ответа
+        task_query = select(Task).options(
+            selectinload(Task.owner),
+            selectinload(Task.executor),
+            selectinload(Task.reviewer),
+            selectinload(Task.organization),
+            selectinload(Task.department),
+            selectinload(Task.subtasks),
+            selectinload(Task.comments),
+            selectinload(Task.watchers)
+        ).where(Task.id == task.id)
+        
+        result = await session.execute(task_query)
+        task_with_relations = result.scalar_one()
+        
         # Получаем связанные данные для ответа
-        response_data = await _get_task_response_data(task, session)
+        response_data = await _get_task_response_data(task_with_relations, session)
         
         logger.info(f"Task created: {task.id} by user {user.id}")
         
@@ -567,10 +583,10 @@ async def _get_task_response_data(task: Task, session: AsyncSession) -> TaskResp
         id=task.id,
         title=task.title,
         description=task.description,
-        status=task.status.value,
-        priority=task.priority.value,
-        task_type=task.task_type.value,
-        visibility=task.visibility.value,
+        status=task.status.value if hasattr(task.status, 'value') else str(task.status),
+        priority=task.priority.value if hasattr(task.priority, 'value') else str(task.priority),
+        task_type=task.task_type.value if hasattr(task.task_type, 'value') else str(task.task_type),
+        visibility=task.visibility.value if hasattr(task.visibility, 'value') else str(task.visibility),
         parent_id=task.parent_id,
         epic_id=task.epic_id,
         created_at=task.created_at,

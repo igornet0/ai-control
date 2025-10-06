@@ -81,93 +81,83 @@ const RegisterPage = () => {
   };
 
   return (
-    <div>
-      <div>        
-        {/* Карточка формы */}
-        <div>
-          <div className="p-8">
-            {successMessage && (
-              <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  {successMessage}
-                </div>
-              </div>
-            )}
-            
-            {errors.general && (
-              <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  {errors.general}
-                </div>
-              </div>
-            )}
-            
-            <form className={styles.form} onSubmit={handleSubmit}>
-              <h2>Sign Up</h2>
-
-              {[
-                { label: 'Username', name: 'username', type: 'text' },
-                { label: 'Login', name: 'login', type: 'text' },
-                { label: 'Email', name: 'email', type: 'email' },
-                { label: 'Password', name: 'password', type: 'password' },
-                { label: 'Confirm Password', name: 'confirmPassword', type: 'password' }
-              ].map(({ label, name, type }) => (
-                <div key={name}>
-                  <label
-                    htmlFor={name}
-                  >
-                    {label}:
-                  </label>
-                  <input
-                    name={name}
-                    id={name}
-                    type={type}
-                    placeholder={label}
-                    className={`w-full px-4 py-3 rounded-lg border-b ${
-                      errors[name] ? 'border-red-500' : 'border-gray-300'
-                    } bg-transparent text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus:border-blue-500 transition`}
-                    value={formData[name]}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                  />
-                  {errors[name] && (
-                    <div className="mt-1 flex items-center text-sm text-red-500">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                      {errors[name]}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              <button
-                type="submit"
-                className={`w-full flex justify-center items-center py-3 px-4 rounded-lg text-white font-medium transition ${
-                  isLoading
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                }`}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    Регистрация...
-                  </>
-                ) : (
-                  'Register'
-                )}
-              </button>
-            </form>
+    <div className="space-y-6">
+      {successMessage && (
+        <div className="bg-gradient-to-r from-green-500/20 to-emerald-600/20 border border-green-500/30 text-green-300 p-4 rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">✅</span>
+            <span>{successMessage}</span>
           </div>
         </div>
-      </div>
+      )}
+      
+      {errors.general && (
+        <div className="bg-gradient-to-r from-red-500/20 to-rose-600/20 border border-red-500/30 text-red-300 p-4 rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚠️</span>
+            <span>{errors.general}</span>
+          </div>
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gradient mb-2">Sign Up</h2>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            Create your account to get started
+          </p>
+        </div>
+
+        {[
+          { label: 'Username', name: 'username', type: 'text' },
+          { label: 'Login', name: 'login', type: 'text' },
+          { label: 'Email', name: 'email', type: 'email' },
+          { label: 'Password', name: 'password', type: 'password' },
+          { label: 'Confirm Password', name: 'confirmPassword', type: 'password' }
+        ].map(({ label, name, type }) => (
+          <div key={name}>
+            <label htmlFor={name} className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              {label}
+            </label>
+            <input
+              name={name}
+              id={name}
+              type={type}
+              placeholder={`Enter your ${label.toLowerCase()}`}
+              className={`form-input ${
+                errors[name] ? 'border-red-500' : ''
+              }`}
+              value={formData[name]}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+            {errors[name] && (
+              <div className="mt-1 flex items-center text-sm text-red-400">
+                <span className="mr-1">⚠️</span>
+                {errors[name]}
+              </div>
+            )}
+          </div>
+        ))}
+
+        <button
+          type="submit"
+          className="btn btn-primary w-full"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <span className="animate-spin">🔄</span>
+              Регистрация...
+            </>
+          ) : (
+            <>
+              <span>✨</span>
+              Register
+            </>
+          )}
+        </button>
+      </form>
     </div>
   );
 };
