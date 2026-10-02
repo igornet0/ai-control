@@ -1,0 +1,10 @@
+# Dev frontend: deps baked in; bind-mount `./front-ai-control` and use `/app/node_modules` volume.
+FROM node:20-bookworm
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+EXPOSE 3000

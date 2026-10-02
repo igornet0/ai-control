@@ -1,0 +1,42 @@
+/* src/pages/dashboard/Dashboard.module.css - строгий дизайн */
+.dashboardItem {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-primary);
+    display: flex;
+    align-items: center;
+    background: var(--gradient-surface);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+    overflow: hidden;
+}
+
+.dashboardItem:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-accent-primary);
+}
+
+.dashboardImage {
+    width: 250px;
+    height: 250px;
+    justify-items: center;
+    object-fit: cover;
+}
+
+.dashboardLink {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.dashboardName {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid var(--color-border-primary);
+    padding: 20px;
+    margin: 0;
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-lg);
+}

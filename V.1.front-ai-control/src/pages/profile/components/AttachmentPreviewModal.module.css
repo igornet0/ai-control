@@ -1,0 +1,168 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.panel {
+  width: min(96vw, 56rem);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.55);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.head button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.body {
+  flex: 1;
+  overflow: auto;
+  min-height: 12rem;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.hint {
+  margin: 1rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.error {
+  margin: 1rem;
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+.pdfFrame {
+  width: 100%;
+  height: min(72vh, 44rem);
+  border: none;
+  display: block;
+  background: #fff;
+}
+
+.videoFrame {
+  display: block;
+  width: 100%;
+  max-height: min(72vh, 44rem);
+  background: #000;
+}
+
+.tableWrap {
+  overflow: auto;
+  max-height: min(72vh, 44rem);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.table th,
+.table td {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: rgba(30, 41, 59, 0.98);
+  z-index: 1;
+}
+
+.docHtml {
+  padding: 1rem 1.1rem;
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.docHtml table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.docHtml th,
+.docHtml td {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 0.35rem 0.5rem;
+}
+
+.textPreview {
+  margin: 0;
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
+.footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.download {
+  display: inline-flex;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.download:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.body::-webkit-scrollbar,
+.tableWrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.body::-webkit-scrollbar-thumb,
+.tableWrap::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}

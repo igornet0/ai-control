@@ -3,9 +3,9 @@
 
 # Variables
 PROJECT_NAME = ai-control
-DOCKER_COMPOSE_DEV = aic_docker/docker-compose.dev.yml
-DOCKER_COMPOSE_PROD = aic_docker/docker-compose.prod.yml
-ENV_FILE = aic_docker/.env
+DOCKER_COMPOSE_DEV = deployment/docker/docker-compose.dev.yml
+DOCKER_COMPOSE_PROD = deployment/docker/docker-compose.prod.yml
+ENV_FILE = deployment/docker/.env
 
 # Colors for output
 RED = \033[0;31m
@@ -14,7 +14,7 @@ YELLOW = \033[1;33m
 BLUE = \033[0;34m
 NC = \033[0m # No Color
 
-.PHONY: help dev prod build clean logs shell test lint migrate create-admin create-admin-quick list-admins
+.PHONY: help dev prod build clean logs shell test lint migrate create-admin create-admin-quick list-admins stress-fullstack-host benchmark-nodes benchmark-fullstack-host clear-data-db
 
 # Default target
 help:
@@ -38,6 +38,9 @@ help:
 	@echo "  make test-unit    - Run unit tests"
 	@echo "  make test-integration - Run integration tests"
 	@echo "  make test-coverage - Run tests with coverage"
+	@echo "  make stress-fullstack-host - Full-stack SQLite stress (stack + Postgres, see Makefile target)"
+	@echo "  make benchmark-nodes - Security-first catalog + data-plane tests (no live stack)"
+	@echo "  make benchmark-fullstack-host - Live all-node data-transfer benchmark (security > speed)"
 	@echo ""
 	@echo "$(GREEN)Code Quality:$(NC)"
 	@echo "  make lint         - Run linting"
@@ -48,6 +51,7 @@ help:
 	@echo "  make migrate      - Run database migrations"
 	@echo "  make migrate-create - Create new migration"
 	@echo "  make db-reset     - Reset database"
+	@echo "  make clear-data-db - Clear app data (keep users) + local data_models/dashboards"
 	@echo "  make create-admin - Create system administrator"
 	@echo "  make create-admin-quick - Create admin with default credentials"
 	@echo "  make list-admins - List all system administrators"
@@ -65,6 +69,8 @@ help:
 	@echo "  make shell        - Open shell in backend container"
 	@echo "  make backup       - Backup database"
 	@echo "  make restore      - Restore database"
+	@echo "  make setup-env    - Create .env file from env.example"
+	@echo "  make check-structure - Check project structure and paths"
 
 # Development commands
 dev: check-env
@@ -119,96 +125,92 @@ test:
 
 test-unit:
 	@echo "$(GREEN)Running unit tests...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest tests/unit/
+	python -m pytest tests/unit/
 
 test-integration:
 	@echo "$(GREEN)Running integration tests...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest tests/integration/
+	python -m pytest tests/integration/
 
 test-coverage:
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python -m pytest --cov=backend --cov=core --cov-report=html
+	python -m pytest --cov=src --cov-report=html
 
-# New test structure commands
-test-new:
-	@echo "$(GREEN)Running new test structure...$(NC)"
-	python -m pytest -c pytest_new.ini
-
-test-new-unit:
-	@echo "$(GREEN)Running new unit tests...$(NC)"
-	python -m pytest -c pytest_new.ini tests_new/unit/ -m unit
-
-test-new-integration:
-	@echo "$(GREEN)Running new integration tests...$(NC)"
-	python -m pytest -c pytest_new.ini tests_new/integration/ -m integration
-
-test-new-coverage:
-	@echo "$(GREEN)Running new tests with coverage...$(NC)"
-	python -m pytest -c pytest_new.ini --cov=src --cov-report=html --cov-report=term-missing
-
-test-new-auth:
+# Test structure commands
+test-auth:
 	@echo "$(GREEN)Running authentication tests...$(NC)"
-	python -m pytest -c pytest_new.ini -m auth
+	python -m pytest -m auth
 
-test-new-api:
+test-api:
 	@echo "$(GREEN)Running API tests...$(NC)"
-	python -m pytest -c pytest_new.ini -m api
+	python -m pytest -m api
+
+stress-fullstack-host:
+	@echo "$(GREEN)Full-stack stress (requires backend :8000, dashboard-query :8787, Postgres).$(NC)"
+	cd src && RUN_FULLSTACK_STRESS=1 BACKEND_STRESS_URL=http://127.0.0.1:8000 DASHBOARD_QUERY_METRICS_URL=http://127.0.0.1:8787 poetry run pytest tests/stress/test_dashboard_sqlite_fullstack_stress.py -v --no-cov --tb=short
+
+benchmark-nodes:
+	@echo "$(GREEN)Security-first node catalog + data-plane tests (no live stack).$(NC)"
+	cd src && poetry run pytest tests/benchmark/test_node_catalog.py tests/benchmark/test_data_plane_security.py -v --no-cov --tb=short
+
+benchmark-fullstack-host:
+	@echo "$(GREEN)Live all-node benchmark (backend :8000). Security over speed.$(NC)"
+	cd src && RUN_FULLSTACK_BENCHMARK=1 BACKEND_STRESS_URL=http://127.0.0.1:8000 DASHBOARD_QUERY_URL=http://127.0.0.1:8787 DEVELOPER_API_URL=http://127.0.0.1:8002 poetry run pytest tests/benchmark/test_fullstack_nodes_benchmark.py -v --no-cov --tb=short
 
 # Code quality commands
 lint:
 	@echo "$(GREEN)Running linting...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend flake8 backend core tests
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend black --check backend core tests
+	flake8 src tests
+	black --check src tests
 
 format:
 	@echo "$(GREEN)Formatting code...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend black backend core tests
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend isort backend core tests
+	black src tests
+	isort src tests
 
 type-check:
 	@echo "$(GREEN)Running type checking...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend mypy backend core
+	mypy src
 
 # Database commands
 migrate:
 	@echo "$(GREEN)Running database migrations...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic upgrade head
+	poetry run python deployment/scripts/run_migration.py upgrade head
 
 migrate-create:
 	@echo "$(GREEN)Creating new migration...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic revision --autogenerate -m "$(message)"
+	poetry run python deployment/scripts/run_migration.py revision --autogenerate -m "$(message)"
 
 db-reset:
 	@echo "$(RED)Resetting database...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic downgrade base
-	docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend alembic upgrade head
+	poetry run python deployment/scripts/run_migration.py downgrade base
+	poetry run python deployment/scripts/run_migration.py upgrade head
 
 create-admin:
 	@echo "$(GREEN)Creating system administrator...$(NC)"
-	@if [ -f scripts/create_admin.py ]; then \
-		docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python /app/scripts/create_admin.py; \
+	@if [ -f deployment/scripts/create_admin.py ]; then \
+		python deployment/scripts/create_admin.py; \
 	else \
-		echo "$(RED)Error: scripts/create_admin.py not found!$(NC)"; \
+		echo "$(RED)Error: deployment/scripts/create_admin.py not found!$(NC)"; \
 		echo "$(YELLOW)Please ensure the script exists in the project root.$(NC)"; \
 		exit 1; \
 	fi
 
 create-admin-quick:
 	@echo "$(GREEN)Creating system administrator with default credentials...$(NC)"
-	@if [ -f scripts/create_admin.py ]; then \
-		docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python /app/scripts/create_admin.py --login admin --email admin@localhost --password admin123 --username "System Administrator"; \
+	@if [ -f deployment/scripts/create_admin.py ]; then \
+		python deployment/scripts/create_admin.py --login admin --email admin@localhost --password admin123 --username "System Administrator"; \
 	else \
-		echo "$(RED)Error: scripts/create_admin.py not found!$(NC)"; \
+		echo "$(RED)Error: deployment/scripts/create_admin.py not found!$(NC)"; \
 		echo "$(YELLOW)Please ensure the script exists in the project root.$(NC)"; \
 		exit 1; \
 	fi
 
 list-admins:
 	@echo "$(GREEN)Listing system administrators...$(NC)"
-	@if [ -f scripts/list_admins.py ]; then \
-		docker-compose -f $(DOCKER_COMPOSE_DEV) exec backend python /app/scripts/list_admins.py; \
+	@if [ -f deployment/scripts/list_admins.py ]; then \
+		python deployment/scripts/list_admins.py; \
 	else \
-		echo "$(RED)Error: scripts/list_admins.py not found!$(NC)"; \
+		echo "$(RED)Error: deployment/scripts/list_admins.py not found!$(NC)"; \
 		echo "$(YELLOW)Please ensure the script exists in the project root.$(NC)"; \
 		exit 1; \
 	fi
@@ -239,8 +241,18 @@ restore:
 check-env:
 	@if [ ! -f $(ENV_FILE) ]; then \
 		echo "$(RED)Error: $(ENV_FILE) file not found!$(NC)"; \
-		echo "$(YELLOW)Please copy aic_docker/env.example to aic_docker/.env and configure it.$(NC)"; \
+		echo "$(YELLOW)Please copy deployment/docker/env.example to deployment/docker/.env and configure it.$(NC)"; \
 		exit 1; \
+	fi
+
+setup-env:
+	@echo "$(GREEN)Setting up environment file...$(NC)"
+	@if [ ! -f $(ENV_FILE) ]; then \
+		cp deployment/docker/env.example $(ENV_FILE); \
+		echo "$(GREEN)Created $(ENV_FILE) from env.example$(NC)"; \
+		echo "$(YELLOW)Please edit $(ENV_FILE) and configure your settings$(NC)"; \
+	else \
+		echo "$(YELLOW)$(ENV_FILE) already exists$(NC)"; \
 	fi
 
 # Health check
@@ -252,7 +264,7 @@ health:
 	@curl -f http://localhost:5432 || echo "$(RED)PostgreSQL is not healthy$(NC)"
 
 # Development setup
-setup-dev: check-env
+setup-dev: setup-env
 	@echo "$(GREEN)Setting up development environment...$(NC)"
 	@make dev-build
 	@make dev
@@ -263,7 +275,7 @@ setup-dev: check-env
 	@echo "$(YELLOW)To create an admin user, run: make create-admin$(NC)"
 
 # Production setup
-setup-prod: check-env
+setup-prod: setup-env
 	@echo "$(GREEN)Setting up production environment...$(NC)"
 	@make prod-build
 	@make prod
@@ -272,7 +284,7 @@ setup-prod: check-env
 # Monitoring commands
 monitoring: check-env
 	@echo "$(GREEN)Starting monitoring stack...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) -f aic_docker/docker-compose.monitoring.yml up -d
+	docker-compose -f $(DOCKER_COMPOSE_DEV) -f deployment/docker/docker-compose.monitoring.yml up -d
 	@echo "$(GREEN)Monitoring stack started!$(NC)"
 	@echo "$(YELLOW)Prometheus: http://localhost:9090$(NC)"
 	@echo "$(YELLOW)Grafana: http://localhost:3001 (admin/admin123)$(NC)"
@@ -282,10 +294,10 @@ monitoring: check-env
 
 monitoring-down:
 	@echo "$(YELLOW)Stopping monitoring stack...$(NC)"
-	docker-compose -f $(DOCKER_COMPOSE_DEV) -f aic_docker/docker-compose.monitoring.yml down
+	docker-compose -f $(DOCKER_COMPOSE_DEV) -f deployment/docker/docker-compose.monitoring.yml down
 
 monitoring-logs:
-	docker-compose -f $(DOCKER_COMPOSE_DEV) -f aic_docker/docker-compose.monitoring.yml logs -f
+	docker-compose -f $(DOCKER_COMPOSE_DEV) -f deployment/docker/docker-compose.monitoring.yml logs -f
 
 grafana:
 	@echo "$(GREEN)Opening Grafana dashboard...$(NC)"
@@ -294,3 +306,34 @@ grafana:
 prometheus:
 	@echo "$(GREEN)Opening Prometheus dashboard...$(NC)"
 	@open http://localhost:9090 || echo "$(YELLOW)Please open http://localhost:9090 in your browser$(NC)"
+
+# Project structure check
+check-structure:
+	@echo "$(GREEN)Checking project structure and paths...$(NC)"
+	@echo ""
+	@echo "$(BLUE)Checking Docker Compose files:$(NC)"
+	@if [ -f $(DOCKER_COMPOSE_DEV) ]; then echo "✅ $(DOCKER_COMPOSE_DEV) exists"; else echo "❌ $(DOCKER_COMPOSE_DEV) missing"; fi
+	@if [ -f $(DOCKER_COMPOSE_PROD) ]; then echo "✅ $(DOCKER_COMPOSE_PROD) exists"; else echo "❌ $(DOCKER_COMPOSE_PROD) missing"; fi
+	@if [ -f deployment/docker/docker-compose.monitoring.yml ]; then echo "✅ docker-compose.monitoring.yml exists"; else echo "❌ docker-compose.monitoring.yml missing"; fi
+	@echo ""
+	@echo "$(BLUE)Checking environment files:$(NC)"
+	@if [ -f deployment/docker/env.example ]; then echo "✅ env.example exists"; else echo "❌ env.example missing"; fi
+	@if [ -f $(ENV_FILE) ]; then echo "✅ $(ENV_FILE) exists"; else echo "❌ $(ENV_FILE) missing (run: make setup-env)"; fi
+	@echo ""
+	@echo "$(BLUE)Checking source directories:$(NC)"
+	@if [ -d src ]; then echo "✅ src/ directory exists"; else echo "❌ src/ directory missing"; fi
+	@if [ -d tests ]; then echo "✅ tests/ directory exists"; else echo "❌ tests/ directory missing"; fi
+	@echo ""
+	@echo "$(BLUE)Checking scripts:$(NC)"
+	@if [ -f deployment/scripts/create_admin.py ]; then echo "✅ create_admin.py exists"; else echo "❌ create_admin.py missing"; fi
+	@if [ -f deployment/scripts/list_admins.py ]; then echo "✅ list_admins.py exists"; else echo "❌ list_admins.py missing"; fi
+	@echo ""
+	@echo "$(BLUE)Checking Alembic:$(NC)"
+	@if [ -f src/infrastructure/database/migrations/alembic.ini ]; then echo "✅ alembic.ini exists"; else echo "❌ alembic.ini missing"; fi
+	@echo ""
+	@echo "$(GREEN)Structure check complete!$(NC)"
+
+
+clear-data-db:
+	@echo "$(RED)Clearing application data (users are kept)...$(NC)"
+	cd src && poetry run python scripts/clear_data.py --env dev --yes

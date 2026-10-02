@@ -1,0 +1,587 @@
+/* Модальное окно «Создать шаблон» */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: ctFadeIn 0.22s ease-out;
+}
+
+@keyframes ctFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  width: 100%;
+  max-width: 640px;
+  max-height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: linear-gradient(
+    165deg,
+    rgba(30, 41, 59, 0.98) 0%,
+    rgba(15, 23, 42, 0.99) 50%,
+    rgba(15, 23, 42, 1) 100%
+  );
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.08),
+    0 24px 48px -12px rgba(0, 0, 0, 0.55),
+    0 0 80px -20px rgba(99, 102, 241, 0.15);
+  animation: ctSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ctSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background: linear-gradient(180deg, rgba(51, 65, 85, 0.15) 0%, transparent 100%);
+}
+
+.headerText {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-text-primary, #f1f5f9);
+  line-height: 1.25;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary, #94a3b8);
+  max-width: 36rem;
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--color-text-secondary, #94a3b8);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+.closeBtn:hover {
+  color: var(--color-text-primary, #f1f5f9);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.closeBtn:active {
+  transform: scale(0.96);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Режим «Документ»: таблица полей занимает оставшуюся высоту и прокручивается */
+.bodyDocument {
+  overflow: hidden;
+}
+
+.bodyDocument .structureCard {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #e2e8f0);
+  letter-spacing: 0.02em;
+}
+
+.hint {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.nameInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary, #f1f5f9);
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.625rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nameInput::placeholder {
+  color: rgba(148, 163, 184, 0.65);
+}
+
+.nameInput:hover {
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.nameInput:focus {
+  border-color: rgba(129, 140, 248, 0.65);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+/* Сегмент Документ / Таблица */
+.modeWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modeSegment {
+  display: flex;
+  padding: 0.25rem;
+  border-radius: 0.625rem;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  gap: 0.25rem;
+}
+
+.modeBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #94a3b8);
+  background: transparent;
+  border: none;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.modeBtn:hover {
+  color: var(--color-text-primary, #f1f5f9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modeBtnActive {
+  color: #eef2ff;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(139, 92, 246, 0.25));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Блок полей структуры */
+.structureCard {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.45);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.structureCardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  background: rgba(30, 41, 59, 0.25);
+}
+
+.structureCardTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #e2e8f0);
+  margin: 0 0 0.2rem;
+}
+
+.structureCardHint {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary, #94a3b8);
+  margin: 0;
+  max-width: 28rem;
+}
+
+.addFieldBtn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.addFieldBtn:hover {
+  background: rgba(99, 102, 241, 0.22);
+  border-color: rgba(165, 180, 252, 0.5);
+}
+
+.tableScroll,
+.fieldsTableScroll {
+  flex: 1;
+  min-height: 11rem;
+  width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) rgba(15, 23, 42, 0.35);
+}
+
+.fieldsTableScroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fieldsTableScroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+
+.fieldsTable {
+  display: table;
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.fieldsTable thead th,
+.fieldsTable tbody td {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.fieldsTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fieldsTable thead th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary, #94a3b8);
+  background: rgba(15, 23, 42, 0.98);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  white-space: nowrap;
+}
+
+.fieldsTable tbody td {
+  vertical-align: middle;
+}
+
+.colName {
+  width: 12rem;
+  min-width: 12rem;
+}
+
+.colType {
+  width: 10rem;
+  min-width: 10rem;
+}
+
+.colRequired {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  text-align: center;
+}
+
+.colOrder {
+  width: 4.5rem;
+  min-width: 4.5rem;
+}
+
+.colAction {
+  width: 6.5rem;
+  min-width: 6.5rem;
+  text-align: center;
+}
+
+.structureColumnsCell {
+  padding: 0.35rem 0.65rem 0.65rem !important;
+  background: rgba(15, 23, 42, 0.28);
+  vertical-align: top;
+}
+
+.tableColumnsScroll {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  max-width: none;
+  overflow-x: auto;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.5rem;
+}
+
+.cellControl {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.cellOrder {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.colRequired .checkbox {
+  display: block;
+  margin: 0 auto;
+}
+
+.fieldsTable tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fieldsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.colAction button {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 0.35rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.colAction button:hover {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.emptyState {
+  padding: 1.25rem 1rem 1.5rem;
+  text-align: center;
+}
+
+.emptyStateText {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.emptyStateText strong {
+  color: rgba(203, 213, 225, 0.95);
+  font-weight: 500;
+}
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  background: linear-gradient(0deg, rgba(15, 23, 42, 0.6) 0%, transparent 100%);
+}
+
+.primaryBtn {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.secondaryBtn {
+  padding: 0.55rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #e2e8f0);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.secondaryBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.emptyState .addFieldBtn {
+  margin-top: 0.85rem;
+}
+
+/* Чекбокс «Обяз.» */
+.checkbox {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #818cf8;
+  cursor: pointer;
+}
+
+/* Режим «Таблица»: почти на весь экран (как предпросмотр шаблона таблицы) */
+.overlaySpreadsheet {
+  padding: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.panelSpreadsheet {
+  width: 100%;
+  max-width: min(1920px, calc(100vw - 2rem));
+  height: calc(100vh - 2rem);
+  max-height: calc(100vh - 2rem);
+  min-height: 0;
+  border-radius: 1rem;
+  animation: none;
+}
+
+.bodySpreadsheet {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1.25rem 0.25rem;
+}
+
+.spreadsheetMain {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 540px) {
+  .panel {
+    max-height: 100%;
+    border-radius: 0.75rem 0.75rem 0 0;
+    max-width: 100%;
+  }
+
+  .panelSpreadsheet {
+    max-width: calc(100vw - 2rem);
+    border-radius: 0.75rem;
+    height: calc(100vh - 2rem);
+    max-height: calc(100vh - 2rem);
+  }
+
+  .header,
+  .body,
+  .footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .modeSegment {
+    flex-direction: column;
+  }
+}

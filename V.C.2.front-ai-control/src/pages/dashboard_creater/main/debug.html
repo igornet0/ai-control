@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка - Создатель веб-дашбордов</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .info { color: #74c0fc; }
+        pre { background: #2d2d2d; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Отладка приложения</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = message;
+            output.appendChild(p);
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+        
+        log('Начало отладки...', 'info');
+        
+        // Проверка DOM элементов
+        log('Проверка DOM элементов...', 'info');
+        const elements = {
+            'btn-save': document.getElementById('btn-save'),
+            'btn-load': document.getElementById('btn-load'),
+            'btn-export': document.getElementById('btn-export'),
+            'btn-undo': document.getElementById('btn-undo'),
+            'btn-redo': document.getElementById('btn-redo'),
+            'zoom-slider': document.getElementById('zoom-slider'),
+            'zoom-value': document.getElementById('zoom-value'),
+            'btn-mode-editor': document.getElementById('btn-mode-editor'),
+            'btn-mode-viewer': document.getElementById('btn-mode-viewer'),
+            'widget-panel': document.getElementById('widget-panel'),
+            'widget-list': document.querySelector('.widget-list'),
+            'viewport': document.getElementById('viewport'),
+            'workspace': document.getElementById('workspace')
+        };
+        
+        for (const [name, element] of Object.entries(elements)) {
+            if (element) {
+                log(`[ok] ${name} найден`, 'success');
+            } else {
+                log(`[fail] ${name} НЕ найден`, 'error');
+            }
+        }
+        
+        // Проверка виджетов
+        const widgetItems = document.querySelectorAll('.widget-item');
+        log(`Найдено элементов виджетов: ${widgetItems.length}`, widgetItems.length > 0 ? 'success' : 'error');
+        
+        // Попытка загрузки модулей
+        log('Попытка загрузки модулей...', 'info');
+        try {
+            const module = await import('./main.js');
+            log('Модуль main.js загружен успешно', 'success');
+        } catch (error) {
+            log(`Ошибка загрузки main.js: ${error.message}`, 'error');
+            log(`Стек ошибки: ${error.stack}`, 'error');
+            log('Возможные причины:', 'info');
+            log('1. Неправильные пути к модулям', 'info');
+            log('2. Проблемы с CORS (нужен локальный сервер)', 'info');
+            log('3. Ошибки в импортируемых модулях', 'info');
+        }
+        
+        // Проверка обработчиков событий
+        log('Проверка обработчиков событий...', 'info');
+        const btnSave = document.getElementById('btn-save');
+        if (btnSave) {
+            const hasListeners = btnSave.onclick !== null || 
+                                btnSave.getAttribute('onclick') !== null ||
+                                (btnSave._listeners && btnSave._listeners.length > 0);
+            log(`btn-save имеет обработчики: ${hasListeners}`, hasListeners ? 'success' : 'error');
+            
+            // Попытка добавить тестовый обработчик
+            btnSave.addEventListener('click', () => {
+                log('Кнопка "Сохранить" работает!', 'success');
+            });
+            log('Тестовый обработчик добавлен к btn-save', 'info');
+        }
+        
+        log('Отладка завершена', 'info');
+    </script>
+</body>
+</html>
+

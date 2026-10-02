@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создатель веб-дашбордов</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/widget-style-panel.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Панель инструментов -->
+        <div id="toolbar" class="toolbar">
+            <div class="toolbar-section">
+                <button id="btn-save" class="btn btn-primary">Сохранить</button>
+                <button id="btn-load" class="btn">Загрузить</button>
+                <button id="btn-export" class="btn">Экспорт JSON</button>
+            </div>
+            <div class="toolbar-section">
+                <button id="btn-undo" class="btn" title="Отменить (Ctrl+Z)">↶</button>
+                <button id="btn-redo" class="btn" title="Повторить (Ctrl+Y)">↷</button>
+                <button
+                    id="btn-delete-widget"
+                    type="button"
+                    class="btn"
+                    title="Удалить выделенный виджет (как Delete). Если фокус в поле панели стилей — кликните по холсту."
+                    style="display:none"
+                    hidden
+                >Удалить виджет</button>
+            </div>
+            <div class="toolbar-section toolbar-home-wrap">
+                <label>Масштаб:</label>
+                <input type="range" id="zoom-slider" min="0.1" max="3" step="0.1" value="1">
+                <span id="zoom-value">100%</span>
+                <button id="btn-home" class="btn" type="button" title="Вернуться к точке Home" aria-label="Точка Home">⌂</button>
+                <button id="btn-home-settings" class="btn" type="button" title="Настроить точку Home" aria-expanded="false" aria-controls="toolbar-home-config" style="display:none" hidden>⚙</button>
+                <div id="toolbar-home-config" class="toolbar-home-config" hidden role="dialog" aria-label="Настройки точки Home">
+                    <label for="home-x">X</label>
+                    <input id="home-x" type="number" step="1" value="0" aria-label="Home X">
+                    <label for="home-y">Y</label>
+                    <input id="home-y" type="number" step="1" value="0" aria-label="Home Y">
+                    <input id="home-zoom" type="number" step="0.1" min="0.1" max="3" placeholder="zoom" title="Zoom при Home">
+                    <button id="btn-place-home" type="button" class="btn btn-sm btn-place-home">Метка</button>
+                    <button id="btn-reset-home" type="button" class="btn btn-sm">0,0</button>
+                </div>
+            </div>
+            <div class="toolbar-section">
+                <button id="btn-mode-editor" class="btn btn-active">Редактор</button>
+                <button id="btn-mode-viewer" class="btn">Просмотр</button>
+            </div>
+        </div>
+
+        <!-- Панель виджетов -->
+        <div id="widget-panel" class="widget-panel">
+            <h3>Виджеты</h3>
+            <div class="widget-list"></div>
+        </div>
+
+        <!-- Рабочее пространство -->
+        <div id="viewport" class="viewport">
+            <div id="workspace" class="workspace"></div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js?v=1765214000"></script>
+</body>
+</html>
+

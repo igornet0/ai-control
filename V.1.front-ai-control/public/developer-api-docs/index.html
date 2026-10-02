@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer API — Документация AiControl</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Developer API</h2>
+            <span>AiControl v1.0</span>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-btn" data-tab="overview"><span class="nav-icon">📘</span> Обзор</button>
+            <button class="nav-btn" data-tab="auth"><span class="nav-icon">🔑</span> Аутентификация</button>
+            <button class="nav-btn" data-tab="quickstart"><span class="nav-icon">⚡</span> Быстрый старт</button>
+            <button class="nav-btn" data-tab="ingest"><span class="nav-icon">📥</span> Ingest</button>
+            <button class="nav-btn" data-tab="status"><span class="nav-icon">📊</span> Статус и чтение</button>
+            <button class="nav-btn" data-tab="models"><span class="nav-icon">🗂</span> Models</button>
+            <button class="nav-btn" data-tab="assets"><span class="nav-icon">📎</span> Assets</button>
+            <button class="nav-btn" data-tab="errors"><span class="nav-icon">⚠️</span> Ошибки</button>
+            <button class="nav-btn" data-tab="reference"><span class="nav-icon">📚</span> Справочник</button>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+        <!-- Base URL bar -->
+        <div class="base-url-bar">
+            <label>Base URL:</label>
+            <input id="base-url-input" type="text" value="https://api-control.example.com/ext" spellcheck="false">
+        </div>
+
+        <!-- ═══ OVERVIEW ═══ -->
+        <div class="tab-panel" id="tab-overview">
+            <h1 class="section-title">Developer API</h1>
+            <p class="lead">Внешний REST API для загрузки данных в модели AiControl, управления источниками и работы с ассетами. Аутентификация — API-ключ (<code>X-API-Key</code>).</p>
+
+            <h2>Два сервиса</h2>
+            <table class="params-table">
+                <thead><tr><th>Сервис</th><th>Назначение</th><th>Аутентификация</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Control plane</strong> (run_app, :8000)</td><td>UI, управление ключами, моделями, пользователями</td><td>JWT / cookie</td></tr>
+                    <tr><td><strong>Developer API</strong> (run_api, :8002)</td><td>Ingest, чтение данных, assets</td><td><code>X-API-Key: aic_…</code></td></tr>
+                </tbody>
+            </table>
+
+            <h2>Асинхронный ingest</h2>
+            <p>POST ingest принимается <strong>сразу</strong> и возвращает <code>request_id</code> + <code>deploy_status: "pending"</code>. Запись в <code>latest.db</code> выполняется асинхронно через очередь деплоя. Статус можно проверить через <code>GET /api/v1/ingest/status</code>.</p>
+
+            <div class="note">💡 Base URL для ingest берётся из настроек модели в UI (раздел «API-источник»). В prod это обычно <code>https://api-control.&lt;domain&gt;/ext</code>.</div>
+
+            <h2>Форматы данных</h2>
+            <ul>
+                <li><strong>CSV</strong> — <code>Content-Type: text/csv</code>, тело — raw bytes файла</li>
+                <li><strong>JSON (строки)</strong> — массив объектов <code>[{"col": val, …}]</code> или <code>{"rows": […]}</code></li>
+                <li><strong>JSON (колоночный)</strong> — <code>{"col1": [v1, v2], "col2": [v1, v2]}</code> — для init-схемы</li>
+            </ul>
+        </div>
+
+        <!-- ═══ AUTH ═══ -->
+        <div class="tab-panel" id="tab-auth">
+            <h1 class="section-title">Аутентификация</h1>
+            <p class="lead">Все запросы к Developer API требуют API-ключ в заголовке.</p>
+
+            <h2>Заголовок</h2>
+            <div class="code-block">
+                <div class="code-header"><span>HTTP Header</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre>X-API-Key: aic_YOUR_KEY_HERE</pre>
+            </div>
+            <p>Альтернатива: <code>Authorization: Bearer aic_YOUR_KEY_HERE</code></p>
+
+            <h2>Типы ключей (scope)</h2>
+            <table class="params-table">
+                <thead><tr><th>scope_type</th><th>Описание</th></tr></thead>
+                <tbody>
+                    <tr><td><code>model</code></td><td>Ключ привязан к одной модели. <code>model_id</code> в URL не нужен — определяется автоматически.</td></tr>
+                    <tr><td><code>user</code></td><td>Ключ пользователя. Позволяет создавать новые модели (<code>model_create</code>).</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Уровни доступа (access_level)</h2>
+            <table class="params-table">
+                <thead><tr><th>access_level</th><th>Разрешённые операции</th></tr></thead>
+                <tbody>
+                    <tr><td><code>read</code></td><td>GET metadata, status, rows, assets</td></tr>
+                    <tr><td><code>ingest</code></td><td>POST ingest, upload assets, manage sources</td></tr>
+                    <tr><td><code>model_create</code></td><td>POST /api/v1/models/ (только user-scoped)</td></tr>
+                </tbody>
+            </table>
+
+            <div class="warn">⚠️ Полный ключ (<code>aic_…</code>) показывается только при создании. Сохраните его сразу — восстановить нельзя.</div>
+
+            <h2>Ограничение таблиц</h2>
+            <p>Ключ может иметь список <code>allowed_tables</code>. Если список задан, ingest в другие таблицы вернёт <strong>403</strong>.</p>
+        </div>
+
+        <!-- ═══ QUICKSTART ═══ -->
+        <div class="tab-panel" id="tab-quickstart">
+            <h1 class="section-title">Быстрый старт</h1>
+            <p class="lead">Загрузите данные в модель за 3 шага.</p>
+
+            <h2>Шаг 1 — Получить API-ключ</h2>
+            <p>В UI AiControl: откройте модель → «API-ключи» → «Создать ключ». Выберите scope <code>model</code>, access <code>ingest</code>. Скопируйте ключ (<code>aic_…</code>).</p>
+
+            <h2>Шаг 2 — Отправить данные</h2>
+            <div class="code-block">
+                <div class="code-header"><span>curl — snapshot (CSV)</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl -X POST "{BASE}/api/v1/ingest/tables/sales?mode=snapshot" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: text/csv" \
+  --data-binary @data.csv</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header"><span>curl — snapshot (JSON)</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl -X POST "{BASE}/api/v1/ingest/tables/sales?mode=snapshot" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '[{"id": 1, "name": "Alpha"}, {"id": 2, "name": "Beta"}]'</pre>
+            </div>
+
+            <h2>Шаг 3 — Проверить статус</h2>
+            <div class="code-block">
+                <div class="code-header"><span>curl — status</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl "{BASE}/api/v1/ingest/status" \
+  -H "X-API-Key: aic_YOUR_KEY"</pre>
+            </div>
+
+            <h2>Ответ ingest</h2>
+            <div class="code-block">
+                <div class="code-header"><span>JSON Response</span></div>
+                <pre>{
+  "success": true,
+  "accepted": true,
+  "request_id": 42,
+  "deploy_status": "pending",
+  "mode": "snapshot",
+  "table": "sales",
+  "model_id": 7,
+  "row_count": 150,
+  "columns": ["id", "name", "amount"],
+  "schema_hash": "abc123…"
+}</pre>
+            </div>
+
+            <div class="tip">✅ Когда <code>deploy_status</code> станет <code>"deployed"</code>, данные доступны в latest.db и в UI модели.</div>
+        </div>
+
+        <!-- ═══ INGEST ═══ -->
+        <div class="tab-panel" id="tab-ingest">
+            <h1 class="section-title">Ingest</h1>
+            <p class="lead">Загрузка табличных данных в Persistent Store с последующим деплоем в latest.db.</p>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/ingest/tables/{table_name}</span>
+                    <span class="endpoint-auth">ingest</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Основной endpoint загрузки данных. Модель определяется по API-ключу.</p>
+                    <table class="params-table">
+                        <thead><tr><th>Параметр</th><th>Где</th><th>Описание</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>table_name</code><span class="param-required">*</span></td><td>path</td><td>Имя таблицы (a-z, _, 0-9; не с цифры)</td></tr>
+                            <tr><td><code>mode</code></td><td>query</td><td><span class="badge badge-snapshot">snapshot</span> <span class="badge badge-stream">stream</span> <span class="badge badge-append">append</span></td></tr>
+                            <tr><td><code>format</code></td><td>query</td><td><code>csv</code> | <code>json</code> (авто по Content-Type)</td></tr>
+                            <tr><td><code>file</code></td><td>multipart</td><td>Файл CSV/JSON (альтернатива raw body)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h2>Режимы ingest</h2>
+            <table class="params-table">
+                <thead><tr><th>Режим</th><th>Поведение</th><th>Требования</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-snapshot">snapshot</span></td>
+                        <td>Полная замена таблицы при каждом POST</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-stream">stream</span></td>
+                        <td>Delta upsert по ключевым колонкам</td>
+                        <td><code>upsert_keys</code> — настроить в UI или через control-plane</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-append">append</span></td>
+                        <td>Каждый POST добавляет строки (история)</td>
+                        <td>В SQLite появится служебная колонка <code>row_id</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Примеры</h2>
+
+            <h3>CSV snapshot</h3>
+            <div class="code-block">
+                <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl -X POST "{BASE}/api/v1/ingest/tables/sales?mode=snapshot" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: text/csv" \
+  --data-binary @data.csv</pre>
+            </div>
+
+            <h3>JSON — массив строк</h3>
+            <div class="code-block">
+                <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl -X POST "{BASE}/api/v1/ingest/tables/sales?mode=snapshot" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '[{"id": 1, "name": "Alpha"}, {"id": 2, "name": "Beta"}]'</pre>
+            </div>
+
+            <h3>JSON — колоночный макет (init)</h3>
+            <div class="code-block">
+                <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl -X POST "{BASE}/api/v1/ingest/tables/sales?mode=snapshot" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id": [1, 2], "name": ["Alpha", "Beta"]}'</pre>
+            </div>
+
+            <h3>Stream upsert</h3>
+            <div class="code-block">
+                <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                <pre data-tmpl="curl -X POST "{BASE}/api/v1/ingest/tables/orders?mode=stream" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '[{"order_id": 100, "status": "shipped", "amount": 250.00}]'</pre>
+            </div>
+
+            <div class="note">💡 Для stream режима <code>upsert_keys</code> должны быть настроены заранее через UI (раздел API-источник) или control-plane <code>POST /api/api-keys/ingest-config/{model_id}/tables/{table}</code>.</div>
+        </div>
+
+        <!-- ═══ STATUS ═══ -->
+        <div class="tab-panel" id="tab-status">
+            <h1 class="section-title">Статус и чтение</h1>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/ingest/status</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Статус ingest по всем таблицам модели: последний ingest, deploy_status, колонки, очередь.</p>
+                    <div class="code-block">
+                        <div class="code-header"><span>Response</span></div>
+                        <pre>{
+  "model_id": 7,
+  "queue_depth": 0,
+  "tables": {
+    "sales": {
+      "mode": "snapshot",
+      "last_ingest_at": "2026-08-18T10:30:00Z",
+      "last_row_count": 150,
+      "deploy_status": "deployed",
+      "columns": ["id", "name", "amount"],
+      "schema_hash": "abc123…"
+    }
+  }
+}</pre>
+                    </div>
+                    <p><strong>deploy_status:</strong> <code>pending</code> → <code>stored</code> → <code>deployed</code> | <code>failed</code></p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/ingest/tables/{table_name}/rows</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Чтение строк из latest.db (после deploy).</p>
+                    <table class="params-table">
+                        <thead><tr><th>Параметр</th><th>Описание</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>id</code></td><td>Фильтр по колонке id (upsert key)</td></tr>
+                            <tr><td><code>limit</code></td><td>Макс. строк (1–1000, default 100)</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="code-block">
+                        <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                        <pre data-tmpl="curl "{BASE}/api/v1/ingest/tables/sales/rows?limit=50" \
+  -H "X-API-Key: aic_YOUR_KEY"</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ MODELS ═══ -->
+        <div class="tab-panel" id="tab-models">
+            <h1 class="section-title">Models</h1>
+            <p class="lead">Метаданные модели, источники данных и компиляция. Модель определяется по API-ключу.</p>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/models/</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body"><p>Метаданные модели (имя, описание, конфиг).</p></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/models/detail</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body"><p>Полная детализация: widgets, relationships, processing_config.</p></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/models/</span>
+                    <span class="endpoint-auth">model_create</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Создать новую модель. Требует user-scoped ключ с <code>model_create</code>.</p>
+                    <div class="code-block">
+                        <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                        <pre data-tmpl="curl -X POST "{BASE}/api/v1/models/" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Model", "description": "Created via API"}'</pre>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Источники данных (Sources)</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/models/sources</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body"><p>Список источников (widgets) модели.</p></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/models/sources/{widget_id}</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body"><p>Один источник по widget_id.</p></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/models/sources</span>
+                    <span class="endpoint-auth">ingest</span>
+                </div>
+                <div class="endpoint-body"><p>Создать новый источник данных.</p></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/v1/models/sources/{widget_id}</span>
+                    <span class="endpoint-auth">ingest</span>
+                </div>
+                <div class="endpoint-body"><p>Обновить источник (только API-key managed).</p></div>
+            </div>
+
+            <h2>Компиляция</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/models/compile</span>
+                    <span class="endpoint-auth">ingest</span>
+                </div>
+                <div class="endpoint-body"><p>Запустить компиляцию модели (DataCode → latest.db). Асинхронно.</p></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/models/compile/preview</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body"><p>Превью склеенного DataCode без выполнения.</p></div>
+            </div>
+        </div>
+
+        <!-- ═══ ASSETS ═══ -->
+        <div class="tab-panel" id="tab-assets">
+            <h1 class="section-title">Assets</h1>
+            <p class="lead">Content-addressed бинарные файлы (изображения, PDF, видео). URI формата <code>asset://{sha256}</code>.</p>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/assets</span>
+                    <span class="endpoint-auth">ingest</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Загрузить файл. Возвращает <code>asset://{sha}</code> URI для использования в ingest-данных.</p>
+                    <table class="params-table">
+                        <thead><tr><th>Поле</th><th>Описание</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>file</code><span class="param-required">*</span></td><td>Бинарный файл (multipart)</td></tr>
+                            <tr><td><code>kind</code></td><td><code>image</code> | <code>audio</code> | <code>video</code> | <code>pdf</code> | <code>file</code></td></tr>
+                            <tr><td><code>mime_type</code></td><td>MIME (авто из file.content_type)</td></tr>
+                            <tr><td><code>filename</code></td><td>Имя файла</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="code-block">
+                        <div class="code-header"><span>curl</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                        <pre data-tmpl="curl -X POST "{BASE}/api/v1/assets" \
+  -H "X-API-Key: aic_YOUR_KEY" \
+  -F "file=@photo.jpg" \
+  -F "kind=image"</pre>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header"><span>Response</span></div>
+                        <pre>{
+  "id": "a3f2b1…",
+  "uri": "asset://a3f2b1…",
+  "kind": "image",
+  "mime_type": "image/jpeg",
+  "filename": "photo.jpg",
+  "size": 48291
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/assets</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Список ассетов модели. Query: <code>kind</code> — фильтр по типу.</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/v1/assets/{sha}</span>
+                    <span class="endpoint-auth">read</span>
+                </div>
+                <div class="endpoint-body"><p>Скачать ассет по SHA-256 хешу.</p></div>
+            </div>
+        </div>
+
+        <!-- ═══ ERRORS ═══ -->
+        <div class="tab-panel" id="tab-errors">
+            <h1 class="section-title">Ошибки и ограничения</h1>
+
+            <h2>HTTP-коды</h2>
+            <table class="params-table">
+                <thead><tr><th>Код</th><th>Причина</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>401</strong></td><td>Отсутствует или неверный API-ключ</td></tr>
+                    <tr><td><strong>403</strong></td><td>Ключ не имеет нужного access_level или таблица не в allowed_tables</td></tr>
+                    <tr><td><strong>404</strong></td><td>Модель или таблица не найдена</td></tr>
+                    <tr><td><strong>422</strong></td><td>Ошибка валидации тела запроса</td></tr>
+                    <tr><td><strong>429</strong></td><td>Stream ingest слишком частый (<code>min_interval_sec</code>)</td></tr>
+                    <tr><td><strong>503</strong></td><td>Очередь деплоя переполнена (<code>ingest_queue_max_size</code>)</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Формат ошибки</h2>
+            <div class="code-block">
+                <div class="code-header"><span>JSON</span></div>
+                <pre>{"detail": "Table 'other' not allowed for this API key"}</pre>
+            </div>
+
+            <h2>Rate limit</h2>
+            <p>Каждый ключ имеет <code>rate_limit_per_min</code> (default 15 req/min). При превышении — <strong>429</strong>.</p>
+
+            <h2>Stream min interval</h2>
+            <p>Для режима <span class="badge badge-stream">stream</span> действует <code>min_interval_sec</code> (default 5 сек) между POST одной таблицы. При нарушении:</p>
+            <div class="code-block">
+                <div class="code-header"><span>429 Response</span></div>
+                <pre>{"detail": "Stream ingest too frequent; retry in 3s"}</pre>
+            </div>
+
+            <h2>deploy_status: failed</h2>
+            <p>Если деплой в latest.db завершился ошибкой, <code>deploy_status</code> = <code>"failed"</code>, поле <code>deploy_error</code> содержит текст ошибки. Данные в Persistent Store сохранены — можно повторить деплой через UI (compile-model).</p>
+        </div>
+
+        <!-- ═══ REFERENCE ═══ -->
+        <div class="tab-panel" id="tab-reference">
+            <h1 class="section-title">Справочник endpoint'ов</h1>
+
+            <h2>Ingest</h2>
+            <table class="ref-table">
+                <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Описание</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="method method-post">POST</span></td><td>/api/v1/ingest/tables/{table}</td><td>ingest</td><td>Загрузить CSV/JSON</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/ingest/status</td><td>read</td><td>Статус всех таблиц</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/ingest/tables/{table}/rows</td><td>read</td><td>Читать строки</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Models</h2>
+            <table class="ref-table">
+                <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Описание</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/models/</td><td>read</td><td>Метаданные модели</td></tr>
+                    <tr><td><span class="method method-post">POST</span></td><td>/api/v1/models/</td><td>model_create</td><td>Создать модель</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/models/detail</td><td>read</td><td>Полная детализация</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/models/sources</td><td>read</td><td>Список источников</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/models/sources/{id}</td><td>read</td><td>Один источник</td></tr>
+                    <tr><td><span class="method method-post">POST</span></td><td>/api/v1/models/sources</td><td>ingest</td><td>Создать источник</td></tr>
+                    <tr><td><span class="method method-patch">PATCH</span></td><td>/api/v1/models/sources/{id}</td><td>ingest</td><td>Обновить источник</td></tr>
+                    <tr><td><span class="method method-post">POST</span></td><td>/api/v1/models/sources/{id}/metadata</td><td>ingest</td><td>Зарегистрировать метаданные файла</td></tr>
+                    <tr><td><span class="method method-post">POST</span></td><td>/api/v1/models/compile</td><td>ingest</td><td>Компиляция модели</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/models/compile/preview</td><td>read</td><td>Превью DataCode</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Assets</h2>
+            <table class="ref-table">
+                <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Описание</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="method method-post">POST</span></td><td>/api/v1/assets</td><td>ingest</td><td>Загрузить файл</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/assets</td><td>read</td><td>Список ассетов</td></tr>
+                    <tr><td><span class="method method-get">GET</span></td><td>/api/v1/assets/{sha}</td><td>read</td><td>Скачать ассет</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Health</h2>
+            <table class="ref-table">
+                <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Описание</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="method method-get">GET</span></td><td>/health</td><td>—</td><td>Проверка доступности сервиса</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

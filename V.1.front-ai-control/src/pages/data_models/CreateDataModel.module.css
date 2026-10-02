@@ -1,0 +1,333 @@
+/* File Upload Styles */
+.fileUpload {
+  margin-bottom: 20px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.fileLabel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+}
+
+/* Drag and Drop Area */
+.dragDropArea {
+  margin-top: 20px;
+  border: 2px dashed #667eea;
+  border-radius: 15px;
+  padding: 40px 20px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.dragDropArea:hover {
+  border-color: #5a6fd8;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  transform: translateY(-2px);
+}
+
+.dragOver {
+  border-color: #4c63d2;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.dragDropContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dragDropContent svg {
+  color: #667eea;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.dragDropArea:hover .dragDropContent svg,
+.dragOver .dragDropContent svg {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Loading and error states */
+.loading {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+  font-weight: 500;
+}
+
+/* Field Selection Styles */
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.fieldItem {
+  background: white;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.fieldItem:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.fieldCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.fieldCheckbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+}
+
+.fieldCheckbox span {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.fieldRename {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.renameInput {
+  padding: 8px 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.renameInput:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.renameLabel {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Row Selection Styles */
+.rowSelections {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.startRowSelection {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  flex: 1;
+  min-width: 250px;
+}
+
+.startRowSelection label {
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.numberInput {
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: 80px;
+  text-align: center;
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Table Preview Styles */
+.tableContainer {
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  background: white;
+  overflow: hidden;
+}
+
+.tableHeaderContainer {
+  overflow-x: auto;
+  border-bottom: 3px solid #667eea;
+  background: white;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.tableHeaderContainer::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.tableBodyContainer {
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #667eea #f1f1f1;
+}
+
+.tableBodyContainer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableBodyContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.tableBodyContainer::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 4px;
+}
+
+.tableBodyContainer::-webkit-scrollbar-thumb:hover {
+  background: #5a6fd8;
+}
+
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  min-width: 600px;
+}
+
+.previewTable th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.previewTable td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.9rem;
+  color: #333;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.previewTable tr:hover {
+  background: #f8f9ff;
+}
+
+.previewTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* Info Card Styles */
+.infoCard {
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f0fe 100%);
+  padding: 25px;
+  border-radius: 15px;
+  border-left: 5px solid #667eea;
+}
+
+.infoCard h4 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.infoCard p {
+  margin-bottom: 8px;
+  color: #555;
+  font-size: 1rem;
+}
+
+.info-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .fields-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .field-item {
+    padding: 12px;
+  }
+  
+  .row-selections {
+    flex-direction: column;
+  }
+  
+  .start-row-selection {
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: auto;
+  }
+
+  .fileLabel {
+    width: 100%;
+    justify-content: center;
+    padding: 16px 18px;
+    font-size: 1rem;
+  }
+
+  .dragDropArea {
+    padding: 24px 14px;
+  }
+}

@@ -1,0 +1,14 @@
+# AiControl AI microservice (Rust AgentManager drop-in)
+FROM rust:1.85-bookworm AS builder
+WORKDIR /build
+COPY rust/AgentManager/crates/RouterAi /build
+RUN cargo build -p aicontrol-ai --release
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /build/target/release/aicontrol-ai /usr/local/bin/aicontrol-ai
+COPY --from=builder /build/target/release/aicontrol-ai-migrate /usr/local/bin/aicontrol-ai-migrate
+ENV AICONTROL_AI__BIND=0.0.0.0:8003
+EXPOSE 8003
+CMD ["aicontrol-ai"]

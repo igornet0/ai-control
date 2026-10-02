@@ -1,0 +1,59 @@
+.connectionsOverlay {
+  pointer-events: none;
+  overflow: visible;
+}
+
+.connectionGroup {
+  pointer-events: none;
+}
+
+.connectionHitbox {
+  pointer-events: all !important;
+}
+
+.connectionPath {
+  stroke: #00E0FF;
+  fill: none;
+  stroke-width: 2;
+  transition: stroke 0.2s ease;
+  pointer-events: none;
+}
+
+.connectionPath:hover {
+  stroke: #10B981;
+  stroke-width: 3;
+}
+
+/* Индикатор настроек соединения */
+.connectionPath.hasSettings {
+  stroke-dasharray: 5, 3;
+}
+
+.connectionHitbox {
+  stroke: transparent;
+  fill: none;
+  stroke-width: 15;
+  cursor: pointer;
+  pointer-events: all;
+  opacity: 0;
+}
+
+.connectionHitbox:hover {
+  stroke: rgba(16, 185, 129, 0.05);
+  opacity: 0.3;
+}
+
+.tempConnectionPath {
+  stroke: #10B981;
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.7;
+  pointer-events: none;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}

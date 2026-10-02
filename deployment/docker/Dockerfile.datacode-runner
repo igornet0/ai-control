@@ -1,0 +1,18 @@
+# Бинарь из igorrw/datacode:latest собран против GLIBC ≥ 2.39; родной базовый слой образа старше —
+# здесь только runtime Ubuntu 24.04 + копия /usr/local/bin/datacode.
+FROM ubuntu:noble
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libssl3 \
+        zlib1g \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 datacode \
+    && useradd --system --uid 10001 --gid datacode --home-dir /tmp --shell /usr/sbin/nologin datacode
+
+COPY --from=igorrw/datacode:latest /usr/local/bin/datacode /usr/local/bin/datacode
+
+USER datacode
+
+ENTRYPOINT ["datacode"]

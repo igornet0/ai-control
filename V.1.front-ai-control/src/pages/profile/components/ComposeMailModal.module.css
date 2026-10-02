@@ -1,0 +1,583 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.panel {
+  width: min(96vw, 36rem);
+  max-height: min(90vh, 44rem);
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.5);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.head p {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.closeBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0.2rem;
+}
+
+.closeBtn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.35rem;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.45);
+  color: #e2e8f0;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.875rem;
+}
+
+.textarea {
+  min-height: 8rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.attachBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.attachBtn {
+  appearance: none;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(2, 6, 23, 0.35);
+  color: #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.attachBtn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.attachBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fileInput {
+  display: none;
+}
+
+.attachList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.attachItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  background: rgba(30, 41, 59, 0.65);
+  font-size: 0.8rem;
+}
+
+.attachItem button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.15rem;
+}
+
+.attachItem button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #f87171;
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.secondaryBtn,
+.primaryBtn {
+  appearance: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.secondaryBtn {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.primaryBtn {
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.primaryBtn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.pickerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.pickerPanel {
+  width: min(96vw, 32rem);
+  max-height: min(82vh, 36rem);
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.5);
+  overflow: hidden;
+}
+
+.pickerHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.pickerHeadText h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.pickerHeadText p {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #94a3b8;
+}
+
+.pickerSearch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.55rem 1rem 0.35rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.pickerFilters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem 0;
+}
+
+.pickerTypeTabs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pickerTypeTab {
+  flex: 1;
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(2, 6, 23, 0.35);
+  color: #94a3b8;
+  border-radius: 0.55rem;
+  padding: 0.4rem 0.45rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.pickerTypeTabActive {
+  color: #e2e8f0;
+  border-color: rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.16);
+}
+
+.pickerTypeCount {
+  min-width: 1.15rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
+.pickerTypeTabActive .pickerTypeCount {
+  background: rgba(59, 130, 246, 0.28);
+  color: #dbeafe;
+}
+
+.pickerTeamFilter {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.pickerTeamFilter svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.pickerTeamFilter select {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.pickerTeamFilter select option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.pickerSearchIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.pickerSearch input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0.55rem 0.75rem 0.85rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.pickerList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pickerList::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.pickerItem {
+  width: 100%;
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.38);
+  color: #e2e8f0;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pickerItem:hover {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.pickerItem:hover .pickerItemAction {
+  opacity: 1;
+  color: #93c5fd;
+}
+
+.pickerItem:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.65);
+  outline-offset: 2px;
+}
+
+.pickerItemIcon {
+  flex-shrink: 0;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.55rem;
+  display: grid;
+  place-items: center;
+  background: rgba(37, 99, 235, 0.14);
+  color: #93c5fd;
+}
+
+.pickerItemIconTable {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+}
+
+.pickerItemIcon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.pickerItemBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pickerItemTitle {
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pickerBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.pickerBadgeTable {
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.pickerMetaText {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.pickerItemMeta > * + *::before {
+  content: '·';
+  margin-right: 0.35rem;
+  color: #64748b;
+}
+
+.pickerSection {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pickerSection + .pickerSection {
+  margin-top: 0.55rem;
+}
+
+.pickerSectionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.pickerSectionHead svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.pickerSectionCount {
+  margin-left: auto;
+  min-width: 1.2rem;
+  text-align: center;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+}
+
+.pickerSectionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pickerItemAction {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  opacity: 0.85;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.pickerItemAction svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.pickerEmpty {
+  padding: 1.75rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 520px) {
+  .pickerItemAction span {
+    display: none;
+  }
+
+  .pickerPanel {
+    width: min(96vw, 100%);
+  }
+}

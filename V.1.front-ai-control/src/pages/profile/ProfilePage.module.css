@@ -1,0 +1,84 @@
+.layout {
+  display: flex;
+  height: calc(100dvh - 81px);
+  max-height: calc(100dvh - 81px);
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--spacing-6);
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .layout {
+    height: calc(100dvh - 64px);
+    max-height: calc(100dvh - 64px);
+    /* Allow fixed mobile drawer/FAB to escape the flex shell */
+    overflow: visible;
+  }
+
+  .main {
+    padding: 0.85rem 0.85rem 5.5rem;
+    overflow: auto;
+    max-height: calc(100dvh - 64px);
+  }
+
+  .content,
+  .contentWide {
+    max-width: 100%;
+  }
+}
+
+.mainMessaging {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.32) transparent;
+}
+
+.mainMessaging::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mainMessaging::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+
+.mainMessaging::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(148, 163, 184, 0.35),
+    rgba(99, 102, 241, 0.4)
+  );
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-height: 40px;
+}
+
+.mainMessaging::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(129, 140, 248, 0.7),
+    rgba(99, 102, 241, 0.85)
+  );
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.mainMessaging::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.content {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+.contentWide {
+  max-width: 96rem;
+}

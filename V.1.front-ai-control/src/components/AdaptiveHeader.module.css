@@ -1,0 +1,317 @@
+.header {
+  padding: 20px 80px;
+  background: #1a1a1a !important; /* Временный фиксированный фон для отладки */
+  border-bottom: 1px solid #333;
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 60px;
+}
+
+.nav {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.navContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logoSection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.logoContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.logoLink:hover {
+  transform: translateY(-1px);
+}
+
+.logoLink:hover::after,
+.logoLink::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border: 2px solid var(--color-accent-primary);
+  border-radius: var(--radius-md);
+  opacity: 0;
+  animation: none;
+  transition: all 0.3s ease;
+}
+
+.logoLink:hover::after {
+  opacity: 0.6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
+/* Контекстное меню при наведении */
+.contextMenu {
+  position: fixed;
+  top: 80px; /* Позиционируем под header */
+  left: 20px; /* Отступ слева */
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 100; /* Уменьшенный z-index чтобы не блокировать навигацию */
+  min-width: 200px;
+  padding: var(--spacing-2);
+  display: none; /* Скрыто по умолчанию */
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+/* Контекстное меню отключено в десктопном режиме */
+
+.contextMenuItem {
+  display: block;
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
+}
+
+.contextMenuItem:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.logoText {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: #ffffff !important; /* Временный фиксированный цвет для отладки */
+}
+
+.navMenu {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navLink {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.navLink:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.authSection {
+  display: none;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .authSection {
+    display: flex;
+  }
+}
+
+.authButton {
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  transition: all var(--transition-base);
+  background: var(--color-bg-surface);
+}
+
+.authButton:hover {
+  background: var(--color-bg-surface-light);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.authButtonPrimary {
+  background: var(--gradient-accent);
+  color: white;
+  border-color: var(--color-accent-primary);
+}
+
+.authButtonPrimary:hover {
+  background: var(--color-accent-secondary);
+  color: white;
+}
+
+
+/* Адаптивность */
+@media (max-width: 1024px) {
+  .header {
+    padding: 20px;
+  }
+  
+  .navMenu {
+    display: none;
+  }
+  
+  .logoText {
+    font-size: var(--text-lg);
+  }
+  
+  .logoSection {
+    gap: var(--spacing-4);
+  }
+  
+  /* Показываем контекстное меню на мобильных устройствах */
+  .contextMenu {
+    display: flex;
+  }
+  
+  /* Включаем контекстное меню при наведении на мобильных устройствах */
+  .logoContainer:hover .contextMenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  
+  /* Показываем обводку логотипа при уменьшении экрана */
+  .logoLink::after {
+    opacity: 0.4;
+    animation: pulse 2s infinite;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 15px;
+  }
+  
+  .logoText {
+    font-size: var(--text-base);
+  }
+  
+  .logo {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .rightSection {
+    gap: var(--spacing-2);
+  }
+  
+  .authButton {
+    padding: var(--spacing-1) var(--spacing-3);
+    font-size: var(--text-xs);
+  }
+  
+  .contextMenu {
+    min-width: 180px;
+  }
+  
+  /* Более заметная обводка на планшетах */
+  .logoLink::after {
+    opacity: 0.5;
+    border-width: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 10px;
+  }
+  
+  .logoText {
+    display: none;
+  }
+  
+  .logoSection {
+    gap: var(--spacing-2);
+  }
+  
+  .contextMenu {
+    min-width: 160px;
+    padding: var(--spacing-1);
+  }
+  
+  .contextMenuItem {
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: var(--text-xs);
+  }
+  
+  /* Самая заметная обводка на маленьких экранах */
+  .logoLink::after {
+    opacity: 0.6;
+    border-width: 4px;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+  }
+}

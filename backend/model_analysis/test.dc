@@ -1,3 +1,0 @@
-for _, b in [[1,2], [3, 4]] do
-    print(b)
-forend

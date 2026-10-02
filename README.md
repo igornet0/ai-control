@@ -19,8 +19,8 @@
 
 2. **Настройте переменные окружения:**
    ```bash
-   cp aic_docker/env.example aic_docker/.env
-# Отредактируйте aic_docker/.env при необходимости
+   cp deployment/docker/env.example deployment/docker/.env
+# Отредактируйте deployment/docker/.env при необходимости
    ```
 
 3. **Запустите проект:**
@@ -30,7 +30,7 @@
    
    Или без Make:
    ```bash
-   docker-compose -f aic_docker/docker-compose.dev.yml up -d
+   docker-compose -f deployment/docker/docker-compose.dev.yml up -d
    ```
 
 4. **Откройте в браузере:**
@@ -50,23 +50,44 @@ make prod
 
 ```
 ai-control/
-├── backend/                 # FastAPI backend
-│   ├── api/                # API роутеры
-│   ├── services/           # Бизнес-логика
-│   └── main.py            # Точка входа
-├── core/                   # Общие компоненты
-│   ├── database/          # Модели БД и миграции
-│   └── config/            # Конфигурация
-├── frontend/              # React frontend
-├── aic_docker/            # Docker конфигурации
-│   ├── docker-compose.dev.yml
-│   ├── docker-compose.prod.yml
-│   ├── Dockerfile.backend
-│   ├── Dockerfile.frontend
-│   └── nginx/             # Nginx конфигурации
-├── tests/                 # Тесты
-├── Makefile              # Команды для разработки
-└── README.md
+├── src/                          # ✅ Основной код (Clean Architecture)
+│   ├── domain/                   # Доменная логика
+│   ├── application/              # Слой приложения
+│   ├── infrastructure/           # Инфраструктура
+│   └── presentation/             # API и веб-интерфейс
+├── tests/                        # ✅ Тесты
+│   ├── unit/                     # Unit тесты
+│   ├── integration/              # Интеграционные тесты
+│   └── e2e/                      # End-to-end тесты
+├── front-ai-control/             # ✅ React frontend
+├── external/                     # ✅ Внешние сервисы
+│   ├── datacode/                 # DataCode интерпретатор
+│   └── ai-models/                # AI модели
+├── data/                         # ✅ Данные и ресурсы
+│   ├── uploads/                  # Пользовательские загрузки
+│   ├── analysis/                 # Данные для анализа
+│   └── samples/                  # Примеры данных
+├── deployment/                   # ✅ Развертывание
+│   ├── docker/                   # Docker конфигурации
+│   ├── k8s/                      # Kubernetes манифесты
+│   ├── nginx/                    # Nginx конфигурации
+│   ├── monitoring/               # Мониторинг (Prometheus, Grafana)
+│   ├── ssl/                      # SSL сертификаты
+│   └── scripts/                  # Скрипты развертывания
+├── config/                       # ✅ Конфигурации
+│   ├── environments/             # Файлы окружения
+│   └── templates/                # Шаблоны конфигураций
+├── docs/                         # ✅ Документация
+│   ├── architecture/             # Архитектурная документация
+│   ├── api/                      # API документация
+│   ├── deployment/               # Документация развертывания
+│   └── development/              # Документация для разработчиков
+├── plugins/                      # ✅ Плагины и виджеты
+├── pyproject.toml                # ✅ Конфигурация Python
+├── pytest.ini                   # ✅ Конфигурация тестов
+├── Makefile                      # ✅ Команды разработки
+├── README.md                     # ✅ Основная документация
+└── IMPLEMENTATION_REPORT.md      # ✅ Отчет о реализации
 ```
 
 ## 🛠 Команды Make

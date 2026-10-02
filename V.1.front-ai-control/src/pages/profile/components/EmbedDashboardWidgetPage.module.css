@@ -1,0 +1,126 @@
+.page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #0f1014;
+}
+
+.state {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.viewport {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  overflow: hidden;
+  background: #0f1014 !important;
+}
+
+.viewportHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.viewportReady {
+  opacity: 1;
+}
+
+.workspace {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  transform-origin: 0 0;
+  background: #0f1014 !important;
+  background-image: none !important;
+}
+
+:global(.viewport)::before,
+:global(.viewport.viewer-mode)::before {
+  display: none !important;
+}
+
+.workspace :global(.widget) {
+  box-shadow: none !important;
+  cursor: default !important;
+  overflow: hidden !important;
+  border-color: transparent !important;
+}
+
+.workspace :global(.widget::before),
+.workspace :global(.widget:hover::before),
+.workspace :global(.widget.selected::before) {
+  content: none !important;
+  display: none !important;
+  opacity: 0 !important;
+  box-shadow: none !important;
+  background: none !important;
+}
+
+/* Profile embed: most widgets are read-only; button, charts, table, media stay interactive. */
+.workspace :global(.widget.widget--profile-readonly),
+.workspace :global(.widget.widget--profile-readonly *),
+.workspace :global(.widget.widget--profile-readonly .widget-content) {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+.workspace :global(.widget.widget--profile-interactive),
+.workspace :global(.widget.widget--profile-interactive *),
+.workspace :global(.widget.widget--profile-interactive .widget-content) {
+  pointer-events: auto !important;
+}
+
+.workspace :global(.widget.widget--profile-interactive .button-widget-canvas),
+.workspace :global(.widget.widget--profile-interactive .line-widget-tf-btn),
+.workspace :global(.widget.widget--profile-interactive .line-widget-zoom-btn),
+.workspace :global(.widget.widget--profile-interactive .line-widget-legend-item),
+.workspace :global(.widget.widget--profile-interactive th[data-tw-sort-col]),
+.workspace :global(.widget.widget--profile-interactive .media-audio-btn),
+.workspace :global(.widget.widget--profile-interactive .media-audio-slide),
+.workspace :global(.widget.widget--profile-interactive .media-audio-track),
+.workspace :global(.widget.widget--profile-interactive img) {
+  cursor: pointer !important;
+}
+
+.workspace :global(.widget-profile-pin-btn),
+.workspace :global(.resize-handle) {
+  display: none !important;
+}
+
+:global(html.embed-dashboard-widget),
+:global(body.embed-dashboard-widget) {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  background: #0f1014 !important;
+}
+
+:global(body.embed-dashboard-widget #root),
+:global(body.embed-dashboard-widget #root > *) {
+  min-height: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+}

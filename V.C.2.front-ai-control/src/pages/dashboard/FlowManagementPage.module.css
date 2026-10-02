@@ -1,0 +1,111 @@
+/* FlowManagementPage.module.css - стили для страницы управления потоками */
+
+.flowManagementPage {
+  min-height: 100vh;
+  background: var(--gradient-secondary);
+  color: var(--color-text-primary);
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.container {
+  max-width: 84rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.08));
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  backdrop-filter: blur(6px);
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.backButton:hover {
+  background: var(--color-background-tertiary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+.pageKicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(15, 23, 42, 0.45);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #93c5fd;
+}
+
+.pageSubtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.925rem;
+  text-align: right;
+}
+
+.content {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(15, 23, 42, 0.48));
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: clamp(0.875rem, 1.8vw, 1.25rem);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .flowManagementPage {
+    padding: 0.75rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .headerInfo {
+    align-items: flex-start;
+  }
+
+  .pageSubtitle {
+    text-align: left;
+  }
+  
+  .content {
+    padding: 0.75rem;
+  }
+}
+

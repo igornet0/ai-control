@@ -1,0 +1,488 @@
+.flowManagement {
+  min-height: 100vh;
+  background: var(--gradient-secondary);
+  padding: var(--spacing-4);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-6);
+  gap: var(--spacing-4);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.accessDenied {
+  text-align: center;
+  padding: var(--spacing-12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
+  margin: var(--spacing-8) 0;
+}
+
+.accessDenied h2 {
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+.accessDenied p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+}
+
+.flowsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.flowCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.flowCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.flowHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-3);
+}
+
+.flowTitle {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.flowActions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.actionButton {
+  padding: var(--spacing-1);
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  transform: scale(1.05);
+}
+
+.flowContent {
+  margin-bottom: var(--spacing-4);
+}
+
+.flowDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-3) 0;
+  line-height: 1.4;
+}
+
+.flowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.flowMetaItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.status {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  font-size: var(--text-xs);
+}
+
+.status.active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.status.inactive {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.flowFooter {
+  display: flex;
+  justify-content: center;
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-lg);
+  margin: var(--spacing-8) 0;
+}
+
+.emptyState p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  margin-bottom: var(--spacing-4);
+}
+
+/* Модальные окна */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modalContent {
+  background: var(--color-background-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-lg);
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalTitle {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.modalCloseButton {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xl);
+  cursor: pointer;
+  padding: var(--spacing-1);
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.modalCloseButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+.modalBody {
+  padding: var(--spacing-4);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.formGroup {
+  margin-bottom: var(--spacing-4);
+}
+
+.label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-2);
+}
+
+.input {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.textarea {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  transition: all 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.accessTypesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-2);
+}
+
+.accessTypeCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-3);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.accessTypeCard:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.accessTypeCard.selected {
+  border-color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.accessTypeName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-1) 0;
+}
+
+.accessTypeDescription {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.searchableList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.listSearch {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+
+.listSearch:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.listSearch::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.usersList {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.05);
+  padding: var(--spacing-2);
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
+  border-radius: var(--border-radius);
+  transition: background 0.2s ease;
+}
+
+.userItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+.userLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  flex: 1;
+}
+
+/* Стили для модального окна дашбордов */
+.dashboardsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dashboardItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
+}
+
+.dashboardItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dashboardInfo {
+  flex: 1;
+}
+
+.dashboardName {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-1) 0;
+}
+
+.dashboardDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-2) 0;
+  line-height: 1.4;
+}
+
+.dashboardMeta {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: center;
+}
+
+.publicBadge {
+  font-size: var(--text-xs);
+  padding: var(--spacing-1) var(--spacing-2);
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(34, 197, 94);
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+}
+
+.dashboardActions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.availableDashboardsSection {
+  margin-bottom: var(--spacing-4);
+}
+
+.availableDashboardsTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-3);
+  }
+  
+  .flowsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .accessTypesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modalContent {
+    width: 95%;
+    margin: var(--spacing-4);
+  }
+  
+  .dashboardItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-3);
+  }
+  
+  .dashboardActions {
+    justify-content: flex-end;
+  }
+}

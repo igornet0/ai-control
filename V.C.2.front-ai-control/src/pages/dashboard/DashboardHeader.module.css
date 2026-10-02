@@ -1,0 +1,218 @@
+.dashboardHeaderContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 60px;
+}
+
+.dashboardControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.editButton:hover {
+  background: var(--color-bg-surface-light);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.editButtonActive {
+  background: var(--gradient-accent);
+  color: white;
+  border-color: var(--color-accent-primary);
+}
+
+.editButtonActive:hover {
+  background: var(--color-accent-secondary);
+  color: white;
+}
+
+.modeToggle {
+  display: flex;
+  gap: var(--spacing-1);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  padding: var(--spacing-1);
+}
+
+.modeButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.modeButton:hover {
+  background: var(--color-bg-surface-light);
+  color: var(--color-text-primary);
+}
+
+.modeButtonActive {
+  background: var(--gradient-accent);
+  color: white;
+}
+
+.modeButtonActive:hover {
+  background: var(--color-accent-secondary);
+  color: white;
+}
+
+.fullScreenButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  min-width: 40px;
+  height: 40px;
+}
+
+.fullScreenButton:hover:not(:disabled) {
+  background: var(--color-bg-surface-light);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.fullScreenButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fullScreenIcon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(100%);
+  transition: filter var(--transition-base);
+}
+
+.fullScreenButton:hover:not(:disabled) .fullScreenIcon {
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
+}
+
+.dashboardTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  margin-top: 20px;
+}
+
+.sheetSelect {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  min-width: 120px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.sheetSelect:hover {
+  border-color: var(--color-accent-primary);
+}
+
+.sheetSelect:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-accent-primary-rgb), 0.2);
+}
+
+/* Адаптивность для dashboard controls */
+@media (max-width: 1024px) {
+  .dashboardControls {
+    gap: var(--spacing-2);
+  }
+  
+  .dashboardTitle {
+    font-size: var(--text-base);
+  }
+  
+  .editButton {
+    padding: var(--spacing-1) var(--spacing-3);
+    font-size: var(--text-xs);
+  }
+  
+  .fullScreenButton {
+    min-width: 36px;
+    height: 36px;
+  }
+  
+  .fullScreenIcon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .sheetSelect {
+    min-width: 100px;
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboardControls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+  }
+  
+  .dashboardTitle {
+    font-size: var(--text-sm);
+  }
+  
+  .editButton {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .fullScreenButton {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .sheetSelect {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboardControls {
+    gap: var(--spacing-1);
+  }
+  
+  .dashboardTitle {
+    font-size: var(--text-xs);
+  }
+}

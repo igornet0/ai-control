@@ -1,0 +1,572 @@
+# Dev BI stack: см. Makefile.docker (`make -f Makefile.docker up`).
+# Default: postgres (4 DB) + rabbitmq + redis + backend :8000 + api :8002 + ai :8003
+#   + mail-message-manager :8792 + frontend :3000 + dashboard-query :8787 + CES.
+# БД: ai_control_dev, ai_control_api_dev, aicontrol_ai_dev, mail_message_dev
+#   (init: deployment/docker/postgres/init-dev-databases.sql; только на пустом volume).
+# Профили: `--profile split` (backend-dataplane :8001), `--profile workers` (file-import-consumer),
+# `--profile rust-sidecars` (task-reporting :8790, file-pipeline :8791, schedule-system :8793).
+# Внимание: publish 5432/5672/6379 может конфликтовать с Postgres/RabbitMQ/Redis на хосте.
+# Code Execution: datacode-sandbox (ces_net only) + ces-worker; backend never talks to :8899.
+
+networks:
+  default:
+  # Sandbox + worker only; not published to host. Egress needed for allowlisted SMB.
+  ces_net:
+    driver: bridge
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: aicontrol-postgres-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Maintenance DB; app DBs создаются init-скриптом.
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./deployment/docker/postgres/init-dev-databases.sql:/docker-entrypoint-initdb.d/01-init-dev-databases.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: aicontrol-rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: ai_control_user
+      RABBITMQ_DEFAULT_PASS: ai_control_password
+    volumes:
+      - rabbitmq_data_dev:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: aicontrol-redis-dev
+    volumes:
+      - redis_data_dev:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - default
+      - ces_net
+
+  datacode-sandbox:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.datacode-runner
+    image: aicontrol-datacode-runner:dev
+    container_name: datacode-sandbox-dev
+    # No host port publish — only ces-worker reaches :8899 via ces_net.
+    expose:
+      - "8899"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1.0
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "timeout 1 bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8899'",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    # ENTRYPOINT = datacode; не повторять «datacode» первым аргументом.
+    command:
+      - "--websocket"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8899"
+      - "--use-ve"
+      - "--build_model"
+    restart: unless-stopped
+    networks:
+      - ces_net
+
+  dashboard-query:
+    build:
+      context: ./rust/dashboard-query
+      dockerfile: Dockerfile.dev
+    container_name: dashboard-query-dev
+    working_dir: /app
+    volumes:
+      - ./rust/dashboard-query:/app
+      # golden_parity / schema_parity: ../../../src/tests/fixtures/... из /app/dashboard-query-core → /src/tests/...
+      - ./src/tests/fixtures/sqlite_dashboard_golden:/src/tests/fixtures/sqlite_dashboard_golden:ro
+      - dashquery-cargo-registry:/usr/local/cargo/registry
+      - dashquery-cargo-git:/usr/local/cargo/git
+      - ./src/data_models:/app/data_models
+    ports:
+      - "8787:8787"
+    environment:
+      DASHBOARD_QUERY_LISTEN: "0.0.0.0:8787"
+      # golden_parity / schema_parity + exec cargo test (явный путь надёжнее ../../../ в overlay)
+      SQLITE_DASHBOARD_GOLDEN_DIR: /src/tests/fixtures/sqlite_dashboard_golden
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8787/health | grep -q ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    # Без `-l`: login-shell в rust образе выкидывает /usr/local/cargo/bin из PATH → «cargo: not found» (127).
+    command:
+      - /bin/bash
+      - -c
+      - >-
+        set -a && . ./env.development.example && set +a &&
+        export DASHBOARD_QUERY_LISTEN=0.0.0.0:8787 &&
+        exec cargo run -p dashboard-query-server
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: backend-dev
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./src/config/environments/dev.env
+    environment:
+      DATABASE__HOST: postgres
+      API_DATABASE__HOST: postgres
+      RABBITMQ__HOST: rabbitmq
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_BROKER_URL: amqp://ai_control_user:ai_control_password@rabbitmq:5672//
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      # Dev stack поднимает dashboard-query; явно включаем offload (dev.env тоже задаёт ENABLED).
+      SQLITE_QUERY_RUST__ENABLED: "true"
+      SQLITE_QUERY_RUST__BASE_URL: http://dashboard-query:8787
+      SQLITE_QUERY_RUST__PYTHON_FALLBACK_ON_TIMEOUT: "false"
+      SQLITE_QUERY_RUST__CACHE_ENABLED: "true"
+      SQLITE_QUERY_RUST__CACHE_REDIS_URL: redis://redis:6379/0
+      CES__ENABLED: "true"
+      CES__REDIS_URL: redis://redis:6379/1
+      # Postgres task-reporting sidecar (--profile rust-sidecars). BASE_URL только для Compose-сети; включите ENABLED при поднятом task-reporting.
+      TASK_REPORTING_RUST__BASE_URL: http://task-reporting:8790
+      TASK_REPORTING_RUST__ENABLED: "false"
+      SCHEDULE_SYSTEM_RUST__BASE_URL: http://schedule-system:8793
+      SCHEDULE_SYSTEM_RUST__ENABLED: "false"
+      SCHEDULE_SYSTEM_RUST__INTERNAL_TOKEN: dev-schedule-internal-token
+      MESSAGING__ENABLED: "true"
+      MESSAGING__BASE_URL: http://mail-message-manager:8792
+      MESSAGING__INTERNAL_TOKEN: dev-mmm-internal-token
+    command: poetry run python run_app.py --env=dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      dashboard-query:
+        condition: service_healthy
+      ces-worker:
+        condition: service_started
+      mail-message-manager:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - default
+
+  api:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: api-dev
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./src/config/environments/dev.env
+    environment:
+      DATABASE__HOST: postgres
+      API_DATABASE__HOST: postgres
+      RABBITMQ__HOST: rabbitmq
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_BROKER_URL: amqp://ai_control_user:ai_control_password@rabbitmq:5672//
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+    command: poetry run python run_api.py --env=dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
+  ai:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: ai-dev
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    ports:
+      - "8003:8003"
+    env_file:
+      - ./src/config/environments/dev.env
+    environment:
+      DATABASE__HOST: postgres
+      API_DATABASE__HOST: postgres
+      RABBITMQ__HOST: rabbitmq
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_BROKER_URL: amqp://ai_control_user:ai_control_password@rabbitmq:5672//
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      # Reserved for Rust RouterAi cutover; Python run_ai uses app ORM (ai_control_dev).
+      AICONTROL_AI__DATABASE_URL: postgresql://postgres:postgres@postgres:5432/aicontrol_ai_dev
+    command: poetry run python run_ai.py --env=dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
+  ces-worker:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: ces-worker-dev
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    env_file:
+      - ./src/config/environments/dev.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CES__ENABLED: "true"
+      CES__REDIS_URL: redis://redis:6379/1
+      DC__HOST: datacode-sandbox
+      DC__PORT: "8899"
+    command: poetry run python -m workers.ces_worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      datacode-sandbox:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - default
+      - ces_net
+
+  backend-dataplane:
+    profiles: ["split"]
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: backend-dataplane-dev
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./src/config/environments/dev.env
+    environment:
+      FASTAPI_SERVICE_MODE: dataplane
+      DATABASE__HOST: postgres
+      API_DATABASE__HOST: postgres
+      RABBITMQ__HOST: rabbitmq
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_BROKER_URL: amqp://ai_control_user:ai_control_password@rabbitmq:5672//
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SQLITE_QUERY_RUST__ENABLED: "true"
+      SQLITE_QUERY_RUST__BASE_URL: http://dashboard-query:8787
+      SQLITE_QUERY_RUST__PYTHON_FALLBACK_ON_TIMEOUT: "false"
+      SQLITE_QUERY_RUST__CACHE_ENABLED: "true"
+      SQLITE_QUERY_RUST__CACHE_REDIS_URL: redis://redis:6379/0
+      CES__ENABLED: "true"
+      CES__REDIS_URL: redis://redis:6379/1
+      TASK_REPORTING_RUST__BASE_URL: http://task-reporting:8790
+      TASK_REPORTING_RUST__ENABLED: "false"
+      SCHEDULE_SYSTEM_RUST__BASE_URL: http://schedule-system:8793
+      SCHEDULE_SYSTEM_RUST__ENABLED: "true"
+      SCHEDULE_SYSTEM_RUST__INTERNAL_TOKEN: dev-schedule-internal-token
+    command: poetry run python run_app.py --env=dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      dashboard-query:
+        condition: service_healthy
+      ces-worker:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - default
+
+  file-import-worker:
+    profiles: ["workers"]
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: file-import-worker-dev
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    env_file:
+      - ./src/config/environments/dev.env
+    environment:
+      RABBITMQ__HOST: rabbitmq
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      FILE_IMPORT_QUEUE: aicontrol.file_import.pending
+      RUN__CELERY_BROKER_URL: amqp://ai_control_user:ai_control_password@rabbitmq:5672//
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: poetry run python -m workers.file_import_consumer
+    restart: unless-stopped
+
+  # Опциональные sidecar-ы миграции Python→Rust (профиль rust-sidecars). См. rust/README.md
+  task-reporting:
+    profiles: ["rust-sidecars"]
+    build:
+      context: ./rust/task-reporting
+      dockerfile: Dockerfile.dev
+    container_name: task-reporting-dev
+    working_dir: /app
+    volumes:
+      - ./rust/task-reporting:/app
+      - task-reporting-cargo-registry:/usr/local/cargo/registry
+      - task-reporting-cargo-git:/usr/local/cargo/git
+    ports:
+      - "8790:8790"
+    environment:
+      TASK_REPORTING_LISTEN: 0.0.0.0:8790
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8790/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    command:
+      - /bin/bash
+      - -c
+      - exec cargo run -p task-reporting-server
+    restart: unless-stopped
+
+  file-pipeline:
+    profiles: ["rust-sidecars"]
+    build:
+      context: ./rust/file-pipeline
+      dockerfile: Dockerfile.dev
+    container_name: file-pipeline-dev
+    working_dir: /app
+    volumes:
+      - ./rust/file-pipeline:/app
+      - file-pipeline-cargo-registry:/usr/local/cargo/registry
+      - file-pipeline-cargo-git:/usr/local/cargo/git
+    ports:
+      - "8791:8791"
+    environment:
+      FILE_PIPELINE_LISTEN: 0.0.0.0:8791
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8791/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    command:
+      - /bin/bash
+      - -c
+      - exec cargo run -p file-pipeline-server
+    restart: unless-stopped
+
+  schedule-system:
+    profiles: ["rust-sidecars"]
+    build:
+      context: ./rust/ScheduleSystem
+      dockerfile: Dockerfile.dev
+    container_name: schedule-system-dev
+    working_dir: /app
+    volumes:
+      - ./rust/ScheduleSystem:/app
+      - ./src/data_models:/app/data_models
+      - schedule-system-cargo-registry:/usr/local/cargo/registry
+      - schedule-system-cargo-git:/usr/local/cargo/git
+      - schedule-system-data:/app/data
+    ports:
+      - "8793:8793"
+    environment:
+      SCHEDULE_SYSTEM_LISTEN: 0.0.0.0:8793
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ai_control_dev
+      API_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ai_control_api_dev
+      DATA_MODELS_DIR: /app/data_models
+      SCHEDULE_DB_PATH: /app/data/schedule.db
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_ALGORITHM: HS256
+      JWT_NO_EXPIRY: "true"
+      INTERNAL_TOKEN: dev-schedule-internal-token
+      AUTH_LOGIN_URL: http://backend:8000/auth/login_user/
+      APP_HEALTH_URL: http://backend:8000/health
+      API_HEALTH_URL: http://api:8002/health
+      AI_HEALTH_URL: http://ai:8003/health
+      DATACODE_ADDR: datacode-sandbox:8899
+      MAIL_HEALTH_URL: http://mail-message-manager:8792/api/messaging/health
+      DASHBOARD_QUERY_URL: http://dashboard-query:8787/health
+      LOAD_SAMPLE_SEC: "5"
+      LOAD_RETENTION_HOURS: "24"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8793/health | grep -q ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      api:
+        condition: service_started
+      ai:
+        condition: service_started
+    command:
+      - /bin/bash
+      - -c
+      - exec cargo run -p schedule-system-server
+    restart: unless-stopped
+
+  mail-message-manager:
+    build:
+      context: ./rust/MailMessageManager
+      dockerfile: Dockerfile.dev
+    container_name: mail-message-manager-dev
+    working_dir: /app
+    volumes:
+      - ./rust/MailMessageManager:/app
+      - mmm-cargo-registry:/usr/local/cargo/registry
+      - mmm-cargo-git:/usr/local/cargo/git
+    ports:
+      - "8792:8792"
+    environment:
+      MAIL_MESSAGE_MANAGER_LISTEN: 0.0.0.0:8792
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/mail_message_dev
+      REDIS_URL: redis://redis:6379/2
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_NO_EXPIRY: "true"
+      INTERNAL_TOKEN: dev-mmm-internal-token
+      DEV_USERS_DATABASE_URL: postgres://postgres:postgres@postgres:5432/ai_control_dev
+      SYNC_INTERVAL_SEC: "300"
+      EXMAIL_API_KEY: ${EXMAIL_API_KEY:-}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8792/api/messaging/health | grep -q ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 180s
+    command:
+      - /bin/bash
+      - -c
+      - >-
+        set -a && . ./env.development.example && set +a &&
+        export MAIL_MESSAGE_MANAGER_LISTEN=0.0.0.0:8792 &&
+        export DATABASE_URL=postgres://postgres:postgres@postgres:5432/mail_message_dev &&
+        export REDIS_URL=redis://redis:6379/2 &&
+        export DEV_USERS_DATABASE_URL=postgres://postgres:postgres@postgres:5432/ai_control_dev &&
+        exec cargo run -p mail-message-manager-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./front-ai-control
+      dockerfile: Dockerfile.dev
+    container_name: frontend-dev
+    working_dir: /app
+    volumes:
+      - ./front-ai-control:/app
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Прокси Vite внутри контейнера: не 127.0.0.1, а сервис Compose (см. vite.config.ts).
+    # start-stack.sh (app на хосте): VITE_DEV_PROXY_TARGET=http://host.docker.internal:8000
+    # При профиле `split` добавьте: VITE_DEV_PROXY_DATAPLANE_TARGET=http://backend-dataplane:8000
+    environment:
+      VITE_DEV_PROXY_TARGET: ${VITE_DEV_PROXY_TARGET:-http://backend:8000}
+      VITE_DEV_PROXY_MESSAGING_TARGET: http://mail-message-manager:8792
+    depends_on:
+      - backend
+      - mail-message-manager
+    command:
+      - /bin/bash
+      - -lc
+      - test -x node_modules/.bin/vite || npm ci; exec npm run dev -- --host 0.0.0.0 --port 3000
+    restart: unless-stopped
+
+volumes:
+  postgres_data_dev:
+  rabbitmq_data_dev:
+  redis_data_dev:
+  dashquery-cargo-registry:
+  dashquery-cargo-git:
+  frontend-node-modules:
+  task-reporting-cargo-registry:
+  task-reporting-cargo-git:
+  file-pipeline-cargo-registry:
+  file-pipeline-cargo-git:
+  schedule-system-cargo-registry:
+  schedule-system-cargo-git:
+  schedule-system-data:
+  mmm-cargo-registry:
+  mmm-cargo-git:

@@ -1,0 +1,59 @@
+.widget {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  flex-shrink: 0;
+  margin-bottom: 1.5rem;
+  padding-right: 5.5rem;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.scrollContained {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.listScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.listScroll::-webkit-scrollbar,
+.scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.listScroll::-webkit-scrollbar-thumb,
+.scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 3px;
+}
+
+.listScroll::-webkit-scrollbar-thumb:hover,
+.scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+}

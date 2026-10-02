@@ -1,0 +1,30 @@
+.page {
+  min-height: 100vh;
+  background: #020617;
+}
+
+.bootError {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  text-align: center;
+}
+
+.bootError button {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(51, 65, 85, 0.6);
+  color: inherit;
+  border-radius: 0.65rem;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}

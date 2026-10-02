@@ -1,0 +1,63 @@
+{
+  "name": "@aicontrol/dashboard-widgets",
+  "version": "0.1.0",
+  "description": "Dashboard Creator widget SDK — engine, builtins, defineWidget",
+  "type": "module",
+  "main": "./src/sdk/index.js",
+  "module": "./src/sdk/index.js",
+  "exports": {
+    ".": "./src/sdk/index.js",
+    "./core": "./src/sdk/index.js",
+    "./defineWidget": "./src/sdk/defineWidget.js",
+    "./widgets": "./src/sdk/builtins.js",
+    "./WidgetContext": "./src/sdk/WidgetContext.js",
+    "./html": "./src/widgets/html/htmlDefinition.js",
+    "./formula/*": "./src/formula/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "docs/widget-sdk.md",
+    "examples",
+    "scripts/create-widget.mjs",
+    "main/styles"
+  ],
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "create-widget": "node scripts/create-widget.mjs"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "transform": {},
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "globals": {
+      "jest": true
+    }
+  },
+  "peerDependencies": {},
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "keywords": [
+    "dashboard",
+    "widgets",
+    "sdk",
+    "aicontrol"
+  ],
+  "license": "UNLICENSED"
+}

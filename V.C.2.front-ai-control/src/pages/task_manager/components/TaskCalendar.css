@@ -1,0 +1,14 @@
+.task-calendar__body .ptc-cell {
+  min-height: 96px;
+}
+
+.task-calendar__body .ptc-chip {
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+@media (min-width: 1280px) {
+  .task-calendar__body .ptc-cell {
+    min-height: 110px;
+  }
+}

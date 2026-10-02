@@ -1,0 +1,216 @@
+.workspace {
+  display: flex;
+  height: calc(100dvh - 80px);
+  min-height: calc(100dvh - 80px);
+  background: #0f172a;
+  position: relative;
+  color-scheme: dark;
+}
+
+.workspace::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 20%, rgba(99, 102, 241, 0.08), transparent 50%),
+    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(56, 189, 248, 0.05), transparent 45%);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  overflow: auto;
+  padding: 1rem 1.25rem 1.5rem;
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.main::-webkit-scrollbar,
+.tabContent::-webkit-scrollbar,
+.mainExpandedStats::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.main::-webkit-scrollbar-track,
+.tabContent::-webkit-scrollbar-track,
+.mainExpandedStats::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main::-webkit-scrollbar-thumb,
+.tabContent::-webkit-scrollbar-thumb,
+.mainExpandedStats::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.32);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-height: 36px;
+}
+
+.main::-webkit-scrollbar-thumb:hover,
+.tabContent::-webkit-scrollbar-thumb:hover,
+.mainExpandedStats::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.main::-webkit-scrollbar-corner,
+.tabContent::-webkit-scrollbar-corner,
+.mainExpandedStats::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (min-width: 640px) {
+  .main {
+    padding: 1.25rem 1.5rem 1.75rem;
+  }
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.statsPanel {
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.contentPanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.82), rgba(15, 23, 42, 0.88));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 1.5rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  padding: 1.25rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .contentPanel {
+    padding: 1.5rem 2rem;
+  }
+}
+
+.tabContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  animation: taskTabIn 0.28s ease-out;
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.tabContentFill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .workspace {
+    height: auto;
+    min-height: calc(100dvh - 64px);
+  }
+
+  .main {
+    padding: 0.85rem 0.85rem 5.5rem;
+  }
+
+  .contentPanel {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+
+  .topBar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .statsToggle {
+    min-height: 44px;
+  }
+}
+
+@keyframes taskTabIn {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.statsToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.85), rgba(30, 41, 59, 0.9));
+  color: #f1f5f9;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+
+.statsToggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, rgba(71, 85, 105, 0.9), rgba(51, 65, 85, 0.92));
+}
+
+.statsToggleIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: transform 0.3s;
+}
+
+.statsToggleIconExpanded {
+  transform: rotate(180deg);
+}
+
+/* When stats panel is open, let the page grow and scroll instead of squashing the table */
+.mainExpandedStats {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mainExpandedStats .contentPanel {
+  flex: 0 0 auto;
+  min-height: calc(100vh - 180px);
+  overflow: visible;
+}
+
+.mainExpandedStats .tabContentFill {
+  overflow: visible;
+  min-height: calc(100vh - 260px);
+  display: flex;
+  flex-direction: column;
+}

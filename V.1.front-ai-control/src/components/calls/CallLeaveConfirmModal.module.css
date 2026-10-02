@@ -1,0 +1,118 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(6px);
+}
+
+.panel {
+  width: min(96vw, 26rem);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(160deg, #0b0f1e 0%, #111827 100%);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  color: #e2e8f0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.head button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0.2rem;
+}
+
+.head button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.body {
+  padding: 1rem;
+}
+
+.warn {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fde68a;
+}
+
+.warn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.warn p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #fef3c7;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.cancelBtn,
+.confirmBtn {
+  appearance: none;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.confirmBtn {
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: rgba(153, 27, 27, 0.45);
+  color: #fecaca;
+}
+
+.confirmBtn:hover {
+  background: rgba(185, 28, 28, 0.55);
+}

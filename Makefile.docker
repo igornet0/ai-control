@@ -1,0 +1,181 @@
+# Docker Compose для локальной разработки (см. docker-compose.dev.yml).
+# Default `up`: postgres (4 DB) + rabbitmq + redis + backend :8000 + api :8002 + ai :8003
+#   + mail-message-manager :8792 + frontend :3000 + dashboard-query :8787 + CES.
+# БД: ai_control_dev | ai_control_api_dev | aicontrol_ai_dev | mail_message_dev
+#   (init SQL только на пустом volume postgres_data_dev).
+# Профили: split (backend-dataplane :8001); workers (file-import-worker);
+#   rust-sidecars (task-reporting :8790, file-pipeline :8791, schedule-system :8793).
+# Порты 5432/5672/6379 могут конфликтовать с сервисами на хосте — остановите их или смените publish.
+#
+# Стек:   make -f Makefile.docker build && make -f Makefile.docker up
+# Тесты:  make -f Makefile.docker test-backend (контейнеры должны быть запущены, кроме bench-host)
+#
+# Каталог репозитория: по умолчанию текущий рабочий каталог при вызове make.
+DOCKER_REPO_ROOT ?= $(CURDIR)
+DOCKER_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
+
+# Пути с пробелами (напр. ".../Ai-Holding aka .../"): compose и -f make должны быть в кавычках.
+COMPOSE_DEV := docker compose -f "$(DOCKER_REPO_ROOT)/docker-compose.dev.yml"
+
+SERV_BE := backend
+SERV_FE := frontend
+SERV_RUST := dashboard-query
+
+# Email пользователя для db-seed-demo (должен существовать в БД).
+SEED_OWNER_EMAIL ?= admin@example.com
+
+# Golden-фикстуры для Rust-тестов внутри контейнера dashboard-query (см. docker-compose.dev.yml).
+RUST_SQLITE_GOLDEN ?= /src/tests/fixtures/sqlite_dashboard_golden
+
+PYTEST := poetry run pytest --no-cov --tb=short
+
+STRESS_SCALE ?= 1
+
+.PHONY: help build up up-split up-workers up-rust-sidecars up-stack down-stack down logs logs-all logs-backend logs-frontend logs-dashboard-query logs-datacode ps restart \
+	test-backend test-backend-integration test-python-gateway test-stress-resilience stress-fullstack benchmark-nodes benchmark-fullstack test-frontend test-formulas test-dashboard-creater \
+	test-rust-dashboard-query test-rust-dashboard-query-host test-all-quick test-all-recommended \
+	db-migrate db-seed-demo \
+	bench-rust-batch-host bench-rust-batch-docker \
+	audit-frontend audit-backend-pip scan-backend-bandit lint-backend-docker typecheck-backend-docker
+
+help: ## показать цели
+	@grep -E '^[a-zA-Z0-9_-]+:.*?##' "$(DOCKER_MAKEFILE)" | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-30s %s\n", $$1, $$2}'
+
+build: ## собрать образы dev-стека
+	$(COMPOSE_DEV) build
+
+up: ## BI-стек в Docker: app/api/ai + MMM + postgres(4 DB)/rabbitmq/redis/frontend/CES
+	$(COMPOSE_DEV) up -d
+
+up-split: ## то же + profile split (backend-dataplane :8001, см. VITE_DEV_PROXY_DATAPLANE_TARGET)
+	$(COMPOSE_DEV) --profile split up -d
+
+up-workers: ## поднять file-import-consumer (profile workers; RabbitMQ уже в default up)
+	$(COMPOSE_DEV) --profile workers up -d
+
+up-rust-sidecars: ## опционально: task-reporting :8790, file-pipeline :8791, schedule-system :8793
+	$(COMPOSE_DEV) --profile rust-sidecars up -d
+
+up-stack: ## полный стек на хосте (без Docker): rust sidecars + app/api/ai + frontend
+	"$(DOCKER_REPO_ROOT)/scripts/start-stack.sh" up
+
+down-stack: ## остановить up-stack (host pid-файлы)
+	"$(DOCKER_REPO_ROOT)/scripts/start-stack.sh" stop
+
+down: ## остановить и удалить контейнеры dev-стека
+	$(COMPOSE_DEV) down
+
+logs logs-all: ## логи всех сервисов (follow)
+	$(COMPOSE_DEV) logs -f
+
+logs-backend: ## логи backend
+	$(COMPOSE_DEV) logs -f $(SERV_BE)
+
+logs-frontend: ## логи frontend
+	$(COMPOSE_DEV) logs -f $(SERV_FE)
+
+logs-dashboard-query: ## логи dashboard-query (Rust)
+	$(COMPOSE_DEV) logs -f $(SERV_RUST)
+
+logs-datacode: ## логи datacode
+	$(COMPOSE_DEV) logs -f datacode
+
+ps: ## статус контейнеров
+	$(COMPOSE_DEV) ps
+
+restart: ## перезапуск всего стека
+	$(COMPOSE_DEV) restart
+
+# --- tests (нужны запущенные контейнеры и доступная БД для интеграционных) ---
+
+test-backend: ## pytest: tests + app/services/tests (явные пути, без coverage gate)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) $(PYTEST) tests app/services/tests
+
+test-backend-integration: ## pytest: только tests/integration
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) $(PYTEST) tests/integration -q
+
+test-python-gateway: ## pytest: прокси Rust / sqlite gateway
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) $(PYTEST) app/services/tests -q
+
+test-stress-resilience: ## pytest: стресс + устойчивость (STRESS_SCALE=1..20, см. переменную)
+	$(COMPOSE_DEV) exec -T -w /app -e STRESS_SCALE=$(STRESS_SCALE) $(SERV_BE) $(PYTEST) tests/stress tests/resilience -m "stress or resilience" -q
+
+stress-fullstack: ## pytest: FastAPI→Rust SQLite full-stack stress (postgres на хосте, см. модуль-докстринг tests/stress/test_dashboard_sqlite_fullstack_stress.py)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) \
+		env RUN_FULLSTACK_STRESS=1 \
+		BACKEND_STRESS_URL=http://127.0.0.1:8000 \
+		DASHBOARD_QUERY_METRICS_URL=http://dashboard-query:8787 \
+		$(PYTEST) tests/stress/test_dashboard_sqlite_fullstack_stress.py -v
+
+benchmark-nodes: ## pytest: security-first node catalog + data-plane (no live stack)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) $(PYTEST) tests/benchmark/test_node_catalog.py tests/benchmark/test_data_plane_security.py -v -o addopts=
+
+benchmark-fullstack: ## pytest: all data-transfer nodes, isolation first (RUN_FULLSTACK_BENCHMARK=1)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) \
+		env RUN_FULLSTACK_BENCHMARK=1 \
+		BACKEND_STRESS_URL=http://127.0.0.1:8000 \
+		DASHBOARD_QUERY_URL=http://dashboard-query:8787 \
+		DEVELOPER_API_URL=http://127.0.0.1:8002 \
+		$(PYTEST) tests/benchmark/test_fullstack_nodes_benchmark.py -v -o addopts=
+
+test-frontend: ## vitest: весь проект front-ai-control
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_FE) npm run test
+
+test-formulas: ## vitest: формулы и coordinator (быстрый пресет как Makefile.test)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_FE) npx vitest run \
+		src/pages/dashboard_creater/tests/formula.test.js \
+		src/pages/dashboard_creater/tests/dashboardQueryCoordinator.test.js
+
+test-dashboard-creater: ## vitest: все тесты dashboard_creater
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_FE) npx vitest run src/pages/dashboard_creater/tests
+
+test-rust-dashboard-query: ## cargo test в контейнере dashboard-query (SQLITE_DASHBOARD_GOLDEN_DIR)
+	$(COMPOSE_DEV) exec -T -e SQLITE_DASHBOARD_GOLDEN_DIR="$(RUST_SQLITE_GOLDEN)" -w /app $(SERV_RUST) /bin/bash -c "cargo test"
+
+test-rust-dashboard-query-host: ## parity dashboard-query на хосте (CARGO_TARGET_DIR=rust/dashboard-query/target-local)
+	cd "$(DOCKER_REPO_ROOT)/rust/dashboard-query" && CARGO_TARGET_DIR="$(DOCKER_REPO_ROOT)/rust/dashboard-query/target-local" SQLITE_DASHBOARD_GOLDEN_DIR="$(DOCKER_REPO_ROOT)/src/tests/fixtures/sqlite_dashboard_golden" cargo test -p dashboard-query-core -p dashboard-query-server
+
+test-all-quick: ## rust + формулы + pytest gateway cache (как test-all-quick в rust/dashboard-query/Makefile.test)
+	$(MAKE) -f "$(DOCKER_MAKEFILE)" test-rust-dashboard-query
+	$(MAKE) -f "$(DOCKER_MAKEFILE)" test-formulas
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) $(PYTEST) app/services/tests/test_sqlite_query_rust_gateway_cache.py -q
+
+test-all-recommended: ## rust + dashboard_creater + python gateway
+	$(MAKE) -f "$(DOCKER_MAKEFILE)" test-rust-dashboard-query
+	$(MAKE) -f "$(DOCKER_MAKEFILE)" test-dashboard-creater
+	$(MAKE) -f "$(DOCKER_MAKEFILE)" test-python-gateway
+
+# --- database ---
+
+db-migrate: ## alembic upgrade head (в контейнере backend, /app)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) poetry run alembic -c alembic.ini upgrade head
+
+db-seed-demo: ## seed: модель + дашборд + лист + виджет (SEED_OWNER_EMAIL=...)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) poetry run python scripts/seed_demo_dashboard_flow.py --env dev --owner-email $(SEED_OWNER_EMAIL)
+
+# --- benchmark (batch /internal/v1/sqlite/query-batch) ---
+
+bench-rust-batch-host: ## бенч на хосте: поднимает локальные cargo-run серверы (нужны cargo, python3)
+	cd "$(DOCKER_REPO_ROOT)" && python3 rust/dashboard-query/tools/batch_bench.py
+
+bench-rust-batch-docker: ## бенч с хоста против уже запущенного dashboard-query на localhost:8787
+	cd "$(DOCKER_REPO_ROOT)" && BATCH_BENCH_BASE_URL=http://127.0.0.1:8787 python3 rust/dashboard-query/tools/batch_bench.py
+
+# --- security / static checks (backend: dev-зависимости в образе Dockerfile.dev) ---
+
+audit-frontend: ## npm audit в контейнере frontend
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_FE) npm audit
+
+audit-backend-pip: ## pip-audit по установленным пакетам (poetry run pip freeze)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) /bin/bash -lc '\
+		python -m pip install -q pip-audit && poetry run pip freeze | pip-audit -r /dev/stdin'
+
+scan-backend-bandit: ## bandit по app/ и core/ (одноразовый pip install)
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) /bin/bash -lc '\
+		python -m pip install -q "bandit[toml]" && bandit -r app core -ll -q'
+
+lint-backend-docker: ## flake8 в контейнере backend
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) poetry run flake8 app core
+
+typecheck-backend-docker: ## mypy в контейнере backend
+	$(COMPOSE_DEV) exec -T -w /app $(SERV_BE) poetry run mypy app

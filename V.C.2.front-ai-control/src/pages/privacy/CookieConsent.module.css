@@ -1,0 +1,167 @@
+.banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.bannerInner {
+  pointer-events: auto;
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 1.15rem 1.25rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: linear-gradient(160deg, rgba(11, 20, 36, 0.98), rgba(8, 14, 26, 0.98));
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+}
+
+.bannerTitle {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  color: #f8fafc;
+}
+
+.bannerText {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.bannerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.95rem;
+}
+
+.btnPrimary,
+.btnSecondary,
+.btnGhost {
+  min-height: 40px;
+  padding: 0.5rem 0.95rem;
+  border-radius: 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, #06b6d4, #6366f1);
+}
+
+.btnSecondary {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.btnGhost {
+  border: none;
+  background: transparent;
+  color: #67e8f9;
+}
+
+.settings {
+  margin: 0.9rem 0 0;
+  padding: 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(71, 85, 105, 0.45);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.settingsCompact {
+  margin-top: 0.9rem;
+}
+
+.catList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.catRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.catLabel {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: #e2e8f0;
+}
+
+.catDesc {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.alwaysOn {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #67e8f9;
+}
+
+.switch {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: #1e293b;
+  cursor: pointer;
+  padding: 0;
+}
+
+.switchOn {
+  background: linear-gradient(135deg, #06b6d4, #6366f1);
+  border-color: transparent;
+}
+
+.switchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 160ms ease;
+}
+
+.switchOn .switchThumb {
+  transform: translateX(20px);
+}
+
+.savedHint {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .bannerActions {
+    flex-direction: column;
+  }
+
+  .btnPrimary,
+  .btnSecondary,
+  .btnGhost {
+    width: 100%;
+  }
+}

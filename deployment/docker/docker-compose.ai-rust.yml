@@ -1,0 +1,29 @@
+# Optional override: Rust AI replaces Python run_ai on :8003
+# Usage:
+#   docker compose -f deployment/docker/docker-compose.dev.yml \
+#     -f deployment/docker/docker-compose.ai-rust.yml up -d ai_service
+
+services:
+  ai_service:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.aicontrol-ai
+    container_name: ai-control-ai-service-rust
+    environment:
+      AICONTROL_AI__BIND: 0.0.0.0:8003
+      AICONTROL_AI__AICONTROL_BASE_URL: http://backend:8000
+      AICONTROL_AI__DATABASE_URL: postgresql://ai_control_user:ai_control_password@postgres:5432/aicontrol_ai
+      SECURITY__SECRET_KEY: ${SECURITY__SECRET_KEY:-dev-jwt-secret-key-change-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-jwt-secret-key-change-in-production}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      MESSAGING__BASE_URL: ${MESSAGING__BASE_URL:-http://messaging:8792}
+      MESSAGING__INTERNAL_TOKEN: ${MESSAGING__INTERNAL_TOKEN:-}
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+    networks:
+      - ai-control-network
+    volumes: []
+    command: ["aicontrol-ai"]

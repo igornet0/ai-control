@@ -1,0 +1,5 @@
+.app {
+  min-height: 100dvh;
+  background: var(--gradient-secondary);
+  overflow-x: clip;
+}

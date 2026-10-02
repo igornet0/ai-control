@@ -1,0 +1,55 @@
+.host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(71, 85, 105, 0.45);
+}
+
+.hostPaused {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.state {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  border: 0;
+  border-radius: inherit;
+  background: #0f1014;
+}
+
+.frameLoading {
+  opacity: 0;
+}
+
+.frameReady {
+  opacity: 1;
+}
+
+/* Drag/resize must not be captured by the embed iframe. */
+:global(body.widget-resize-active) .frame,
+:global(body.widget-dnd-active) .frame,
+:global(.widget-grid__item.is-resizing) .frame,
+:global(.widget-grid__item.is-dragging) .frame {
+  pointer-events: none !important;
+}

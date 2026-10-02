@@ -1,0 +1,16 @@
+# Sidecar: SQLite dashboard queries (Rust). Контекст сборки — корень репозитория.
+FROM rust:1-bookworm AS builder
+WORKDIR /build
+COPY rust/dashboard-query/Cargo.toml rust/dashboard-query/Cargo.lock ./rust/dashboard-query/
+COPY rust/dashboard-query/dashboard-query-core ./rust/dashboard-query/dashboard-query-core
+COPY rust/dashboard-query/dashboard-query-server ./rust/dashboard-query/dashboard-query-server
+WORKDIR /build/rust/dashboard-query
+RUN cargo build --release -p dashboard-query-server
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /build/rust/dashboard-query/target/release/dashboard-query-server /usr/local/bin/
+ENV DASHBOARD_QUERY_LISTEN=0.0.0.0:8787
+EXPOSE 8787
+CMD ["dashboard-query-server"]

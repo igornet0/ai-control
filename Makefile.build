@@ -1,0 +1,176 @@
+# AiControl — production build & run
+#
+# From repository root:
+#   make -f Makefile.build all              — host native (macOS arm64 → Mach-O)
+#   make -f Makefile.build linux-amd64      — linux/amd64 via Docker (macOS arm64 OK)
+#   make -f Makefile.build up|stop|restart|status
+#
+# Artifacts: dist/prod/{frontend,python,bin,share,prod.env,run.sh}
+
+SHELL := /bin/bash
+
+ROOT := $(CURDIR)
+DIST_DIR ?= $(ROOT)/dist/prod
+BUILD_SCRIPT := $(ROOT)/scripts/build-prod.sh
+BUILD_DOCKER_SCRIPT := $(ROOT)/scripts/build-prod-docker.sh
+RUN_SCRIPT := $(ROOT)/scripts/run-prod.sh
+
+# Docker linux/amd64 cross-build (defaults before export — empty env must not win)
+WHAT ?= all
+DOCKER_PLATFORM ?= linux/amd64
+BUILD_IMAGE ?= aicontrol-build-prod
+# If the variable is present but empty in the environment, ?= keeps "" — normalize:
+ifeq ($(strip $(DOCKER_PLATFORM)),)
+  DOCKER_PLATFORM := linux/amd64
+endif
+ifeq ($(strip $(BUILD_IMAGE)),)
+  BUILD_IMAGE := aicontrol-build-prod
+endif
+
+export DIST_DIR
+export SKIP_NPM_CI
+export CARGO_TARGET
+export FORCE_PROD_ENV
+export DOCKER_PLATFORM
+export FORCE_IMAGE_REBUILD
+export BUILD_IMAGE
+export WHAT
+
+.PHONY: help all prod build frontend front python src rust env clean \
+	manifest check-tools check-root check-docker \
+	linux-amd64 docker-linux-amd64 docker-build-image \
+	up start stop down restart status \
+	rust-dashboard-query rust-realtime-sync \
+	rust-task-reporting rust-file-pipeline rust-schedule rust-mail rust-partyhome
+
+help:
+	@echo "AiControl Makefile.build — production build & run"
+	@echo ""
+	@echo "Build (host — current OS/arch):"
+	@echo "  make -f Makefile.build all          — frontend + python + rust + env"
+	@echo "  make -f Makefile.build frontend|python|rust|env"
+	@echo "  make -f Makefile.build clean"
+	@echo ""
+	@echo "Build (linux/amd64 via Docker — use on macOS arm64 for servers):"
+	@echo "  make -f Makefile.build linux-amd64"
+	@echo "  make -f Makefile.build linux-amd64 WHAT=rust"
+	@echo "  make -f Makefile.build docker-build-image   — only rebuild builder image"
+	@echo "  FORCE_IMAGE_REBUILD=1 make -f Makefile.build linux-amd64"
+	@echo ""
+	@echo "Run (dist/prod + prod.env):"
+	@echo "  make -f Makefile.build up|stop|restart|status"
+	@echo "  ./scripts/run-prod.sh up|stop|restart|status"
+	@echo "  dist/prod/run.sh up|stop|restart|status"
+	@echo ""
+	@echo "Init / install (on server, after build):"
+	@echo "  cd dist/prod && ./install.sh -y     — postgres, redis, python venv, DataCode"
+	@echo "  cd dist/prod && ./init_env.sh"
+	@echo ""
+	@echo "Env: DIST_DIR=$(DIST_DIR)  FORCE_PROD_ENV=1  SKIP_NPM_CI=1  DOCKER_PLATFORM=linux/amd64"
+
+check-root:
+	@test -f "$(ROOT)/scripts/build-prod.sh" || { \
+	  echo "error: run make from AiControl repo root"; \
+	  exit 1; \
+	}
+	@test -d "$(ROOT)/front-ai-control" && test -d "$(ROOT)/src" && test -d "$(ROOT)/rust" || { \
+	  echo "error: expected front-ai-control/, src/, rust/ under $(ROOT)"; \
+	  exit 1; \
+	}
+
+check-tools: check-root
+	@command -v npm >/dev/null || { echo "npm required"; exit 1; }
+	@command -v poetry >/dev/null || { echo "poetry required"; exit 1; }
+	@command -v cargo >/dev/null || { echo "cargo required"; exit 1; }
+	@command -v rsync >/dev/null || { echo "rsync required"; exit 1; }
+	@chmod +x "$(BUILD_SCRIPT)" "$(RUN_SCRIPT)"
+
+check-docker: check-root
+	@command -v docker >/dev/null || { echo "docker required for linux-amd64 build"; exit 1; }
+	@docker info >/dev/null 2>&1 || { echo "docker daemon not running"; exit 1; }
+	@chmod +x "$(BUILD_DOCKER_SCRIPT)" "$(BUILD_SCRIPT)" "$(RUN_SCRIPT)"
+
+all prod build: check-tools
+	@"$(BUILD_SCRIPT)" all
+
+frontend front: check-tools
+	@"$(BUILD_SCRIPT)" frontend
+
+python src: check-tools
+	@"$(BUILD_SCRIPT)" python
+
+rust: check-tools
+	@"$(BUILD_SCRIPT)" rust
+
+env: check-tools
+	@"$(BUILD_SCRIPT)" env
+
+# Cross-build for Linux servers from macOS arm64 (or any host with Docker).
+# WHAT=all|frontend|python|rust|env|clean  (default: all)
+linux-amd64 docker-linux-amd64: check-docker
+	@"$(BUILD_DOCKER_SCRIPT)" "$(WHAT)"
+
+docker-build-image: check-docker
+	@echo "==> Building $(BUILD_IMAGE) ($(DOCKER_PLATFORM))"
+	@docker build \
+		--platform "$(DOCKER_PLATFORM)" \
+		-f "$(ROOT)/deployment/docker/Dockerfile.build-prod" \
+		-t "$(BUILD_IMAGE)" \
+		"$(ROOT)/deployment/docker"
+
+manifest: check-root
+	@"$(BUILD_SCRIPT)" manifest
+
+clean: check-root
+	@"$(BUILD_SCRIPT)" clean
+
+up start: check-root
+	@chmod +x "$(RUN_SCRIPT)"
+	@"$(RUN_SCRIPT)" up
+
+stop down: check-root
+	@chmod +x "$(RUN_SCRIPT)"
+	@"$(RUN_SCRIPT)" stop
+
+restart: check-root
+	@chmod +x "$(RUN_SCRIPT)"
+	@"$(RUN_SCRIPT)" restart
+
+status: check-root
+	@chmod +x "$(RUN_SCRIPT)"
+	@"$(RUN_SCRIPT)" status
+
+RUST_REL := $(if $(CARGO_TARGET),target/$(CARGO_TARGET)/release,target/release)
+CARGO_TARGET_ARGS := $(if $(CARGO_TARGET),--target $(CARGO_TARGET),)
+
+define RUST_BUILD
+	@mkdir -p "$(DIST_DIR)/bin"
+	@echo "==> cargo release $(1) / $(2)"
+	@cd "$(ROOT)/rust/$(1)" && cargo build --release -p $(2) $(CARGO_TARGET_ARGS)
+	@install -m 755 "$(ROOT)/rust/$(1)/$(RUST_REL)/$(3)" "$(DIST_DIR)/bin/$(4)"
+	@echo "→ $(DIST_DIR)/bin/$(4)"
+endef
+
+rust-dashboard-query: check-root
+	$(call RUST_BUILD,dashboard-query,dashboard-query-server,dashboard-query-server,dashboard-query-server)
+
+rust-realtime-sync: check-root
+	$(call RUST_BUILD,realtime-sync,realtime-sync,server,realtime-sync-server)
+
+rust-task-reporting: check-root
+	$(call RUST_BUILD,task-reporting,task-reporting-server,task-reporting-server,task-reporting-server)
+
+rust-file-pipeline: check-root
+	$(call RUST_BUILD,file-pipeline,file-pipeline-server,file-pipeline-server,file-pipeline-server)
+
+rust-schedule: check-root
+	$(call RUST_BUILD,ScheduleSystem,schedule-system-server,schedule-system-server,schedule-system-server)
+	@mkdir -p "$(DIST_DIR)/share/schedule-system"
+	@rsync -a "$(ROOT)/rust/ScheduleSystem/schedule-system-server/static/" \
+		"$(DIST_DIR)/share/schedule-system/static/"
+
+rust-mail: check-root
+	$(call RUST_BUILD,MailMessageManager,mail-message-manager-server,mail-message-manager-server,mail-message-manager-server)
+
+rust-partyhome: check-root
+	$(call RUST_BUILD,PartyHome,signaling,signaling,partyhome-signaling)

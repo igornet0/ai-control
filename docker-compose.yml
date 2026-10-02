@@ -1,0 +1,134 @@
+# Prod-like сборка локально. Для dev с bind-mount и пробросом к БД на хосте см. docker-compose.dev.yml и Makefile.docker.
+
+networks:
+  default:
+  # Sandbox + worker only; not published to host. Egress needed for allowlisted SMB.
+  ces_net:
+    driver: bridge
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: aicontrol-redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - default
+      - ces_net
+
+  datacode-sandbox:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.datacode-runner
+    image: aicontrol-datacode-runner:dev
+    container_name: datacode-sandbox
+    # No host port publish — only ces-worker reaches :8899 via ces_net.
+    expose:
+      - "8899"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1.0
+    command:
+      - "--websocket"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8899"
+      - "--use-ve"
+      - "--build_model"
+    restart: unless-stopped
+    networks:
+      - ces_net
+
+  ces-worker:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: ces-worker
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CES__ENABLED: "true"
+      CES__REDIS_URL: redis://redis:6379/1
+      DC__HOST: datacode-sandbox
+      DC__PORT: "8899"
+    command: poetry run python -m workers.ces_worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      datacode-sandbox:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - default
+      - ces_net
+
+  dashboard-query:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.dashboard-query
+    container_name: dashboard-query
+    ports:
+      - "8787:8787"
+    restart: unless-stopped
+    networks:
+      - default
+
+  backend:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.dev
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN__CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CES__ENABLED: "true"
+      CES__REDIS_URL: redis://redis:6379/1
+      SQLITE_QUERY_RUST__BASE_URL: http://dashboard-query:8787
+      SQLITE_QUERY_RUST__ENABLED: "true"
+      SQLITE_QUERY_RUST__PYTHON_FALLBACK_ON_TIMEOUT: "false"
+      SQLITE_QUERY_RUST__CACHE_ENABLED: "true"
+      SQLITE_QUERY_RUST__CACHE_REDIS_URL: redis://redis:6379/0
+    command: poetry run python run_app.py --env=prod
+    depends_on:
+      redis:
+        condition: service_healthy
+      ces-worker:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - default
+
+  frontend:
+    build:
+      context: ./front-ai-control
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  redis_data:

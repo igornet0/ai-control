@@ -1,0 +1,51 @@
+# Production artifact builder (frontend + python stage + rust sidecars).
+# Intended for: macOS arm64 host → linux/amd64 binaries via:
+#   docker buildx build --platform linux/amd64 -f deployment/docker/Dockerfile.build-prod -t aicontrol-build-prod .
+#   make -f Makefile.build linux-amd64
+#
+# Base is Debian so cargo links against glibc (x86_64-unknown-linux-gnu).
+FROM debian:bookworm-slim
+
+ARG NODE_MAJOR=20
+ARG RUST_VERSION=stable
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:/usr/local/bin:$PATH \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    git \
+    rsync \
+    file \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node.js (NodeSource)
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python tooling (Poetry + export plugin for requirements.txt)
+RUN pip3 install --break-system-packages \
+    "poetry>=1.8,<3" \
+    "poetry-plugin-export>=1.8"
+
+# Rust toolchain
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --default-toolchain "${RUST_VERSION}" --profile minimal \
+    && rustc --version && cargo --version
+
+WORKDIR /work
+
+# Default: full production build (override with docker run … build-prod.sh rust)
+CMD ["./scripts/build-prod.sh", "all"]
