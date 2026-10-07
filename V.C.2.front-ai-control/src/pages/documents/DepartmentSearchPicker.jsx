@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import '../task_manager/components/ProjectSearchPicker.css';
+import '../../components/shared/ProjectSearchPicker.css';
 
 export default function DepartmentSearchPicker({
   departments = [],

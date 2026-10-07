@@ -21,13 +21,14 @@ import {
   allowsExportToProfile,
   parseEngineWidgetDbId,
 } from '../../services/profileWidgetCatalog.js';
-import { showTaskToast } from '../task_manager/components/taskToast';
+import { showTaskToast } from '../../components/shared/taskToast';
 import {
   dashboardModelsSupportAutoRefresh,
   getDashboardAutoRefreshEnabled,
   getDashboardAutoRefreshIntervalSec,
 } from '../../utils/dashboardAutoRefresh.js';
 import { canEditDashboard } from '../../utils/dashboardUtils';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import DashboardAiAssistant from './ai/DashboardAiAssistant.jsx';
 import {
   applyDataFieldToWidget,
@@ -470,6 +471,8 @@ const DashboardCreaterApp = ({ user, onLogout, shareContext = null }) => {
   const sheetsRef = useRef(sheets);
   sheetsRef.current = sheets;
   const [dashboardName, setDashboardName] = useState('');
+  const currentSheetName = sheets.find((s) => String(s.id) === String(sheetId))?.name || '';
+  useDocumentTitle([currentSheetName, dashboardName || 'Панель управления']);
   // Загружаем режим из localStorage или используем 'editor' по умолчанию
   const [currentMode, setCurrentMode] = useState(() => {
     const savedMode = localStorage.getItem('dashboard-creater-mode');

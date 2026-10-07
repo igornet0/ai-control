@@ -16,7 +16,7 @@ import {
   PRIORITY_SORT_ORDER,
 } from './overviewHelpers';
 import { isTaskClosed } from '../../utils/performanceUtils';
-import { showTaskToast } from '../../components/taskToast';
+import { showTaskToast } from '../../../../components/shared/taskToast';
 
 const LIVE_REFRESH_MS = 30000;
 

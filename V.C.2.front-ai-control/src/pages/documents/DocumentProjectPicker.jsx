@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { projectService } from '../../services/projectService';
-import ProjectSearchPicker from '../task_manager/components/ProjectSearchPicker';
+import ProjectSearchPicker from '../../components/shared/ProjectSearchPicker';
 import styles from './DocumentsApp.module.css';
 
 export default function DocumentProjectPicker({

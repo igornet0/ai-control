@@ -8,7 +8,7 @@ import {
   MAX_PROFILE_SCREENS,
   profileWidgetsService,
 } from '../services/profileWidgetsService';
-import { showTaskToast } from '../pages/task_manager/components/taskToast';
+import { showTaskToast } from '../components/shared/taskToast';
 
 export const PROFILE_WIDGETS_CHANGED_EVENT = 'aicontrol:profile-widgets-changed';
 const ACTIVE_SCREEN_STORAGE_KEY = 'aicontrol:profile-active-screen';

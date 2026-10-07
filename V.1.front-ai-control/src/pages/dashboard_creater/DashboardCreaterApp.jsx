@@ -28,6 +28,7 @@ import {
   getDashboardAutoRefreshIntervalSec,
 } from '../../utils/dashboardAutoRefresh.js';
 import { canEditDashboard } from '../../utils/dashboardUtils';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import DashboardAiAssistant from './ai/DashboardAiAssistant.jsx';
 import {
   applyDataFieldToWidget,
@@ -470,6 +471,8 @@ const DashboardCreaterApp = ({ user, onLogout, shareContext = null }) => {
   const sheetsRef = useRef(sheets);
   sheetsRef.current = sheets;
   const [dashboardName, setDashboardName] = useState('');
+  const currentSheetName = sheets.find((s) => String(s.id) === String(sheetId))?.name || '';
+  useDocumentTitle([currentSheetName, dashboardName || 'Панель управления']);
   // Загружаем режим из localStorage или используем 'editor' по умолчанию
   const [currentMode, setCurrentMode] = useState(() => {
     const savedMode = localStorage.getItem('dashboard-creater-mode');

@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CloseIcon } from './TaskManagerIcons';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import './ProjectSearchPicker.css';
 
 export function findProjectIdForTask(projects, taskId) {
@@ -265,7 +265,7 @@ export default function ProjectSearchPicker({
               disabled={disabled}
               aria-label="Убрать проект"
             >
-              <CloseIcon size="xs" />
+              <XMarkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import DashboardImageSelector from './components/DashboardImageSelector';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { buildDashboardSheetPath, flowNavigateState } from '../../services/dashboardSheetNav.js';
 import { 
   PencilIcon, 
@@ -199,6 +200,8 @@ const DashboardDetail = () => {
 
   // Edit permissions state
   const [canEdit, setCanEdit] = useState(false);
+
+  useDocumentTitle([dashboard?.name || dashboardName, 'Панель управления']);
   const isSnapshotView = Boolean(location.state?.fromFlow);
   const activeFlowId = location.state?.flowId ? String(location.state.flowId) : null;
   const canModifyStructure = canEdit && !isSnapshotView;

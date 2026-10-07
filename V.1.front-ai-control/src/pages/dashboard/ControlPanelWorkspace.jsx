@@ -5,6 +5,7 @@ import { dashboardService } from '../../services/dashboardService';
 import { dataModelService } from '../../services/dataModelService';
 import { flowService } from '../../services/flowService';
 import { isPlatformAdmin } from '../../utils/isPlatformAdmin';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import DashboardSidebar from './DashboardSidebar';
 import AuthorizedImage from '../data_models/components/AuthorizedImage';
 import { MediaBatchProvider } from '../../hooks/useMediaBatch';
@@ -204,6 +205,14 @@ const ControlPanelWorkspace = ({ defaultSection = 'panels', initialFlowId = null
   const selectedFlow = useMemo(
     () => flows.find((flow) => String(flow.id) === String(flowsFilter)) || null,
     [flows, flowsFilter],
+  );
+
+  useDocumentTitle(
+    mainSection === 'flows'
+      ? [selectedFlow?.name, 'Потоки']
+      : mainSection === 'data-models'
+        ? 'Модели данных'
+        : 'Панели управления',
   );
 
   const panelsFilters = useMemo(

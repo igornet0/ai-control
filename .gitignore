@@ -13,6 +13,7 @@ node_modules/
 
 # testing
 /coverage
+**/dashboard_creater/coverage/
 
 # production
 /build

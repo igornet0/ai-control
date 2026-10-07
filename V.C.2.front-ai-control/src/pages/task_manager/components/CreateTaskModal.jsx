@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { projectService } from '../../../services/projectService';
 import CustomSelect from '../selector/CustomSelect';
 import TaskTags from './TaskTags';
-import ProjectSearchPicker from './ProjectSearchPicker';
+import ProjectSearchPicker from '../../../components/shared/ProjectSearchPicker';
 import TaskTeamAssigneeFields from './TaskTeamAssigneeFields';
 import './CreateTaskModal.css';
 import { CalendarViewIcon, CloseIcon, LightbulbIcon, SearchIcon, TaskTemplateIcon } from './TaskManagerIcons';

@@ -6,7 +6,7 @@ import { getTaskPermissions } from "../utils/taskPermissions";
 import { getTaskChangeLog } from "../utils/taskChangeLogUtils";
 import { toDateInputValue, fromDateInputValue } from "../utils/dateInputUtils";
 import { projectService } from "../../../services/projectService";
-import ProjectSearchPicker, { findProjectIdForTask } from "./ProjectSearchPicker";
+import ProjectSearchPicker, { findProjectIdForTask } from "../../../components/shared/ProjectSearchPicker";
 import TaskTeamAssigneeFields from "./TaskTeamAssigneeFields";
 import TaskComments from "./TaskComments";
 import TaskTimeLog from "./TaskTimeLog";
@@ -17,7 +17,8 @@ import {
   IconWithText,
   MyTasksIcon,
 } from "./TaskManagerIcons";
-import { showTaskToast } from "./taskToast";
+import { showTaskToast } from "../../../components/shared/taskToast";
+import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
 
 const statusOptions = [
   { value: "created", label: "Создана" },
@@ -38,6 +39,7 @@ const priorityOptions = [
 ];
 
 export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpdate, currentUser, overlayZIndex = 9999 }) {
+  useDocumentTitle([task.title || (task.id ? `Задача #${task.id}` : "Новая задача"), "Задачи"]);
   // Локальный стейт для редактирования
   const [editedTask, setEditedTask] = useState({
     title: task.title || "",

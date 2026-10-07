@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { dataModelService, isModelMediaRole } from '../../services/dataModelService';
 import FileManager from './components/FileManager';
 import RelationshipViewer from './components/RelationshipViewer';
@@ -31,6 +32,7 @@ const DataModelDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [model, setModel] = useState(null);
+  useDocumentTitle([model?.name, 'Модель данных']);
   const [files, setFiles] = useState([]);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);

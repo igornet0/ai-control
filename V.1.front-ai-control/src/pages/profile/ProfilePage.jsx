@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isPlatformAdmin } from '../../utils/isPlatformAdmin';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 import ProfileSidebar from './components/ProfileSidebar';
 import Profile from './components/Profile';
@@ -19,12 +20,29 @@ import {
   MMM_OPEN_ROOM_EVENT,
 } from '../../services/messagingNavigation';
 
+const PROFILE_TAB_TITLES = {
+  profile: 'Профиль',
+  privacy: 'Конфиденциальность',
+  finance: 'Финансы',
+  employees: 'Сотрудники',
+  email: 'Почта',
+  strategys: 'Стратегия',
+  admin: 'Админ панель',
+};
+
 const ProfilePage = ({ user, onLogout }) => {
   const location = useLocation();
   const { unreadTotal, requestBrowserPermission } = useMessagingAlerts();
   const [activeTab, setActiveTab] = useState('profile');
   const [pendingDmUserId, setPendingDmUserId] = useState(null);
   const [pendingOpenRoom, setPendingOpenRoom] = useState(null);
+
+  // Вкладка «Почта» уточняет заголовок сама (чат / почта) внутри EmailTab.
+  useDocumentTitle(
+    activeTab === 'profile'
+      ? 'Профиль'
+      : [PROFILE_TAB_TITLES[activeTab], 'Профиль'],
+  );
 
   const openEmailTab = (nextTab = 'email') => {
     setActiveTab(nextTab);

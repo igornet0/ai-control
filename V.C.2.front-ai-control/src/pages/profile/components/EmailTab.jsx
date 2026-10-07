@@ -77,6 +77,7 @@ import MailPane from './MailPane';
 import AiAgentChat from './AiAgentChat';
 import { aiAgentService } from '../../../services/aiAgentService';
 import MarkdownContent from '../../../components/MarkdownContent';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
 import styles from './EmailTab.module.css';
 
 const ROOM_TYPE_LABELS = {
@@ -1558,6 +1559,18 @@ export default function EmailTab({
     () => rooms.find((r) => r.id === selectedRoomId) || null,
     [rooms, selectedRoomId]
   );
+
+  let tabTitle = null;
+  if (activeTab === 'email') {
+    if (subTab === 'mail') {
+      tabTitle = 'Почта';
+    } else if (selectedAiAgent) {
+      tabTitle = [aiAgentInfo?.name || 'AI Ассистент', 'Чаты'];
+    } else {
+      tabTitle = [selectedRoom ? getRoomDisplayName(selectedRoom, user) : null, 'Чаты'];
+    }
+  }
+  useDocumentTitle(tabTitle);
 
   const handleJoinCall = useCallback(
     async (partyRoomId) => {

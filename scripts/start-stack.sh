@@ -185,8 +185,10 @@ start_bg mail-message-manager "$ROOT/office-rust/MailMessageManager" \
     set +a
     exec cargo run -p mail-message-manager-server'
 
+# Signaling only: the main frontend (:3000) talks to :8989 directly,
+# PartyHome's own Vite page is not needed in the stack.
 start_bg partyhome "$ROOT/office-rust/PartyHome" \
-  bash ./run.sh up --wait
+  env PARTYHOME_FRONTEND=0 bash ./run.sh up --wait
 
 echo
 echo "=== 2/3 DataCode + frontend ==="
@@ -239,7 +241,7 @@ Stack is up (host only, no Docker).
   ScheduleSystem UI   http://127.0.0.1:8793   (superuser)
 
   Logs: $LOG_DIR/*.log
-  PartyHome logs: $ROOT/rust/PartyHome/logs/
+  PartyHome logs: $ROOT/office-rust/PartyHome/logs/
   First cargo compile can take 1–2 min.
 
 Stop:     $0 stop

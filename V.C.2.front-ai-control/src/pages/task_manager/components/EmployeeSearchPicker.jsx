@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { employeeService } from '../../../services/employeeService';
 import { CloseIcon } from './TaskManagerIcons';
-import './ProjectSearchPicker.css';
+import '../../../components/shared/ProjectSearchPicker.css';
 
 function formatEmployeeLabel(employee) {
   return employee?.name || `Сотрудник #${employee?.id}`;

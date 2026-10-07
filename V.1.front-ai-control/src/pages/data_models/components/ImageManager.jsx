@@ -12,8 +12,8 @@ import {
 } from '@heroicons/react/24/outline';
 import AuthorizedImage from './AuthorizedImage';
 import { MediaBatchProvider } from '../../../hooks/useMediaBatch';
-import {
 import { getAccessToken } from '../../../services/tokenRefresh';
+import {
   dataModelService,
   inferMediaUploadRole,
   isAllowedMediaUploadFile,

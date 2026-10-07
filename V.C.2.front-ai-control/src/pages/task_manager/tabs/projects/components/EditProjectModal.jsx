@@ -7,7 +7,7 @@ import { getTasks } from '../../../../../services/taskService';
 import './CreateProjectModal.css';
 import styles from './EditProjectModal.module.css';
 import { CheckIcon, CloseIcon, UploadingIcon, WarningIcon } from '../../../components/TaskManagerIcons';
-import ConfirmDialog from '../../../components/ConfirmDialog';
+import ConfirmDialog from '../../../../../components/shared/ConfirmDialog';
 import { TasksPicker, TeamsPicker, mergeProjectTeamsForPicker, useProjectPickerDetails } from './ProjectFormSelectors';
 import { projectPriorityOptions, projectStatusOptions } from './projectFormOptions';
 import { collectProjectManagers, userCanAssignProjectManagers, userCanConfigureProjectCard } from './projectManagers';

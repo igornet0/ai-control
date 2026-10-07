@@ -3,7 +3,7 @@ import { projectService } from '../../../../../services/projectService';
 import { taskService } from '../../../../../services/taskService';
 import useAuth from '../../../../../hooks/useAuth';
 import EditProjectModal from './EditProjectModal';
-import ConfirmDialog from '../../../components/ConfirmDialog';
+import ConfirmDialog from '../../../../../components/shared/ConfirmDialog';
 import TaskDetails from '../../../components/TaskDetails';
 import ProjectTasksCalendar from './ProjectTasksCalendar';
 import EmployeeHoverTrigger from '../../../../profile/components/employees/EmployeeHoverTrigger';

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Notification from '../../components/Notification';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { documentLinkService } from '../../services/documentLinkService';
 import { documentService } from '../../services/documentService';
 import DocumentSheetPreview from './DocumentSheetPreview';
@@ -169,6 +170,7 @@ export default function DocumentSharePage() {
     const trimmed = title != null ? String(title).trim() : '';
     return trimmed || sheetTitle;
   }, [title, sheetTitle]);
+  useDocumentTitle(content ? [pageTitle, 'Документ по ссылке'] : null);
 
   if (loading) {
     return (

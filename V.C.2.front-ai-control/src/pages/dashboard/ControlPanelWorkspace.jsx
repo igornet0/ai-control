@@ -5,6 +5,7 @@ import { dashboardService } from '../../services/dashboardService';
 import { dataModelService } from '../../services/dataModelService';
 import { flowService } from '../../services/flowService';
 import { isPlatformAdmin } from '../../utils/isPlatformAdmin';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import DashboardSidebar from './DashboardSidebar';
 import AuthorizedImage from '../data_models/components/AuthorizedImage';
 import { MediaBatchProvider } from '../../hooks/useMediaBatch';
@@ -16,7 +17,7 @@ import {
   setRecentItems as persistRecentItems,
 } from './controlPanelRecent';
 import workspaceStyles from './ControlPanelWorkspace.module.css';
-import ConfirmDialog from '../task_manager/components/ConfirmDialog';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import {
   ChartBarSquareIcon,
   CircleStackIcon,
@@ -204,6 +205,14 @@ const ControlPanelWorkspace = ({ defaultSection = 'panels', initialFlowId = null
   const selectedFlow = useMemo(
     () => flows.find((flow) => String(flow.id) === String(flowsFilter)) || null,
     [flows, flowsFilter],
+  );
+
+  useDocumentTitle(
+    mainSection === 'flows'
+      ? [selectedFlow?.name, 'Потоки']
+      : mainSection === 'data-models'
+        ? 'Модели данных'
+        : 'Панели управления',
   );
 
   const panelsFilters = useMemo(

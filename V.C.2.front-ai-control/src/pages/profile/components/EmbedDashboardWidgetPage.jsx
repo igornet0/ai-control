@@ -8,7 +8,7 @@ import { flowService } from '../../../services/flowService';
 import { allowsExportToProfile } from '../../../services/profileWidgetCatalog';
 import { buildDashboardSheetPath, resolveNavigateSheetId } from '../../../services/dashboardSheetNav.js';
 import { loadProfileTableSort } from '../../../services/profileTableSortStorage.js';
-import { showTaskToast } from '../../task_manager/components/taskToast';
+import { showTaskToast } from '../../../components/shared/taskToast';
 import mainCssUrl from '../../dashboard_creater/main/styles/main.css?url';
 import styles from './EmbedDashboardWidgetPage.module.css';
 

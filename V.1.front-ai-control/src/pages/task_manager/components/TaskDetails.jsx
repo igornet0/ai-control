@@ -18,6 +18,7 @@ import {
   MyTasksIcon,
 } from "./TaskManagerIcons";
 import { showTaskToast } from "./taskToast";
+import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
 
 const statusOptions = [
   { value: "created", label: "Создана" },
@@ -38,6 +39,7 @@ const priorityOptions = [
 ];
 
 export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpdate, currentUser, overlayZIndex = 9999 }) {
+  useDocumentTitle([task.title || (task.id ? `Задача #${task.id}` : "Новая задача"), "Задачи"]);
   // Локальный стейт для редактирования
   const [editedTask, setEditedTask] = useState({
     title: task.title || "",

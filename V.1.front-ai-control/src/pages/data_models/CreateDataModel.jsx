@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { dataModelService } from '../../services/dataModelService';
 import { persistWorkspaceState } from './workspace/widgetDbSync.js';
 import { 
@@ -31,6 +32,10 @@ const CreateDataModel = () => {
   const [createdModelId, setCreatedModelId] = useState(null); // ID созданной модели
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
   const [lastSavedData, setLastSavedData] = useState({ name: '', description: '' });
+  useDocumentTitle([
+    lastSavedData.name,
+    isEditMode ? 'Редактирование модели данных' : 'Новая модель данных',
+  ]);
   
   // Основные данные модели
   const [formData, setFormData] = useState({

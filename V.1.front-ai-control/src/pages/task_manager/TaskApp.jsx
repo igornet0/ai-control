@@ -7,6 +7,7 @@ import BarChart from "./components/BarChart";
 import TeamRatings from "./components/TeamRatings";
 import CreateTaskModal from "./components/CreateTaskModal";
 import Notification from "../../components/Notification";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import DraggableGrid from "../../components/DraggableGrid";
 import { getTasks, createTask, deleteTask } from "../../services/taskService";
 import { projectService } from "../../services/projectService";
@@ -36,6 +37,7 @@ import taskStyles from './TaskApp.module.css';
 
 const TaskApp = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('Задачи');
+  useDocumentTitle([activeTab, 'Задачи']);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);

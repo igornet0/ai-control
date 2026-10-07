@@ -8,6 +8,9 @@ import { useAuth } from './context/AuthContext';
 import { MMM_OPEN_DIRECT_EVENT } from './services/messagingNavigation';
 import MessagingGlobalHost from './components/messaging/MessagingGlobalHost';
 import { isEmbeddedPath, isEmbeddedShell } from './utils/embeddedShell';
+import { useDocumentTitle, useDocumentTitleBadge } from './hooks/useDocumentTitle';
+import { useMessagingAlerts } from './context/MessagingAlertsContext';
+import { getRouteTitle } from './utils/routeTitles';
 /* Critical landing chrome: eager so first paint does not depend on Suspense chunks. */
 import Header from './pages/main_page/Header';
 import Hero from './pages/main_page/Hero';
@@ -84,6 +87,12 @@ const AppContent = ({ user, isAuthenticated, authLoading, login, logout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const pending = authSessionPending(authLoading);
+
+  // Базовый заголовок вкладки по маршруту; страницы уточняют его своим useDocumentTitle.
+  useDocumentTitle(getRouteTitle(location.pathname));
+  // «(3) …» — непрочитанные чаты и почта; видно даже из фоновой вкладки.
+  const { unreadTotal } = useMessagingAlerts();
+  useDocumentTitleBadge(isEmbeddedPath(location.pathname) || isEmbeddedShell() ? 0 : unreadTotal);
 
   useEffect(() => {
     const handler = (event) => {

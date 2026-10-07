@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import DashboardImageSelector from './components/DashboardImageSelector';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { buildDashboardSheetPath, flowNavigateState } from '../../services/dashboardSheetNav.js';
 import { 
   PencilIcon, 
@@ -53,7 +54,7 @@ import ShareLinkModal from './components/ShareLinkModal.jsx';
 import FlowSessionModal from './components/FlowSessionModal.jsx';
 import TemplateAccessModal from './components/TemplateAccessModal.jsx';
 import SheetAccessModal from './components/SheetAccessModal.jsx';
-import ConfirmDialog from '../task_manager/components/ConfirmDialog';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import {
   dashboardModelsSupportAutoRefresh,
   getDashboardAutoRefreshEnabled,
@@ -199,6 +200,8 @@ const DashboardDetail = () => {
 
   // Edit permissions state
   const [canEdit, setCanEdit] = useState(false);
+
+  useDocumentTitle([dashboard?.name || dashboardName, 'Панель управления']);
   const isSnapshotView = Boolean(location.state?.fromFlow);
   const activeFlowId = location.state?.flowId ? String(location.state.flowId) : null;
   const canModifyStructure = canEdit && !isSnapshotView;

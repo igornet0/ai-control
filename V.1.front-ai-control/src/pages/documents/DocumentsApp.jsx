@@ -11,6 +11,7 @@ import TemplatePreviewPanel from './TemplatePreviewPanel';
 import CreateTemplateModal from './CreateTemplateModal';
 import ResourceCard from './ResourceCard';
 import { useCollapsibleSidebar } from '../../hooks/useCollapsibleSidebar.js';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import MobileSidebarChrome from '../../components/layout/MobileSidebarChrome.jsx';
 import { isSpreadsheetTemplate, isSpreadsheetDocument, getTemplateKind } from './templateTypeUtils';
 import {
@@ -558,6 +559,28 @@ const DocumentsApp = () => {
       searchQuery,
     ],
   );
+
+  const tabTitleParts = useMemo(() => {
+    if (editingDocumentId) {
+      const d = documents.find((doc) => String(doc.id) === String(editingDocumentId));
+      if (!d) return ['Документы'];
+      const isTable = isSpreadsheetDocument(d, templates);
+      return [
+        getDocumentDisplayTitle(d, templates, getKindName(d.document_kind_id)),
+        isTable ? 'Таблицы' : 'Документы',
+      ];
+    }
+    if (previewTemplateId != null) {
+      const t = templates.find((x) => String(x.id) === String(previewTemplateId));
+      return [
+        t?.name || `Шаблон #${previewTemplateId}`,
+        t && isSpreadsheetTemplate(t) ? 'Шаблоны таблиц' : 'Шаблоны документов',
+      ];
+    }
+    const navItem = ALL_NAV_ITEMS.find((item) => item.id === activeTab);
+    return [navItem?.breadcrumb, 'Документы'];
+  }, [editingDocumentId, previewTemplateId, documents, templates, activeTab, getKindName]);
+  useDocumentTitle(tabTitleParts);
 
   const clearDocumentFilters = useCallback(() => {
     setDocumentFilterKindId('');
