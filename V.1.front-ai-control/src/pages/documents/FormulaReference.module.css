@@ -1,0 +1,265 @@
+/* Справочник формул (всплывающее окно из строки формулы). */
+
+.triggerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #c7d2fe;
+  background: rgba(124, 92, 255, 0.12);
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.triggerBtn:hover,
+.triggerBtnActive {
+  background: rgba(124, 92, 255, 0.24);
+  border-color: rgba(124, 92, 255, 0.6);
+}
+
+.triggerBtn:focus-visible {
+  outline: 2px solid #9277ff;
+  outline-offset: 2px;
+}
+
+.triggerIcon {
+  font-style: italic;
+  font-weight: 700;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.panel {
+  position: fixed;
+  z-index: 12050;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  background: #0d1326;
+  color: #eef2ff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.55), 0 0 32px rgba(124, 92, 255, 0.12);
+  overflow: hidden;
+  animation: refPop 140ms ease-out;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.9rem 0.4rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: #8b9cc8;
+  background: transparent;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  color: #eef2ff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.search {
+  margin: 0 0.9rem 0.5rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  color: #eef2ff;
+  background: #131c35;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.45rem;
+  outline: none;
+}
+
+.search:focus {
+  border-color: rgba(124, 92, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.15);
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0 0.9rem 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.category {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.74rem;
+  color: #8b9cc8;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.category:hover {
+  color: #eef2ff;
+}
+
+.categoryActive {
+  color: #fff;
+  background: rgba(124, 92, 255, 0.3);
+  border-color: rgba(124, 92, 255, 0.6);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.5rem 0.9rem 0.6rem;
+}
+
+.sectionTitle {
+  margin: 0.35rem 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b9cc8;
+}
+
+.basics {
+  margin-bottom: 0.25rem;
+}
+
+.basicsList,
+.list,
+.errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.basicsItem,
+.item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.itemHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: #c7d2fe;
+}
+
+.aliases {
+  font-size: 0.72rem;
+  color: #6b7a9f;
+}
+
+.desc {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #a8b4d6;
+}
+
+.exampleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.code {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.76rem;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.35rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.copyBtn {
+  flex-shrink: 0;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #eef2ff;
+  background: #131c35;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.copyBtn:hover {
+  border-color: rgba(124, 92, 255, 0.55);
+  background: rgba(124, 92, 255, 0.16);
+}
+
+.copyBtnDone {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.errors li {
+  padding: 0.18rem 0;
+  font-size: 0.78rem;
+  color: #a8b4d6;
+}
+
+.errorCode {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  color: #fca5a5;
+}
+
+.empty {
+  margin: 1.5rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #8b9cc8;
+}
+
+.footer {
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.72rem;
+  color: #6b7a9f;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+@keyframes refPop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}

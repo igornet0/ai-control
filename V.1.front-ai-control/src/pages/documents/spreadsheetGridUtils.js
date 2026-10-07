@@ -1,3 +1,5 @@
+import { shiftFormulaReferences } from './spreadsheetFormulaTokens';
+
 /** Тип блока листа: сетка как в Google Таблицах */
 export const SPREADSHEET_BLOCK_TYPE = 'spreadsheet';
 
@@ -878,45 +880,18 @@ function isFormulaValue(raw) {
   return s.startsWith('=') && s.length > 1;
 }
 
-/** Сдвинуть номера строк в ссылках формулы (B2 → B3 при rowOffset=1). */
+/** Сдвинуть номера строк в ссылках формулы (B2 → B3 при rowOffset=1; $B$2 и текст в кавычках не меняются). */
 export function adjustFormulaForRowOffset(formula, rowOffset) {
-  if (!isFormulaValue(formula) || !rowOffset) return formula;
-  return String(formula).replace(/([A-Za-z]+)(\d+)/g, (full, letters, digits) => {
-    const row = parseInt(digits, 10) + rowOffset;
-    if (row < 1) return full;
-    return `${letters}${row}`;
-  });
+  return shiftFormulaReferences(formula, rowOffset, 0);
 }
 
-/** Сдвинуть буквы столбцов в ссылках формулы (B2 → C2 при colOffset=1; B → C). */
+/** Сдвинуть буквы столбцов в ссылках формулы (B2 → C2 при colOffset=1; B → C; $B2 не меняется). */
 export function adjustFormulaForColOffset(formula, colOffset) {
-  if (!isFormulaValue(formula) || !colOffset) return formula;
-  const shiftLetters = (letters) => {
-    const col = columnLabelToIndex(letters);
-    if (col < 0) return null;
-    const newCol = col + colOffset;
-    if (newCol < 0) return null;
-    return excelColumnLabel(newCol);
-  };
-  let s = String(formula).replace(
-    /(?<![A-Za-z0-9_.])([A-Za-z]{1,3})(\d+)(?![A-Za-z0-9_])/g,
-    (full, letters, digits) => {
-      const next = shiftLetters(letters);
-      return next ? `${next}${digits}` : full;
-    },
-  );
-  s = s.replace(/(?<![A-Za-z0-9_.])([A-Za-z])(?![A-Za-z0-9_(])/g, (full, letter) => {
-    const next = shiftLetters(letter);
-    return next || full;
-  });
-  return s;
+  return shiftFormulaReferences(formula, 0, colOffset);
 }
 
 export function adjustFormulaForOffset(formula, rowOffset, colOffset) {
-  let value = formula;
-  if (rowOffset) value = adjustFormulaForRowOffset(value, rowOffset);
-  if (colOffset) value = adjustFormulaForColOffset(value, colOffset);
-  return value;
+  return shiftFormulaReferences(formula, rowOffset, colOffset);
 }
 
 /**

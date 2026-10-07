@@ -52,6 +52,7 @@ export default function TemplateImportExportSection({
   onExportCsv,
   showCsvExport,
   onImportApply,
+  importOnly = false,
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -259,6 +260,11 @@ export default function TemplateImportExportSection({
       )}
     </>
   );
+
+  // Только форма импорта (открывается из меню «⋯» редактора шаблона).
+  if (importOnly) {
+    return <div className={styles.templateIoPanelBody}>{importBody}</div>;
+  }
 
   return (
     <div className={styles.templateIoInlineHost}>

@@ -1,26 +1,47 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { documentService } from '../../services/documentService';
 import { employeeService } from '../../services/employeeService';
 import { teamService } from '../../services/teamService';
 import DepartmentPicker from './DepartmentPicker';
-import { IconChevronDown } from './DocumentIcons';
-import styles from './DocumentsApp.module.css';
+import s from './TemplateAccess.module.css';
+
+
+const svgProps = {
+  width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+  strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+};
+const IconGlobe = () => (
+  <svg {...svgProps}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
+);
+const IconBuilding = () => (
+  <svg {...svgProps}><rect x="4" y="3" width="16" height="18" rx="1.5" /><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3" /></svg>
+);
+const IconLock = () => (
+  <svg {...svgProps}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+);
+const IconUsers = () => (
+  <svg {...svgProps}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 13.6A5.5 5.5 0 0 1 20.5 19" /></svg>
+);
 
 const ACCESS_MODES = [
   {
     id: 'org',
     label: 'Вся организация',
-    hint: 'Шаблон видят все сотрудники. Редактировать могут владелец и те, кому выдано право «Изменение».',
+    icon: IconGlobe,
+    hint: 'Шаблон видят все сотрудники. Изменять могут владелец и те, кому выдано право «Изменение».',
   },
   {
     id: 'department',
     label: 'Отдел',
-    hint: 'Базовая видимость по выбранному отделу. Можно добавить отдельные права для людей, отделов и команд.',
+    icon: IconBuilding,
+    hint: 'Шаблон видят сотрудники выбранного отдела и подчинённых отделов, а также те, кому выдан доступ ниже.',
   },
   {
     id: 'restricted',
     label: 'Только выбранные',
-    hint: 'Шаблон виден только тем, кому явно выдан доступ. Нужен хотя бы один получатель.',
+    icon: IconLock,
+    hint: 'Шаблон виден только тем, кому выдан доступ ниже. Нужен хотя бы один получатель.',
   },
 ];
 
@@ -35,25 +56,52 @@ const PERMISSION_OPTIONS = [
   { id: 'edit', label: 'Изменение' },
 ];
 
-function emptyGrant() {
-  return { subject_type: 'user', subject_id: '', permission: 'view' };
+const SUBJECT_ICONS = { department: IconBuilding, team: IconUsers };
+
+function emptyGrant(subjectType = 'user') {
+  return { subject_type: subjectType, subject_id: '', permission: 'view' };
 }
 
-export default function TemplateAccessSettings({ templateId, template, onUpdated }) {
-  const [open, setOpen] = useState(false);
+function initials(name) {
+  return String(name || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('') || '?';
+}
+
+function errorText(e, fallback) {
+  const detail = e?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) return detail.map((item) => item?.msg || item).filter(Boolean).join('; ');
+  return fallback;
+}
+
+/**
+ * Окно «Доступ к шаблону»: режим видимости + дополнительные права людям, отделам и командам.
+ */
+export default function TemplateAccessSettings({ templateId, template, open, onClose, onUpdated }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [message, setMessage] = useState(null);
   const [accessMode, setAccessMode] = useState('org');
   const [departmentId, setDepartmentId] = useState(null);
   const [permissions, setPermissions] = useState([]);
-  const [draftGrant, setDraftGrant] = useState(emptyGrant);
+  const [draftGrant, setDraftGrant] = useState(() => emptyGrant());
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [teams, setTeams] = useState([]);
+  const initialRef = useRef(null);
+  const dialogRef = useRef(null);
 
   const canManage = Boolean(template?.can_manage_access);
+
+  const snapshot = (mode, dept, perms) => JSON.stringify({
+    mode,
+    dept: mode === 'department' ? dept : null,
+    perms: perms.map((p) => `${p.subject_type}:${p.subject_id}:${p.permission}`).sort(),
+  });
 
   const loadAccess = useCallback(async () => {
     if (!templateId || !canManage) return;
@@ -61,19 +109,23 @@ export default function TemplateAccessSettings({ templateId, template, onUpdated
     setError(null);
     try {
       const data = await documentService.getTemplateAccess(templateId);
-      setAccessMode(data.access_mode || 'org');
-      setDepartmentId(data.department_id ?? null);
-      setPermissions(Array.isArray(data.permissions) ? data.permissions : []);
-      onUpdated?.(data);
+      const mode = data.access_mode || 'org';
+      const dept = data.department_id ?? null;
+      const perms = Array.isArray(data.permissions) ? data.permissions : [];
+      setAccessMode(mode);
+      setDepartmentId(dept);
+      setPermissions(perms);
+      initialRef.current = snapshot(mode, dept, perms);
     } catch (e) {
-      setError(e.response?.data?.detail || 'Не удалось загрузить права доступа');
+      setError(errorText(e, 'Не удалось загрузить права доступа'));
     } finally {
       setLoading(false);
     }
-  }, [templateId, canManage, onUpdated]);
+  }, [templateId, canManage]);
 
   useEffect(() => {
     if (!open || !canManage) return;
+    setDraftGrant(emptyGrant());
     loadAccess();
     Promise.all([
       employeeService.getEmployees(),
@@ -90,57 +142,70 @@ export default function TemplateAccessSettings({ templateId, template, onUpdated
     });
   }, [open, canManage, loadAccess]);
 
-  useEffect(() => {
-    if (!template) return;
-    setAccessMode(template.access_mode || 'org');
-    setDepartmentId(template.department_id ?? null);
-  }, [template?.id, template?.access_mode, template?.department_id]);
+  const dirty = initialRef.current != null
+    && snapshot(accessMode, departmentId, permissions) !== initialRef.current;
 
-  const subjectOptions = useMemo(() => {
-    if (draftGrant.subject_type === 'user') {
-      return employees.map((e) => ({ id: e.id, label: e.name || e.email || `ID ${e.id}` }));
-    }
-    if (draftGrant.subject_type === 'department') {
-      return departments.map((d) => ({ id: d.id, label: d.name || `Отдел ${d.id}` }));
-    }
-    return teams.map((t) => ({ id: t.id, label: t.name || `Команда ${t.id}` }));
-  }, [draftGrant.subject_type, employees, departments, teams]);
+  const close = useCallback(() => {
+    if (saving) return;
+    if (dirty && !window.confirm('Закрыть без сохранения изменений доступа?')) return;
+    onClose?.();
+  }, [saving, dirty, onClose]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        close();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [open, close]);
+
+  const optionsByType = useMemo(() => ({
+    user: employees.map((e) => ({ id: e.id, label: e.name || e.email || `ID ${e.id}` })),
+    department: departments.map((d) => ({ id: d.id, label: d.name || `Отдел ${d.id}` })),
+    team: teams.map((t) => ({ id: t.id, label: t.name || `Команда ${t.id}` })),
+  }), [employees, departments, teams]);
+
+  const subjectName = (row) => row.subject_name
+    || optionsByType[row.subject_type]?.find((o) => o.id === row.subject_id)?.label
+    || `#${row.subject_id}`;
 
   const handleAddGrant = () => {
     const subjectId = Number(draftGrant.subject_id);
     if (!subjectId || Number.isNaN(subjectId)) {
-      setError('Выберите получателя права');
+      setError('Выберите, кому выдать доступ');
       return;
     }
-    setPermissions((prev) => {
-      const filtered = prev.filter(
-        (row) => !(row.subject_type === draftGrant.subject_type && row.subject_id === subjectId),
-      );
-      return [
-        ...filtered,
-        {
-          subject_type: draftGrant.subject_type,
-          subject_id: subjectId,
-          permission: draftGrant.permission,
-          subject_name: subjectOptions.find((o) => o.id === subjectId)?.label,
-        },
-      ];
-    });
-    setDraftGrant(emptyGrant());
+    setPermissions((prev) => [
+      ...prev.filter((row) => !(row.subject_type === draftGrant.subject_type && row.subject_id === subjectId)),
+      {
+        subject_type: draftGrant.subject_type,
+        subject_id: subjectId,
+        permission: draftGrant.permission,
+        subject_name: optionsByType[draftGrant.subject_type]?.find((o) => o.id === subjectId)?.label,
+      },
+    ]);
+    setDraftGrant(emptyGrant(draftGrant.subject_type));
     setError(null);
-  };
-
-  const handleRemoveGrant = (index) => {
-    setPermissions((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
     if (!templateId) return;
+    if (accessMode === 'department' && !departmentId) {
+      setError('Выберите отдел для режима «Отдел»');
+      return;
+    }
+    if (accessMode === 'restricted' && permissions.length === 0) {
+      setError('Для режима «Только выбранные» добавьте хотя бы одного получателя');
+      return;
+    }
     setSaving(true);
     setError(null);
-    setMessage(null);
     try {
-      const payload = {
+      const updated = await documentService.updateTemplateAccess(templateId, {
         access_mode: accessMode,
         department_id: accessMode === 'department' ? departmentId : null,
         permissions: permissions.map((row) => ({
@@ -148,155 +213,191 @@ export default function TemplateAccessSettings({ templateId, template, onUpdated
           subject_id: row.subject_id,
           permission: row.permission,
         })),
-      };
-      const updated = await documentService.updateTemplateAccess(templateId, payload);
-      setPermissions(Array.isArray(updated.permissions) ? updated.permissions : []);
-      setAccessMode(updated.access_mode || accessMode);
-      setDepartmentId(updated.department_id ?? null);
-      setMessage('Права доступа сохранены');
+      });
       onUpdated?.(updated);
+      onClose?.();
     } catch (e) {
-      const detail = e.response?.data?.detail;
-      setError(
-        typeof detail === 'string'
-          ? detail
-          : Array.isArray(detail)
-            ? detail.map((item) => item?.msg || item).filter(Boolean).join('; ')
-            : 'Не удалось сохранить права доступа'
-      );
+      setError(errorText(e, 'Не удалось сохранить права доступа'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (!canManage) {
-    return null;
-  }
+  if (!canManage || !open || typeof document === 'undefined') return null;
 
-  return (
-    <div className={styles.templateAccessPanel}>
-      <button
-        type="button"
-        className={`${styles.pageNumberSettingsToggle}${open ? ` ${styles.pageNumberSettingsToggleOpen}` : ''}`}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
+  const activeMode = ACCESS_MODES.find((m) => m.id === accessMode) || ACCESS_MODES[0];
+  const draftOptions = optionsByType[draftGrant.subject_type] || [];
+
+  return createPortal(
+    <div
+      className={s.backdrop}
+      onMouseDown={(e) => e.target === e.currentTarget && close()}
+      role="presentation"
+    >
+      <div
+        ref={dialogRef}
+        className={s.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="template-access-title"
       >
-        <span
-          className={`${styles.pageNumberSettingsToggleIcon}${open ? ` ${styles.pageNumberSettingsToggleIconOpen}` : ''}`}
-          aria-hidden
-        >
-          <IconChevronDown size={16} />
-        </span>
-        <span className={styles.pageNumberSettingsToggleTitle}>Права доступа к шаблону</span>
-      </button>
-      {open && (
-        <div className={styles.templateAccessBody}>
-          {loading ? <p className={styles.mutedText}>Загрузка…</p> : null}
-          {error ? <div className={styles.error} role="alert">{error}</div> : null}
-          {message ? <div className={styles.infoMessage} role="status">{message}</div> : null}
-
-          <div className={styles.templateAccessModes}>
-            {ACCESS_MODES.map((mode) => (
-              <label key={mode.id} className={styles.templateAccessModeCard}>
-                <input
-                  type="radio"
-                  name="template-access-mode"
-                  value={mode.id}
-                  checked={accessMode === mode.id}
-                  onChange={() => setAccessMode(mode.id)}
-                />
-                <span className={styles.templateAccessModeTitle}>{mode.label}</span>
-                <span className={styles.templateAccessModeHint}>{mode.hint}</span>
-              </label>
-            ))}
+        <div className={s.header}>
+          <div>
+            <h3 id="template-access-title" className={s.title}>Доступ к шаблону</h3>
+            {template?.name && <p className={s.subtitle}>{template.name}</p>}
           </div>
+          <button type="button" className={s.closeBtn} onClick={close} aria-label="Закрыть">×</button>
+        </div>
 
-          {accessMode === 'department' && (
-            <DepartmentPicker
-              variant="button"
-              value={departmentId}
-              onChange={setDepartmentId}
-              label="Базовый отдел"
-              hint="Сотрудники этого отдела (и подчинённых) видят шаблон."
-              buttonPlaceholder="Выберите отдел"
-            />
-          )}
+        <div className={s.body}>
+          {error && <div className={s.error} role="alert">{error}</div>}
 
-          <div className={styles.templateAccessGrants}>
-            <h4 className={styles.templateAccessGrantsTitle}>Дополнительные права</h4>
-            <p className={styles.mutedText}>
-              Выдайте просмотр или изменение конкретным сотрудникам, отделам или командам.
-            </p>
-            {permissions.length === 0 ? (
-              <p className={styles.mutedText}>Пока нет дополнительных прав.</p>
+          <section className={s.section}>
+            <h4 className={s.sectionTitle}>Кто видит шаблон</h4>
+            <div className={s.segmented} role="radiogroup" aria-label="Режим доступа">
+              {ACCESS_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={accessMode === mode.id}
+                  className={`${s.segment} ${accessMode === mode.id ? s.segmentActive : ''}`}
+                  onClick={() => setAccessMode(mode.id)}
+                  disabled={loading}
+                >
+                  <mode.icon />
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <p className={s.hint}>{activeMode.hint}</p>
+            {accessMode === 'department' && (
+              <div className={s.departmentRow}>
+                <DepartmentPicker
+                  variant="button"
+                  value={departmentId}
+                  onChange={setDepartmentId}
+                  label="Отдел"
+                  hint="Сотрудники этого отдела и подчинённых отделов видят шаблон."
+                  buttonPlaceholder="Выберите отдел"
+                />
+              </div>
+            )}
+          </section>
+
+          <section className={s.section}>
+            <h4 className={s.sectionTitle}>
+              Дополнительный доступ
+              {permissions.length > 0 && <span className={s.count}>{permissions.length}</span>}
+            </h4>
+            {loading ? (
+              <p className={s.muted}>Загрузка…</p>
+            ) : permissions.length === 0 ? (
+              <p className={s.muted}>Пока никому не выдан отдельный доступ.</p>
             ) : (
-              <ul className={styles.templateAccessGrantList}>
+              <ul className={s.grantList}>
                 {permissions.map((row, index) => (
-                  <li key={`${row.subject_type}-${row.subject_id}-${index}`} className={styles.templateAccessGrantItem}>
-                    <span>
-                      {SUBJECT_TYPES.find((t) => t.id === row.subject_type)?.label || row.subject_type}
-                      {': '}
-                      <strong>{row.subject_name || `#${row.subject_id}`}</strong>
-                      {' — '}
-                      {PERMISSION_OPTIONS.find((p) => p.id === row.permission)?.label || row.permission}
+                  <li key={`${row.subject_type}-${row.subject_id}`} className={s.grantItem}>
+                    <span className={s.avatar} aria-hidden>
+                      {row.subject_type === 'user'
+                        ? initials(subjectName(row))
+                        : React.createElement(SUBJECT_ICONS[row.subject_type] || IconUsers)}
                     </span>
+                    <span className={s.grantText}>
+                      <span className={s.grantName}>{subjectName(row)}</span>
+                      <span className={s.grantType}>
+                        {SUBJECT_TYPES.find((t) => t.id === row.subject_type)?.label || row.subject_type}
+                      </span>
+                    </span>
+                    <select
+                      className={s.permSelect}
+                      value={row.permission}
+                      onChange={(e) => {
+                        const permission = e.target.value;
+                        setPermissions((prev) => prev.map((p, i) => (i === index ? { ...p, permission } : p)));
+                      }}
+                      aria-label={`Права для ${subjectName(row)}`}
+                    >
+                      {PERMISSION_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>{opt.label}</option>
+                      ))}
+                    </select>
                     <button
                       type="button"
-                      className={styles.templateAccessGrantRemove}
-                      onClick={() => handleRemoveGrant(index)}
+                      className={s.removeBtn}
+                      onClick={() => setPermissions((prev) => prev.filter((_, i) => i !== index))}
+                      aria-label={`Убрать доступ для ${subjectName(row)}`}
+                      title="Убрать доступ"
                     >
-                      Удалить
+                      ×
                     </button>
                   </li>
                 ))}
               </ul>
             )}
 
-            <div className={styles.templateAccessGrantForm}>
-              <select
-                className={styles.fieldInput}
-                value={draftGrant.subject_type}
-                onChange={(e) => setDraftGrant({ ...emptyGrant(), subject_type: e.target.value })}
-              >
+            <div className={s.addRow}>
+              <div className={s.typeTabs} role="tablist" aria-label="Кому выдать доступ">
                 {SUBJECT_TYPES.map((type) => (
-                  <option key={type.id} value={type.id}>{type.label}</option>
+                  <button
+                    key={type.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={draftGrant.subject_type === type.id}
+                    className={`${s.typeTab} ${draftGrant.subject_type === type.id ? s.typeTabActive : ''}`}
+                    onClick={() => setDraftGrant(emptyGrant(type.id))}
+                  >
+                    {type.label}
+                  </button>
                 ))}
-              </select>
-              <select
-                className={styles.fieldInput}
-                value={draftGrant.subject_id}
-                onChange={(e) => setDraftGrant((prev) => ({ ...prev, subject_id: e.target.value }))}
-              >
-                <option value="">Выберите…</option>
-                {subjectOptions.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-              <select
-                className={styles.fieldInput}
-                value={draftGrant.permission}
-                onChange={(e) => setDraftGrant((prev) => ({ ...prev, permission: e.target.value }))}
-              >
-                {PERMISSION_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-              <button type="button" className={styles.secondaryButton} onClick={handleAddGrant}>
-                Добавить
-              </button>
+              </div>
+              <div className={s.addControls}>
+                <select
+                  className={s.subjectSelect}
+                  value={draftGrant.subject_id}
+                  onChange={(e) => setDraftGrant((prev) => ({ ...prev, subject_id: e.target.value }))}
+                  aria-label="Получатель доступа"
+                >
+                  <option value="">
+                    {draftGrant.subject_type === 'user' ? 'Выберите сотрудника…'
+                      : draftGrant.subject_type === 'department' ? 'Выберите отдел…' : 'Выберите команду…'}
+                  </option>
+                  {draftOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  className={s.permSelect}
+                  value={draftGrant.permission}
+                  onChange={(e) => setDraftGrant((prev) => ({ ...prev, permission: e.target.value }))}
+                  aria-label="Уровень доступа"
+                >
+                  {PERMISSION_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={s.addBtn}
+                  onClick={handleAddGrant}
+                  disabled={!draftGrant.subject_id}
+                >
+                  Добавить
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
+        </div>
 
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? 'Сохранение…' : 'Сохранить права доступа'}
+        <div className={s.footer}>
+          <span className={s.footerNote}>{dirty ? 'Есть несохранённые изменения' : ''}</span>
+          <button type="button" className={s.cancelBtn} onClick={close} disabled={saving}>Отмена</button>
+          <button type="button" className={s.saveBtn} onClick={handleSave} disabled={saving || loading || !dirty}>
+            {saving ? 'Сохранение…' : 'Сохранить'}
           </button>
         </div>
-      )}
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

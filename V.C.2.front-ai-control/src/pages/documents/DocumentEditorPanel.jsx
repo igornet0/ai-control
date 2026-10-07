@@ -33,6 +33,8 @@ import { resolveTitleTemplate, resolveBlockContent, resolveFieldValuePlaceholder
 import { useDocumentPlaceholderVars } from './useDocumentPlaceholderVars';
 import { renderResolvedTextLines } from './documentSheetPreviewUtils';
 import UnsavedChangesDialog from './UnsavedChangesDialog';
+import EditorOverflowMenu from './EditorOverflowMenu';
+import chrome from './DocumentEditorChrome.module.css';
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard';
 import styles from './DocumentsApp.module.css';
 
@@ -176,7 +178,9 @@ const DocumentEditorPanel = ({
     }),
     [fieldData, documentTitle, autoDocumentTitle],
   );
+  const [propsOpen, setPropsOpen] = useState(false);
   const {
+    isDirty,
     markClean,
     requestLeave,
     dialogProps: unsavedDialogProps,
@@ -993,65 +997,135 @@ const DocumentEditorPanel = ({
         className={`${styles.editorPanel} ${isTableDocument ? styles.editorPanelAlmostFullscreen : styles.editorPanelWide}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={styles.editorHeader}>
-          <div className={styles.editorHeaderMain}>
+        <div className={chrome.header}>
+          <div className={chrome.titleBlock}>
             <input
               type="text"
-              className={`${styles.editorTitle} ${styles.editorTitleInput}`}
+              className={`${styles.editorTitle} ${styles.editorTitleInput} ${chrome.titleInput}`}
               value={documentTitle}
               onChange={(e) => setDocumentTitle(e.target.value)}
               placeholder={isTableDocument ? `Таблица — № ${doc?.number ?? ''}` : `${kindName} — № ${doc?.number ?? ''}`}
               aria-label={isTableDocument ? 'Заголовок таблицы' : 'Заголовок документа'}
+              title="Нажмите, чтобы переименовать"
             />
-            <span className={styles.editorTitleHint}>Можно изменить</span>
-            {doc?.template_id && (
-              sourceTemplate && onOpenTemplate ? (
-                <button
-                  type="button"
-                  className={`${styles.editorTemplateVersion} ${styles.editorTemplateVersionLink}`}
-                  onClick={() => requestLeave(() => onOpenTemplate(sourceTemplate))}
-                  title={sourceTemplate.name ? `Открыть шаблон «${sourceTemplate.name}»` : 'Открыть шаблон'}
-                >
-                  {doc.template_version ? `Шаблон v${doc.template_version}` : 'Открыть шаблон'}
-                </button>
-              ) : (
-                <span className={styles.editorTemplateVersion}>
-                  {doc.template_version ? `Шаблон v${doc.template_version}` : 'Шаблон недоступен'}
-                </span>
-              )
-            )}
+            <div className={chrome.meta}>
+              {doc?.template_id && (
+                sourceTemplate && onOpenTemplate ? (
+                  <button
+                    type="button"
+                    className={`${styles.editorTemplateVersion} ${styles.editorTemplateVersionLink}`}
+                    onClick={() => requestLeave(() => onOpenTemplate(sourceTemplate))}
+                    title={sourceTemplate.name ? `Открыть шаблон «${sourceTemplate.name}»` : 'Открыть шаблон'}
+                  >
+                    {doc.template_version ? `Шаблон v${doc.template_version}` : 'Открыть шаблон'}
+                  </button>
+                ) : (
+                  <span className={styles.editorTemplateVersion}>
+                    {doc.template_version ? `Шаблон v${doc.template_version}` : 'Шаблон недоступен'}
+                  </span>
+                )
+              )}
+              <span className={`${doc?.template_id ? chrome.metaDot : ''} ${isDirty ? chrome.dirty : chrome.saved}`.trim()} role="status">
+                {saving ? 'Сохранение…' : isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
+              </span>
+            </div>
           </div>
-          <div className={styles.editorProjectBlock}>
-            <DocumentProjectPicker
-              variant="button"
-              value={projectId}
-              onChange={handleProjectChange}
-              saving={projectSaving}
-              label="Проект"
-              hint="Документ можно привязать к проекту. Изменения сохраняются сразу."
-              buttonPlaceholder="Не выбран — нажмите для выбора"
-            />
-            <DepartmentPicker
-              variant="button"
-              value={departmentId}
-              onChange={handleDepartmentChange}
-              saving={departmentSaving}
-              label="Отдел"
-              hint="Пусто — общий документ. Указанный отдел ограничит видимость."
-              buttonPlaceholder="Не выбран — нажмите для выбора"
-            />
-          </div>
-          <div className={styles.editorHeaderSaveCluster}>
+          <div className={chrome.actions}>
             <button
               type="button"
-              className={`${styles.primaryButton} ${styles.editorSaveBtn}`}
+              className={`${chrome.ghostBtn} ${propsOpen ? chrome.ghostBtnActive : ''}`}
+              onClick={() => setPropsOpen((v) => !v)}
+              aria-expanded={propsOpen}
+              title="Проект, отдел и версия шаблона"
+            >
+              Свойства
+              {(projectId || departmentId) && <span className={chrome.badgeDot} aria-hidden />}
+            </button>
+            <button
+              type="button"
+              className={chrome.ghostBtn}
+              onClick={() => setShareModalOpen(true)}
+              title="Поделиться ссылкой"
+            >
+              Поделиться
+            </button>
+            <EditorOverflowMenu
+              items={[
+                { id: 'print', label: 'Печать', onSelect: handlePrint },
+                { id: 'pdf', label: 'Экспорт в PDF', onSelect: handleExportPdf },
+                { id: 'csv', label: 'Экспорт в CSV', onSelect: exportAllTablesCsv, hidden: !hasTableFields },
+                {
+                  id: 'rollback',
+                  label: rollbackOpen ? 'Скрыть откаты' : `Откат изменений (${availableRollbacksCount})`,
+                  onSelect: () => setRollbackOpen((open) => !open),
+                  hidden: availableRollbacksCount === 0,
+                },
+                {
+                  id: 'delete',
+                  label: isTableDocument ? 'Удалить таблицу' : 'Удалить документ',
+                  onSelect: handleDelete,
+                  danger: true,
+                  separatorBefore: true,
+                },
+              ]}
+            />
+            <button
+              type="button"
+              className={`${styles.primaryButton} ${styles.editorSaveBtn} ${!isDirty && !saving ? chrome.saveBtnClean : ''}`}
               onClick={handleSave}
               disabled={saving}
+              title={isDirty ? 'Сохранить изменения' : 'Изменений нет'}
             >
               {saving ? 'Сохранение…' : 'Сохранить'}
             </button>
+            <button type="button" className={chrome.iconBtn} onClick={requestClose} aria-label="Закрыть" title="Закрыть">
+              <IconClose size={18} />
+            </button>
           </div>
         </div>
+        {propsOpen && (
+          <div className={chrome.propsPanel}>
+            <div className={chrome.propsField}>
+              <DocumentProjectPicker
+                variant="button"
+                value={projectId}
+                onChange={handleProjectChange}
+                saving={projectSaving}
+                label="Проект"
+                hint="Документ можно привязать к проекту. Изменения сохраняются сразу."
+                buttonPlaceholder="Не выбран — нажмите для выбора"
+              />
+            </div>
+            <div className={chrome.propsField}>
+              <DepartmentPicker
+                variant="button"
+                value={departmentId}
+                onChange={handleDepartmentChange}
+                saving={departmentSaving}
+                label="Отдел"
+                hint="Пусто — общий документ. Указанный отдел ограничит видимость."
+                buttonPlaceholder="Не выбран — нажмите для выбора"
+              />
+            </div>
+            {doc?.template_id && templateVersions.length > 0 && (
+              <label className={styles.editorVersionLabel}>
+                Версия шаблона:
+                <select
+                  className={styles.editorVersionSelect}
+                  value={doc.template_version ?? templateVersions.find((v) => v.is_current)?.version ?? templateVersions[0]?.version ?? ''}
+                  onChange={(e) => handleVersionChange(e.target.value)}
+                  aria-label="Версия шаблона"
+                >
+                  {templateVersions.map((v) => (
+                    <option key={v.version} value={v.version}>
+                      v{v.version}{v.is_current ? ' (текущая)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        )}
         {error && <div className={styles.error} role="alert">{error}</div>}
         {pendingProposalsCount > 0 && (
           <div className={styles.proposalBadgeRow}>
@@ -1085,70 +1159,6 @@ const DocumentEditorPanel = ({
             onRolledBack={handleProposalReviewChanged}
           />
         )}
-        <div className={styles.editorActions}>
-          <div className={styles.editorToolbarMeta}>
-            {doc?.template_id && templateVersions.length > 0 ? (
-              <label className={styles.editorVersionLabel}>
-                Версия шаблона:
-                <select
-                  className={styles.editorVersionSelect}
-                  value={doc.template_version ?? templateVersions.find((v) => v.is_current)?.version ?? templateVersions[0]?.version ?? ''}
-                  onChange={(e) => handleVersionChange(e.target.value)}
-                  aria-label="Версия шаблона"
-                >
-                  {templateVersions.map((v) => (
-                    <option key={v.version} value={v.version}>
-                      v{v.version}{v.is_current ? ' (текущая)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <span className={styles.editorToolbarMetaSpacer} aria-hidden />
-            )}
-            <div className={styles.editorToolbarMetaEnd}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => setShareModalOpen(true)}
-                title="Поделиться ссылкой"
-              >
-                Поделиться
-              </button>
-              <button type="button" className={styles.dangerButton} onClick={handleDelete} title="Удалить документ">
-                Удалить
-              </button>
-              <button type="button" className={styles.editorCloseBtn} onClick={requestClose} aria-label="Закрыть">
-                <IconClose size={18} />
-              </button>
-            </div>
-          </div>
-          <div className={styles.editorActionsButtons}>
-            <button type="button" className={styles.secondaryButton} onClick={handlePrint}>
-              Печать
-            </button>
-            <button type="button" className={styles.secondaryButton} onClick={handleExportPdf}>
-              Экспорт в PDF
-            </button>
-            {hasTableFields && (
-              <button type="button" className={styles.secondaryButton} onClick={exportAllTablesCsv}>
-                Экспорт в CSV
-              </button>
-            )}
-            {availableRollbacksCount > 0 && (
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => setRollbackOpen((open) => !open)}
-                aria-expanded={rollbackOpen}
-              >
-                {rollbackOpen
-                  ? 'Скрыть откаты'
-                  : `Откат (${availableRollbacksCount})`}
-              </button>
-            )}
-          </div>
-        </div>
         <div
           className={`${styles.editorBody} ${isTableDocument ? styles.editorBodyTableOnly : styles.editorBodySplit}${!isTableDocument && !fieldsPanelOpen ? ` ${styles.editorBodySplitFieldsHidden}` : ''}`}
         >

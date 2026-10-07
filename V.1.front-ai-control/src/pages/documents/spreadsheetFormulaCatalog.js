@@ -1,69 +1,30 @@
-/** @typedef {{ id: string, name: string, aliases?: string[], description: string, example: string }} FormulaCatalogItem */
+import { FORMULA_FUNCTIONS } from './spreadsheetFormulaFunctions';
 
+/** @typedef {{ id: string, name: string, aliases?: string[], description: string, example: string, category?: string }} FormulaCatalogItem */
+
+/** Каталог для подсказок: русское имя основное, английское — псевдоним. */
 /** @type {FormulaCatalogItem[]} */
 export const SPREADSHEET_FORMULA_CATALOG = [
-  {
-    id: 'if',
-    name: 'ЕСЛИ',
-    aliases: ['IF'],
-    description: 'Проверяет условие: если истина — возвращает второй аргумент, иначе третий.',
-    example: 'ЕСЛИ(C, B*D, 0) или ЕСЛИ(B>10, B*D, 0) или ЕСЛИ(A!="", B*D, 0)',
-  },
-  {
-    id: 'sum',
-    name: 'СУММ',
-    aliases: ['SUM'],
-    description: 'Суммирует числа в диапазоне ячеек или во всём столбце. Можно ссылаться на другой лист.',
-    example: 'СУММ(B2:B14) или СУММ(B) или СУММ(Лист2!B2:B10)',
-  },
+  ...FORMULA_FUNCTIONS.map((fn) => {
+    const ru = (fn.ru || []).filter((n) => /[А-Яа-яЁё]/.test(n));
+    const name = ru[0] || fn.name;
+    const aliases = [fn.name, ...(fn.ru || [])].filter((n) => n !== name);
+    return {
+      id: fn.name.toLowerCase(),
+      name,
+      aliases,
+      description: fn.description,
+      example: fn.syntax,
+      category: fn.category,
+    };
+  }),
   {
     id: 'sheetref',
     name: 'Лист!A1',
     aliases: ["'Лист 2'!A1"],
     description: 'Ссылка на ячейку другого листа. A1 в строке заголовков возвращает название столбца.',
-    example: 'Лист2!B3 или \'Прайс\'!A1',
-  },
-  {
-    id: 'avg',
-    name: 'СРЗНАЧ',
-    aliases: ['AVG', 'AVERAGE', 'СРЕДНЕЕ'],
-    description: 'Возвращает среднее арифметическое чисел в диапазоне или столбце.',
-    example: 'СРЗНАЧ(B1:B10) или СРЗНАЧ(B)',
-  },
-  {
-    id: 'min',
-    name: 'МИН',
-    aliases: ['MIN', 'МИНИМУМ'],
-    description: 'Находит минимальное значение в диапазоне или столбце.',
-    example: 'МИН(B1:B10) или МИН(B)',
-  },
-  {
-    id: 'max',
-    name: 'МАКС',
-    aliases: ['MAX', 'МАКСИМУМ'],
-    description: 'Находит максимальное значение в диапазоне или столбце.',
-    example: 'МАКС(B1:B10) или МАКС(B)',
-  },
-  {
-    id: 'count',
-    name: 'СЧЁТ',
-    aliases: ['COUNT', 'СЧЕТ', 'КОЛИЧЕСТВО'],
-    description: 'Считает количество заполненных ячеек в диапазоне или столбце.',
-    example: 'СЧЁТ(B1:B10) или СЧЁТ(B)',
-  },
-  {
-    id: 'date',
-    name: 'DATE',
-    aliases: ['ДАТА'],
-    description: 'Создаёт дату из года, месяца и дня (для столбцов типа «Дата»).',
-    example: 'DATE(2026,1,15)',
-  },
-  {
-    id: 'today',
-    name: 'TODAY',
-    aliases: ['СЕГОДНЯ'],
-    description: 'Возвращает сегодняшнюю дату (для столбцов типа «Дата»).',
-    example: 'TODAY()',
+    example: 'Лист2!B3 или \'Прайс\'!A1:C10',
+    category: 'lookup',
   },
 ];
 

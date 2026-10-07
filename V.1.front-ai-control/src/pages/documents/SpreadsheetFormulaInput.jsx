@@ -1,10 +1,48 @@
-import React, { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   applyFormulaSuggestion,
   extractFormulaNamePrefix,
   matchFormulaSuggestions,
 } from './spreadsheetFormulaCatalog';
+import { formulaTextSegments } from './spreadsheetFormulaHighlight';
 import styles from './DocumentsApp.module.css';
+import fh from './FormulaHighlight.module.css';
+
+/** Повторить геометрию и шрифт поля на «зеркале» с цветным текстом. */
+function syncMirrorToInput(input, mirror) {
+  if (!input || !mirror) return;
+  const cs = window.getComputedStyle(input);
+  const padTop = parseFloat(cs.paddingTop) || 0;
+  const padBottom = parseFloat(cs.paddingBottom) || 0;
+  Object.assign(mirror.style, {
+    left: `${input.offsetLeft}px`,
+    top: `${input.offsetTop}px`,
+    width: `${input.offsetWidth}px`,
+    height: `${input.offsetHeight}px`,
+    font: cs.font,
+    letterSpacing: cs.letterSpacing,
+    paddingLeft: cs.paddingLeft,
+    paddingRight: cs.paddingRight,
+    paddingTop: cs.paddingTop,
+    paddingBottom: cs.paddingBottom,
+    borderTopWidth: cs.borderTopWidth,
+    borderRightWidth: cs.borderRightWidth,
+    borderBottomWidth: cs.borderBottomWidth,
+    borderLeftWidth: cs.borderLeftWidth,
+    lineHeight: `${Math.max(0, input.clientHeight - padTop - padBottom)}px`,
+  });
+  mirror.scrollLeft = input.scrollLeft;
+}
 
 /**
  * Поле ввода формулы с подсказками функций при наборе имени после «=».
@@ -25,10 +63,29 @@ const SpreadsheetFormulaInput = forwardRef(function SpreadsheetFormulaInput({
   invalid,
   errorClassName,
   wrapText = false,
+  /** Раскрашивать ссылки формулы (A1, B2:C5…) цветами, как рамки на сетке. */
+  highlightRefs = false,
 }, ref) {
   const listId = useId();
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const mirrorRef = useRef(null);
+  const colorize = highlightRefs && !wrapText && String(value ?? '').trimStart().startsWith('=');
+  const segments = useMemo(() => (colorize ? formulaTextSegments(value) : null), [colorize, value]);
+  const syncMirror = useCallback(() => {
+    if (colorize) syncMirrorToInput(inputRef.current, mirrorRef.current);
+  }, [colorize]);
+
+  useLayoutEffect(() => {
+    syncMirror();
+  });
+
+  useEffect(() => {
+    if (!colorize || typeof ResizeObserver === 'undefined' || !inputRef.current) return undefined;
+    const ro = new ResizeObserver(() => syncMirror());
+    ro.observe(inputRef.current);
+    return () => ro.disconnect();
+  }, [colorize, syncMirror]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [suggestions, setSuggestions] = useState([]);
@@ -112,6 +169,7 @@ const SpreadsheetFormulaInput = forwardRef(function SpreadsheetFormulaInput({
   };
 
   const handleSelect = (e) => {
+    syncMirror();
     if (document.activeElement === e.target) {
       refreshSuggestionsOnEdit(e.target.value, e.target.selectionStart);
     }
@@ -154,11 +212,12 @@ const SpreadsheetFormulaInput = forwardRef(function SpreadsheetFormulaInput({
     updateListPosition();
   }, [activeIndex, open, updateListPosition]);
 
-  const baseClass = `${className || ''} ${invalid && errorClassName ? errorClassName : ''} ${wrapText ? styles.spreadsheetCellInputWrap : ''}`.trim();
+  const baseClass = `${className || ''} ${invalid && errorClassName ? errorClassName : ''} ${wrapText ? styles.spreadsheetCellInputWrap : ''} ${colorize ? fh.coloredInput : ''}`.trim();
   const showList = open && suggestions.length > 0;
   const sharedProps = {
     className: baseClass,
-    style,
+    // Формулу при правке показываем слева направо, как в Excel.
+    style: colorize ? { ...style, textAlign: 'left' } : style,
     value: value ?? '',
     onChange: handleChange,
     onFocus: handleFocus,
@@ -166,6 +225,8 @@ const SpreadsheetFormulaInput = forwardRef(function SpreadsheetFormulaInput({
     onMouseDown,
     onSelect: handleSelect,
     onKeyDown: handleKeyDown,
+    onKeyUp: syncMirror,
+    onScroll: syncMirror,
     onClick: handleSelect,
     spellCheck,
     title,
@@ -178,7 +239,16 @@ const SpreadsheetFormulaInput = forwardRef(function SpreadsheetFormulaInput({
   };
 
   return (
-    <div className={styles.spreadsheetFormulaInputWrap}>
+    <div className={`${styles.spreadsheetFormulaInputWrap} ${fh.inputWrap}`}>
+      {colorize && (
+        <div ref={mirrorRef} className={fh.mirror} aria-hidden>
+          {segments.map((seg, i) => (
+            seg.color
+              ? <span key={i} className={fh.mirrorRef} style={{ color: seg.color }}>{seg.text}</span>
+              : <span key={i}>{seg.text}</span>
+          ))}
+        </div>
+      )}
       {wrapText ? (
         <textarea
           ref={inputRef}

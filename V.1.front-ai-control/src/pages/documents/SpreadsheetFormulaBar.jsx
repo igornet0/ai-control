@@ -1,5 +1,6 @@
 import React, { forwardRef, useMemo } from 'react';
 import SpreadsheetFormulaInput from './SpreadsheetFormulaInput';
+import FormulaReferenceButton from './FormulaReferencePopover';
 import { formatSheetCellRef, isCellFormula, resolveCellDisplayValue } from './spreadsheetCellFormula';
 import { excelColumnLabel } from './spreadsheetGridUtils';
 import styles from './DocumentsApp.module.css';
@@ -29,9 +30,10 @@ const SpreadsheetFormulaBar = forwardRef(function SpreadsheetFormulaBar({
   }, [selected, sheetName, viewSheetName]);
 
   const isFormula = isCellFormula(value) || String(value ?? '').startsWith('=');
+  // Пока введено только «=» — результата ещё нет (раньше показывалось «= =»).
   const preview = resultPreview != null
     ? resultPreview
-    : (isFormula && model && selected
+    : (isCellFormula(value) && model && selected
       ? resolveCellDisplayValue(value, model, selected.r, selected.c, tableColumns, workbook)
       : '');
 
@@ -60,6 +62,7 @@ const SpreadsheetFormulaBar = forwardRef(function SpreadsheetFormulaBar({
           {preview !== '' ? `= ${preview}` : '…'}
         </span>
       )}
+      <FormulaReferenceButton />
     </div>
   );
 });

@@ -1,0 +1,57 @@
+/* Подсветка ссылок формулы (как в Excel): цветной текст в поле и рамки диапазонов на сетке. */
+
+.inputWrap {
+  position: relative;
+}
+
+/* Поле ввода с прозрачным текстом: видны курсор и выделение, а сам текст рисует .mirror. */
+.coloredInput {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: #e2e8f0;
+}
+
+.coloredInput::selection {
+  background: rgba(124, 92, 255, 0.35);
+}
+
+.mirror {
+  position: absolute;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: transparent;
+  color: #e2e8f0;
+  z-index: 1;
+}
+
+.mirrorRef {
+  border-radius: 2px;
+}
+
+/* Рамка диапазона, на который ссылается формула. */
+.refMark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cellHost {
+  position: relative;
+}
+
+/* Подсказка об ошибке формулы в ячейке. */
+.cellError {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 7px solid #ef4444;
+  border-left: 7px solid transparent;
+  pointer-events: none;
+  z-index: 4;
+}

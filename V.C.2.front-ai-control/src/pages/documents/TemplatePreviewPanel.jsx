@@ -15,20 +15,14 @@ import { getSpreadsheetPreviewData, getSpreadsheetAllSheetsPreviewData } from '.
 import { normalizeSummaryConfig } from './spreadsheetSummary';
 import SpreadsheetTemplatePanel from './SpreadsheetTemplatePanel';
 import UnsavedChangesDialog from './UnsavedChangesDialog';
+import EditorOverflowMenu from './EditorOverflowMenu';
+import chrome from './DocumentEditorChrome.module.css';
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard';
 import { downloadCsvFile, downloadCsvFilesAsZip, downloadJsonFile, rowsToCsv, sanitizeFilename } from './csvUtils';
 import { buildTemplateExportJson } from './buildTemplatePayload';
 import TemplateImportExportSection from './TemplateImportExportSection';
 import { applyTemplateImport, getTableFieldOptions } from './templateImportUtils';
-import {
-  IconClose,
-  IconChevronDown,
-  IconDocumentStack,
-  IconFilePlus,
-  IconSave,
-  IconStructure,
-  IconTrash,
-} from './DocumentIcons';
+import { IconClose, IconChevronDown } from './DocumentIcons';
 import TemplateFinalPreviewModal from './TemplateFinalPreviewModal';
 import PageNumberSettingsForm from './PageNumberSettingsForm';
 import { normalizePageNumberStyle } from './documentPageNumber';
@@ -48,7 +42,6 @@ import { formatScalarFieldPreview, isTableFieldBlock, isTableFieldValue } from '
 import styles from './DocumentsApp.module.css';
 
 const TEMPLATE_AUTOSAVE_KEY = 'documents-template-preview-autosave';
-const TEMPLATE_ACTIONS_PANEL_KEY = 'documents-template-actions-panel-open';
 const TEMPLATE_AUTOSAVE_DEBOUNCE_MS = 1500;
 
 function readAutosavePreference() {
@@ -65,33 +58,6 @@ function writeAutosavePreference(enabled) {
   } catch {
     /* ignore */
   }
-}
-
-function readActionsPanelPreference() {
-  try {
-    const v = localStorage.getItem(TEMPLATE_ACTIONS_PANEL_KEY);
-    if (v === null) return true;
-    return v === '1';
-  } catch {
-    return true;
-  }
-}
-
-function writeActionsPanelPreference(open) {
-  try {
-    localStorage.setItem(TEMPLATE_ACTIONS_PANEL_KEY, open ? '1' : '0');
-  } catch {
-    /* ignore */
-  }
-}
-
-function ToolbarButton({ className, icon: Icon, children, ...props }) {
-  return (
-    <button type="button" className={`${className} ${styles.editorActionButton}`} {...props}>
-      {Icon && <Icon size={16} className={styles.editorActionButtonIcon} />}
-      <span>{children}</span>
-    </button>
-  );
 }
 
 const getFieldsList = (structure) => {
@@ -142,7 +108,6 @@ const TemplatePreviewPanel = ({
   const [saveMessage, setSaveMessage] = useState(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(readAutosavePreference);
   const [autoSaveHint, setAutoSaveHint] = useState(null);
-  const [actionsPanelOpen, setActionsPanelOpen] = useState(readActionsPanelPreference);
   const [sheetBlocks, setSheetBlocks] = useState([]);
   const [titleTemplate, setTitleTemplate] = useState('');
   const [titleStyle, setTitleStyle] = useState({});
@@ -259,9 +224,6 @@ const TemplatePreviewPanel = ({
   const canEditTemplate = !templateId || template?.current_user_permission === 'edit';
   const canManageAccess = Boolean(template?.can_manage_access);
 
-  useEffect(() => {
-    if (!canEditTemplate) setActionsPanelOpen(false);
-  }, [canEditTemplate]);
   const canAddMoreFieldBlocks = React.useMemo(
     () => canAddFieldBlock(fieldsList, sheetBlocks),
     [fieldsList, sheetBlocks],
@@ -505,7 +467,11 @@ const TemplatePreviewPanel = ({
     [sheetBlocks, titleTemplate, titleStyle, pageNumberStyle, pageLayoutStyle, defaultValues, tableGridModel, isTableTemplate],
   );
 
+  const [propsOpen, setPropsOpen] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const {
+    isDirty,
     markClean,
     requestLeave,
     dialogProps: unsavedDialogProps,
@@ -535,6 +501,54 @@ const TemplatePreviewPanel = ({
 
   // Создание документа и переход к структуре закрывают панель — сначала спрашиваем про несохранённое.
   const handleCreateFromTemplate = () => requestLeave(createFromTemplate);
+
+  /**
+   * Отдел шаблона для тех, кто управляет доступом: это режим видимости «Отдел»
+   * (пусто — «Вся организация»). Уже выданные отдельные права сохраняются.
+   */
+  const handleAccessDepartmentChange = async (nextDepartmentId) => {
+    if (!templateId) return;
+    setDefaultDepartmentId(nextDepartmentId);
+    setDefaultDepartmentSaving(true);
+    setError(null);
+    try {
+      const current = await documentService.getTemplateAccess(templateId);
+      const currentMode = current?.access_mode || 'org';
+      const nextMode = nextDepartmentId ? 'department' : (currentMode === 'restricted' ? 'restricted' : 'org');
+      const updated = await documentService.updateTemplateAccess(templateId, {
+        access_mode: nextMode,
+        department_id: nextMode === 'department' ? nextDepartmentId : null,
+        permissions: (Array.isArray(current?.permissions) ? current.permissions : []).map((row) => ({
+          subject_type: row.subject_type,
+          subject_id: row.subject_id,
+          permission: row.permission,
+        })),
+      });
+      setTemplate((prev) => (prev ? { ...prev, ...updated } : prev));
+      setDefaultDepartmentId(updated?.department_id ?? null);
+      setSaveMessage(nextDepartmentId ? 'Отдел шаблона сохранён — шаблон видит этот отдел' : 'Шаблон снова виден всей организации');
+    } catch (e) {
+      setDefaultDepartmentId(template?.department_id ?? null);
+      setError(e.response?.data?.detail || 'Не удалось сохранить отдел шаблона');
+    } finally {
+      setDefaultDepartmentSaving(false);
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!templateId || !onDeleteTemplate) return;
+    if (!window.confirm('Удалить шаблон из списка? Версии шаблона останутся в архиве.')) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await documentService.deleteTemplate(templateId);
+      onDeleteTemplate();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Не удалось удалить шаблон');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleEditStructure = () => requestLeave(() => {
     if (kind) onEditStructure?.(kind);
@@ -784,108 +798,179 @@ const TemplatePreviewPanel = ({
         ].filter(Boolean).join(' ')}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={`${styles.editorHeader} ${isTableTemplate ? styles.editorHeaderTable : ''} ${!canEditTemplate ? styles.editorHeaderViewOnly : ''}`}>
-          <div className={styles.editorHeaderMain}>
-            <h2 className={styles.editorTitle}>
-              {title}
-              {!canEditTemplate && (
-                <span className={styles.editorTitleBadge}>только просмотр</span>
+        <div className={chrome.header}>
+          <div className={chrome.titleBlock}>
+            <h2 className={styles.editorTitle}>{title}</h2>
+            <div className={chrome.meta}>
+              <span>{isTableTemplate ? 'Шаблон таблицы' : 'Шаблон документа'}{template?.version ? ` · v${template.version}` : ''}</span>
+              {!canEditTemplate ? (
+                <span className={chrome.viewOnlyBadge}>только просмотр</span>
+              ) : templateId && (
+                <span className={`${chrome.metaDot} ${isDirty ? chrome.dirty : chrome.saved}`} role="status">
+                  {savingSheet
+                    ? 'Сохранение…'
+                    : autoSaveEnabled && autoSaveHint
+                      ? autoSaveHint
+                      : isDirty
+                        ? (autoSaveEnabled ? 'Будет сохранено автоматически' : 'Есть несохранённые изменения')
+                        : 'Все изменения сохранены'}
+                </span>
               )}
-            </h2>
+            </div>
           </div>
-          {templateId && canEditTemplate && (
-            <div className={styles.editorProjectBlock}>
+          <div className={chrome.actions}>
+            {templateId && canEditTemplate && (
+              <button
+                type="button"
+                className={`${chrome.ghostBtn} ${propsOpen ? chrome.ghostBtnActive : ''}`}
+                onClick={() => setPropsOpen((v) => !v)}
+                aria-expanded={propsOpen}
+                title="Проект и отдел по умолчанию"
+              >
+                Свойства
+                {(defaultProjectId || defaultDepartmentId) && <span className={chrome.badgeDot} aria-hidden />}
+              </button>
+            )}
+            {templateId && canManageAccess && (
+              <button
+                type="button"
+                className={chrome.ghostBtn}
+                onClick={() => setAccessOpen(true)}
+                title="Кто видит и может изменять шаблон"
+              >
+                Доступ
+              </button>
+            )}
+            {templateId && (
+              <button
+                type="button"
+                className={canEditTemplate ? chrome.ghostBtn : `${styles.primaryButton} ${styles.editorSaveBtn}`}
+                onClick={handleCreateFromTemplate}
+                disabled={creating}
+                title={isTableTemplate ? 'Создать таблицу по этому шаблону' : 'Создать документ по этому шаблону'}
+              >
+                {creating ? 'Создание…' : (isTableTemplate ? 'Создать таблицу' : 'Создать документ')}
+              </button>
+            )}
+            <EditorOverflowMenu
+              items={[
+                { id: 'final', label: 'Итоговый документ', hint: 'Как будет выглядеть после заполнения', onSelect: () => setFinalPreviewOpen(true) },
+                { id: 'structure', label: 'Редактировать структуру', onSelect: handleEditStructure, hidden: !(kind && canEditTemplate) },
+                { id: 'print', label: 'Печать', onSelect: handlePrint, separatorBefore: true },
+                { id: 'pdf', label: 'Экспорт в PDF', onSelect: handleExportPdf },
+                { id: 'json', label: 'Экспорт в JSON', hint: 'Полный снимок шаблона', onSelect: handleExportJson },
+                { id: 'csv', label: 'Экспорт в CSV', onSelect: handleExportCsv, hidden: !isTableTemplate },
+                { id: 'import', label: 'Импорт JSON / CSV…', onSelect: () => setImportOpen(true), hidden: !canEditTemplate },
+                {
+                  id: 'autosave',
+                  label: 'Автосохранение',
+                  hint: 'Через 1,5 с после изменений',
+                  checked: autoSaveEnabled,
+                  keepOpen: true,
+                  separatorBefore: true,
+                  hidden: !(templateId && canEditTemplate),
+                  onSelect: () => {
+                    const next = !autoSaveEnabled;
+                    setAutoSaveEnabled(next);
+                    writeAutosavePreference(next);
+                    if (!next) setAutoSaveHint(null);
+                  },
+                },
+                {
+                  id: 'delete',
+                  label: deleting ? 'Удаление…' : 'Удалить шаблон',
+                  onSelect: handleDeleteTemplate,
+                  danger: true,
+                  separatorBefore: true,
+                  disabled: deleting,
+                  hidden: !(templateId && onDeleteTemplate && canEditTemplate),
+                },
+              ]}
+            />
+            {templateId && canEditTemplate && (
+              <button
+                type="button"
+                className={`${styles.primaryButton} ${styles.editorSaveBtn} ${!isDirty && !savingSheet ? chrome.saveBtnClean : ''}`}
+                onClick={() => handleSaveSheet()}
+                disabled={savingSheet}
+                title={isDirty ? 'Сохранить изменения шаблона' : 'Изменений нет'}
+              >
+                {savingSheet ? 'Сохранение…' : 'Сохранить'}
+              </button>
+            )}
+            <button type="button" className={chrome.iconBtn} onClick={requestClose} aria-label="Закрыть" title="Закрыть">
+              <IconClose size={18} />
+            </button>
+          </div>
+        </div>
+        {propsOpen && templateId && canEditTemplate && (
+          <div className={chrome.propsPanel}>
+            <div className={chrome.propsField}>
               <DocumentProjectPicker
                 variant="button"
                 value={defaultProjectId}
                 onChange={handleDefaultProjectChange}
                 saving={defaultProjectSaving}
-                disabled={!canEditTemplate}
                 label="Проект по умолчанию"
                 hint="Все документы, созданные по этому шаблону, будут автоматически привязаны к выбранному проекту."
                 buttonPlaceholder="Не выбран — нажмите для выбора"
               />
-              {!canManageAccess && (
-                <DepartmentPicker
-                  variant="button"
-                  value={defaultDepartmentId}
-                  onChange={handleDefaultDepartmentChange}
-                  saving={defaultDepartmentSaving}
-                  disabled={!canEditTemplate}
-                  label="Отдел"
-                  hint="Пусто — общий шаблон. Указанный отдел ограничит видимость."
-                  buttonPlaceholder="Не выбран — нажмите для выбора"
-                />
-              )}
             </div>
-          )}
-          {templateId && canEditTemplate && (
-            <div className={styles.editorHeaderSaveCluster}>
-              <ToolbarButton
-                className={`${styles.primaryButton} ${styles.editorSaveBtn}`}
-                icon={IconSave}
-                onClick={() => handleSaveSheet()}
-                disabled={savingSheet}
-              >
-                {savingSheet
-                  ? 'Сохранение…'
-                  : (isTableTemplate ? 'Сохранить шаблон' : 'Сохранить лист')}
-              </ToolbarButton>
-              <label className={styles.editorAutoSaveToggle} title="Сохранять лист автоматически через 1,5 с после изменений">
-                <input
-                  type="checkbox"
-                  checked={autoSaveEnabled}
-                  onChange={(e) => {
-                    const next = e.target.checked;
-                    setAutoSaveEnabled(next);
-                    writeAutosavePreference(next);
-                    if (!next) setAutoSaveHint(null);
-                  }}
-                />
-                <span>Автосохранение</span>
-                {autoSaveEnabled && savingSheet && (
-                  <span className={styles.editorAutoSaveStatus}>Сохранение…</span>
+            <div className={chrome.propsField}>
+              <DepartmentPicker
+                variant="button"
+                value={defaultDepartmentId}
+                onChange={canManageAccess ? handleAccessDepartmentChange : handleDefaultDepartmentChange}
+                saving={defaultDepartmentSaving}
+                label="Отдел"
+                hint={canManageAccess
+                  ? 'Шаблон увидят сотрудники отдела. Пусто — вся организация. Подробнее — в «Доступ».'
+                  : 'Пусто — общий шаблон. Указанный отдел ограничит видимость.'}
+                buttonPlaceholder="Не выбран — нажмите для выбора"
+              />
+            </div>
+            {!isTableTemplate && (
+              <div className={`${styles.pageNumberSettings} ${chrome.propsSection}`}>
+                <button
+                  type="button"
+                  className={`${styles.pageNumberSettingsToggle}${pageNumberSettingsOpen ? ` ${styles.pageNumberSettingsToggleOpen}` : ''}`}
+                  onClick={() => setPageNumberSettingsOpen((v) => !v)}
+                  aria-expanded={pageNumberSettingsOpen}
+                  aria-controls="template-page-number-settings"
+                >
+                  <span
+                    className={`${styles.pageNumberSettingsToggleIcon}${pageNumberSettingsOpen ? ` ${styles.pageNumberSettingsToggleIconOpen}` : ''}`}
+                    aria-hidden
+                  >
+                    <IconChevronDown size={16} />
+                  </span>
+                  <span className={styles.pageNumberSettingsToggleTitle}>Нумерация страниц</span>
+                  {pageNumberStyle.enabled && (
+                    <span className={styles.pageNumberSettingsBadge}>Вкл</span>
+                  )}
+                </button>
+                {pageNumberSettingsOpen && (
+                  <div id="template-page-number-settings">
+                    <PageNumberSettingsForm
+                      value={pageNumberStyle}
+                      onChange={setPageNumberStyle}
+                    />
+                  </div>
                 )}
-                {autoSaveEnabled && !savingSheet && autoSaveHint && (
-                  <span className={`${styles.editorAutoSaveStatus} ${styles.editorAutoSaveStatusOk}`}>{autoSaveHint}</span>
-                )}
-              </label>
-            </div>
-          )}
-          {templateId && !canEditTemplate && (
-            <div className={styles.templatePreviewViewOnlyActions}>
-              <ToolbarButton
-                className={styles.primaryButton}
-                icon={IconFilePlus}
-                onClick={handleCreateFromTemplate}
-                disabled={creating}
-              >
-                {creating
-                  ? 'Создание…'
-                  : (isTableTemplate ? 'Создать таблицу' : 'Создать документ')}
-              </ToolbarButton>
-            </div>
-          )}
-          <button type="button" className={styles.editorCloseBtn} onClick={requestClose} aria-label="Закрыть">
-            <IconClose size={18} />
-          </button>
-        </div>
-        {error && <div className={styles.error} role="alert">{error}</div>}
-        {templateId && !canEditTemplate && (
-          <div className={styles.infoMessage} role="status">
-            У вас доступ только для просмотра этого шаблона. Создать документ можно, изменения сохранить нельзя.
+              </div>
+            )}
           </div>
         )}
-        <div className={styles.templateTopBar}>
-          {templateId && (
-            <TemplateAccessSettings
-              templateId={templateId}
-              template={template}
-              onUpdated={setTemplate}
-            />
-          )}
-          {!loading && (template || structure) && (
+        {importOpen && canEditTemplate && !loading && (template || structure) && (
+          <div className={chrome.dockPanel}>
+            <div className={chrome.dockPanelHeader}>
+              <h3 className={chrome.dockPanelTitle}>Импорт JSON / CSV</h3>
+              <button type="button" className={chrome.iconBtn} onClick={() => setImportOpen(false)} aria-label="Закрыть импорт">
+                <IconClose size={16} />
+              </button>
+            </div>
             <TemplateImportExportSection
+              importOnly
               isTableTemplate={isTableTemplate}
               canImport={canEditTemplate}
               tableFieldOptions={tableFieldOptions}
@@ -896,116 +981,16 @@ const TemplatePreviewPanel = ({
               showCsvExport={isTableTemplate}
               onImportApply={handleImportApply}
             />
-          )}
-        </div>
-        {saveMessage && <div className={styles.infoMessage} role="status">{saveMessage}</div>}
-        {canEditTemplate && (
-        <div className={styles.editorActionsDock}>
-          <button
-            type="button"
-            className={styles.editorActionsToggle}
-            onClick={() => {
-              setActionsPanelOpen((prev) => {
-                const next = !prev;
-                writeActionsPanelPreference(next);
-                return next;
-              });
-            }}
-            aria-expanded={actionsPanelOpen}
-            aria-controls="template-preview-actions-panel"
-          >
-            <span
-              className={`${styles.editorActionsToggleIcon} ${actionsPanelOpen ? styles.editorActionsToggleIconOpen : ''}`}
-              aria-hidden
-            >
-              <IconChevronDown size={16} />
-            </span>
-            <span>{actionsPanelOpen ? 'Скрыть панель действий' : 'Показать панель действий'}</span>
-          </button>
-          {actionsPanelOpen && (
-            <div id="template-preview-actions-panel">
-        <div className={`${styles.editorActions} ${styles.editorActionsRow}`}>
-          {kind && canEditTemplate && (
-            <ToolbarButton className={styles.secondaryButton} icon={IconStructure} onClick={handleEditStructure}>
-              Редактировать структуру
-            </ToolbarButton>
-          )}
-          <div className={styles.editorActionsToolbarSpacer} aria-hidden />
-          <ToolbarButton
-            className={styles.secondaryButton}
-            icon={IconDocumentStack}
-            onClick={() => setFinalPreviewOpen(true)}
-            title="Как будет выглядеть документ после заполнения"
-          >
-            Итоговый документ
-          </ToolbarButton>
-          {templateId && (
-            <ToolbarButton
-              className={styles.primaryButton}
-              icon={IconFilePlus}
-              onClick={handleCreateFromTemplate}
-              disabled={creating}
-            >
-              {creating
-                ? 'Создание…'
-                : (isTableTemplate ? 'Создать таблицу по шаблону' : 'Создать документ по шаблону')}
-            </ToolbarButton>
-          )}
-          {templateId && onDeleteTemplate && (
-            <ToolbarButton
-              className={styles.dangerButton}
-              icon={IconTrash}
-              onClick={async () => {
-                if (!window.confirm('Удалить шаблон из списка? Версии шаблона останутся в архиве.')) return;
-                setDeleting(true);
-                setError(null);
-                try {
-                  await documentService.deleteTemplate(templateId);
-                  onDeleteTemplate();
-                } catch (e) {
-                  setError(e.response?.data?.detail || 'Не удалось удалить шаблон');
-                } finally {
-                  setDeleting(false);
-                }
-              }}
-              disabled={deleting}
-              title="Удалить шаблон (версии сохраняются в таблице версий)"
-            >
-              {deleting ? 'Удаление…' : 'Удалить'}
-            </ToolbarButton>
-          )}
-        </div>
-        {templateId && !isTableTemplate && (
-          <div className={styles.pageNumberSettings}>
-            <button
-              type="button"
-              className={`${styles.pageNumberSettingsToggle}${pageNumberSettingsOpen ? ` ${styles.pageNumberSettingsToggleOpen}` : ''}`}
-              onClick={() => setPageNumberSettingsOpen((v) => !v)}
-              aria-expanded={pageNumberSettingsOpen}
-              aria-controls="template-page-number-settings"
-            >
-              <span
-                className={`${styles.pageNumberSettingsToggleIcon}${pageNumberSettingsOpen ? ` ${styles.pageNumberSettingsToggleIconOpen}` : ''}`}
-                aria-hidden
-              >
-                <IconChevronDown size={16} />
-              </span>
-              <span className={styles.pageNumberSettingsToggleTitle}>Нумерация страниц</span>
-              {pageNumberStyle.enabled && (
-                <span className={styles.pageNumberSettingsBadge}>Вкл</span>
-              )}
-            </button>
-            {pageNumberSettingsOpen && (
-              <div id="template-page-number-settings">
-                <PageNumberSettingsForm
-                  value={pageNumberStyle}
-                  onChange={setPageNumberStyle}
-                />
-              </div>
-            )}
           </div>
         )}
-        {templateId && !isTableTemplate && (
+        {error && <div className={styles.error} role="alert">{error}</div>}
+        {templateId && !canEditTemplate && (
+          <div className={styles.infoMessage} role="status">
+            У вас доступ только для просмотра этого шаблона. Создать документ можно, изменения сохранить нельзя.
+          </div>
+        )}
+        {saveMessage && <div className={styles.infoMessage} role="status">{saveMessage}</div>}
+        {templateId && canEditTemplate && !isTableTemplate && (
           <div className={`${styles.editorActions} ${styles.editorActionsRow} ${styles.sheetToolbar}`} style={{ marginTop: 0 }}>
             <SheetBlockAddButton blockType="text" onClick={() => sheetEditorRef.current?.addBlock(BLOCK_TYPES.text)} />
             {canAddMoreFieldBlocks && (
@@ -1016,9 +1001,20 @@ const TemplatePreviewPanel = ({
             <SheetBlockAddButton blockType="image" onClick={() => sheetEditorRef.current?.addBlock(BLOCK_TYPES.image)} />
           </div>
         )}
-            </div>
-          )}
-        </div>
+        {templateId && (
+          <TemplateAccessSettings
+            templateId={templateId}
+            template={template}
+            open={accessOpen}
+            onClose={() => setAccessOpen(false)}
+            onUpdated={(updated) => {
+              setTemplate((prev) => (prev ? { ...prev, ...updated } : prev));
+              if (updated && Object.prototype.hasOwnProperty.call(updated, 'department_id')) {
+                setDefaultDepartmentId(updated.department_id ?? null);
+              }
+              setSaveMessage('Права доступа сохранены');
+            }}
+          />
         )}
         <div
           className={[
