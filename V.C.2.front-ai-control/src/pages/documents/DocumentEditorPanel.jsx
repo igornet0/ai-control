@@ -32,6 +32,8 @@ import { countAvailableRollbacks } from './documentRevisionUtils';
 import { resolveTitleTemplate, resolveBlockContent, resolveFieldValuePlaceholders } from './documentPlaceholders';
 import { useDocumentPlaceholderVars } from './useDocumentPlaceholderVars';
 import { renderResolvedTextLines } from './documentSheetPreviewUtils';
+import UnsavedChangesDialog from './UnsavedChangesDialog';
+import { useUnsavedChangesGuard } from './useUnsavedChangesGuard';
 import styles from './DocumentsApp.module.css';
 
 const getFieldsList = (structure) => {
@@ -115,6 +117,8 @@ const DocumentEditorPanel = ({
   const [documentPageNumberStyle, setDocumentPageNumberStyle] = useState(null);
   const [documentPageLayoutStyle, setDocumentPageLayoutStyle] = useState(null);
   const [documentTitle, setDocumentTitle] = useState('');
+  /** Заголовок, выставленный из документа/шаблона (не пользователем) — эталон для «есть изменения». */
+  const [autoDocumentTitle, setAutoDocumentTitle] = useState('');
   const [fieldData, setFieldData] = useState({});
   const [templateVersions, setTemplateVersions] = useState([]);
   const [sourceTemplate, setSourceTemplate] = useState(null);
@@ -164,6 +168,25 @@ const DocumentEditorPanel = ({
   useEffect(() => {
     setReviewOpen(initialReviewOpen);
   }, [documentId, initialReviewOpen]);
+
+  const editFingerprint = useMemo(
+    () => JSON.stringify({
+      fieldData,
+      title: documentTitle === autoDocumentTitle ? null : documentTitle,
+    }),
+    [fieldData, documentTitle, autoDocumentTitle],
+  );
+  const {
+    markClean,
+    requestLeave,
+    dialogProps: unsavedDialogProps,
+  } = useUnsavedChangesGuard({
+    fingerprint: editFingerprint,
+    ready: !loading && !!doc,
+    // handleSave объявлен ниже; вызывается только по клику в диалоге.
+    onSave: () => handleSave(),
+  });
+  const requestClose = useCallback(() => requestLeave(() => onClose?.()), [requestLeave, onClose]);
 
   const refreshAvailableRollbacks = useCallback(async () => {
     try {
@@ -432,7 +455,9 @@ const DocumentEditorPanel = ({
       documentTitleTemplate || `${kindName} — № {номер}`,
       placeholderVars,
     ) || `${kindName} — № ${doc?.number ?? documentId}`;
-    setDocumentTitle((doc.title != null && doc.title !== '') ? doc.title : computed);
+    const nextTitle = (doc.title != null && doc.title !== '') ? doc.title : computed;
+    setDocumentTitle(nextTitle);
+    setAutoDocumentTitle(nextTitle);
   }, [doc, doc?.title, documentTitleTemplate, kindName, documentId, placeholderVars]);
 
   const handleVersionChange = useCallback(async (newVersion) => {
@@ -512,13 +537,15 @@ const DocumentEditorPanel = ({
       setDoc(updated);
       setFieldData(updated.field_data || {});
       setDocumentTitle(updated.title || '');
+      setAutoDocumentTitle(updated.title || '');
       setPendingProposalsCount(updated.pending_proposals_count ?? 0);
+      markClean();
       await refreshAvailableRollbacks();
       onSaved?.();
     } catch {
       // ignore refresh errors
     }
-  }, [documentId, onSaved, refreshAvailableRollbacks]);
+  }, [documentId, onSaved, refreshAvailableRollbacks, markClean]);
 
   const handleFieldChange = useCallback((fieldName, value) => {
     setFieldData((prev) => ({ ...prev, [fieldName]: value }));
@@ -543,9 +570,12 @@ const DocumentEditorPanel = ({
       await documentService.updateDocument(documentId, { field_data: processedFieldData, title: documentTitle });
       setFieldData(processedFieldData);
       setDoc((prev) => (prev ? { ...prev, title: documentTitle } : null));
+      markClean();
       onSaved?.();
+      return true;
     } catch (e) {
       setError(e.response?.data?.detail || 'Не удалось сохранить');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -957,7 +987,7 @@ const DocumentEditorPanel = ({
     <div
       className={`${styles.editorOverlay} ${isTableDocument ? styles.editorOverlayTable : ''}`}
       style={{ zIndex: overlayZIndex }}
-      onClick={(e) => e.target === e.currentTarget && onClose?.()}
+      onClick={(e) => e.target === e.currentTarget && requestClose()}
     >
       <div
         className={`${styles.editorPanel} ${isTableDocument ? styles.editorPanelAlmostFullscreen : styles.editorPanelWide}`}
@@ -979,7 +1009,7 @@ const DocumentEditorPanel = ({
                 <button
                   type="button"
                   className={`${styles.editorTemplateVersion} ${styles.editorTemplateVersionLink}`}
-                  onClick={() => onOpenTemplate(sourceTemplate)}
+                  onClick={() => requestLeave(() => onOpenTemplate(sourceTemplate))}
                   title={sourceTemplate.name ? `Открыть шаблон «${sourceTemplate.name}»` : 'Открыть шаблон'}
                 >
                   {doc.template_version ? `Шаблон v${doc.template_version}` : 'Открыть шаблон'}
@@ -1088,7 +1118,7 @@ const DocumentEditorPanel = ({
               <button type="button" className={styles.dangerButton} onClick={handleDelete} title="Удалить документ">
                 Удалить
               </button>
-              <button type="button" className={styles.editorCloseBtn} onClick={onClose} aria-label="Закрыть">
+              <button type="button" className={styles.editorCloseBtn} onClick={requestClose} aria-label="Закрыть">
                 <IconClose size={18} />
               </button>
             </div>
@@ -1316,6 +1346,12 @@ const DocumentEditorPanel = ({
         documentTitle={documentTitle}
         open={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
+      />
+      <UnsavedChangesDialog
+        {...unsavedDialogProps}
+        entityLabel={isTableDocument ? 'таблице' : 'документе'}
+        entityName={documentTitle}
+        zIndex={overlayZIndex + 60}
       />
     </div>
   );

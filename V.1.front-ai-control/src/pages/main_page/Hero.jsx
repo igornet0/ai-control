@@ -8,6 +8,7 @@ import logoWebp from '../../assets/logo.webp';
 import dashboardPng from '../../assets/dashboard.png';
 import dashboardWebp from '../../assets/dashboard.webp';
 import SiteFooter from './SiteFooter';
+import HeroBrandTitle from './HeroBrandTitle';
 
 const iconClass = 'w-5 h-5 shrink-0';
 
@@ -48,42 +49,6 @@ const HeroIcons = {
     </svg>
   ),
 };
-
-const BrandLockIcon = () => (
-  <svg className={styles.lockIcon} viewBox="0 0 48 56" fill="none" aria-hidden>
-    <defs>
-      <linearGradient id="hero-lock-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#60a5fa" />
-        <stop offset="50%" stopColor="#c084fc" />
-        <stop offset="100%" stopColor="#f472b6" />
-      </linearGradient>
-      <linearGradient id="hero-lock-shine" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
-        <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-      </linearGradient>
-      <filter id="hero-lock-glow" x="-40%" y="-40%" width="180%" height="180%">
-        <feGaussianBlur stdDeviation="2.5" result="blur" />
-        <feMerge>
-          <feMergeNode in="blur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-    <g filter="url(#hero-lock-glow)">
-      <path
-        className={styles.lockShackle}
-        d="M14 25V18.5C14 12.7 18.7 8 24.5 8S35 12.7 35 18.5V25"
-        stroke="url(#hero-lock-gradient)"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-      <rect x="9" y="25" width="30" height="26" rx="8" fill="url(#hero-lock-gradient)" />
-      <rect x="11" y="27" width="26" height="12" rx="6" fill="url(#hero-lock-shine)" />
-      <circle cx="24" cy="36" r="3.25" fill="#0f172a" />
-      <rect x="22.4" y="36" width="3.2" height="8.5" rx="1.6" fill="#0f172a" />
-    </g>
-  </svg>
-);
 
 const Hero = () => {
   const { isAuthenticated } = useAuth();
@@ -127,7 +92,7 @@ const Hero = () => {
         <div className="absolute bottom-32 left-1/4 w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse opacity-25" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10 hero-dashboard-container">
+      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10 hero-dashboard-container">
         <div className={styles.heroContent}>
           <div className="mb-8">
             <picture>
@@ -147,15 +112,7 @@ const Hero = () => {
             </div>
           </div>
 
-          <h1 className={`text-4xl sm:text-5xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight ${styles.heroTitle}`}>
-            <span className={styles.brandPrefix}>2A</span>
-            <span className={styles.brandStage}>
-              <span className={styles.brandWord}>Данные</span>
-              <span className={styles.brandLock} aria-hidden>
-                <BrandLockIcon />
-              </span>
-            </span>
-          </h1>
+          <HeroBrandTitle className="text-4xl sm:text-5xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight" />
 
           <h2 className="text-2xl sm:text-3xl lg:text-5xl font-semibold mb-6 sm:mb-8 text-white leading-tight" style={{
             textShadow: '0 2px 20px rgba(0, 0, 0, 0.1)',
@@ -215,9 +172,9 @@ const Hero = () => {
           </div>
         </div>
 
-        <div className="hero-dashboard-section" style={{ opacity: 0.75 }}>
+        <div className={`hero-dashboard-section ${styles.dashboardSection}`}>
           <div className="relative overflow-visible">
-            <div className="relative transform scale-100" style={{ filter: 'brightness(0.85) contrast(1.05)' }}>
+            <div className={styles.dashboardFrame}>
               <picture>
                 <source srcSet={dashboardWebp} type="image/webp" />
                 <img
@@ -227,11 +184,7 @@ const Hero = () => {
                   height={1536}
                   decoding="async"
                   fetchPriority="high"
-                  className="w-full h-auto rounded-lg transform hover:scale-105 transition-transform"
-                  style={{
-                    filter: 'drop-shadow(0 10px 25px rgba(59, 130, 246, 0.15))',
-                    opacity: 0.9
-                  }}
+                  className={`rounded-lg lg:hover:scale-105 transition-transform ${styles.dashboardImage}`}
                 />
               </picture>
             </div>

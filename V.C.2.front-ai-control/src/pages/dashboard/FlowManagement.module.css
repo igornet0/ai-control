@@ -30,7 +30,7 @@
   padding: var(--spacing-12);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--radius-lg);
   margin: var(--spacing-8) 0;
 }
 
@@ -54,7 +54,7 @@
 .flowCard {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--radius-lg);
   padding: var(--spacing-4);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
@@ -88,7 +88,7 @@
 
 .actionButton {
   padding: var(--spacing-1);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   transition: all 0.2s ease;
 }
 
@@ -124,7 +124,7 @@
 
 .status {
   padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   font-weight: 500;
   font-size: var(--text-xs);
 }
@@ -149,7 +149,7 @@
   padding: var(--spacing-12);
   background: rgba(255, 255, 255, 0.05);
   border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--radius-lg);
   margin: var(--spacing-8) 0;
 }
 
@@ -175,9 +175,9 @@
 }
 
 .modalContent {
-  background: var(--color-background-primary);
+  background: var(--color-bg-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--radius-lg);
   padding: 0;
   max-width: 600px;
   width: 90%;
@@ -208,7 +208,7 @@
   font-size: var(--text-xl);
   cursor: pointer;
   padding: var(--spacing-1);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   transition: all 0.2s ease;
 }
 
@@ -245,7 +245,7 @@
   width: 100%;
   padding: var(--spacing-3);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
@@ -254,15 +254,15 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-primary-rgb), 0.1);
 }
 
 .textarea {
   width: 100%;
   padding: var(--spacing-3);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
@@ -273,8 +273,8 @@
 
 .textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-primary-rgb), 0.1);
 }
 
 .accessTypesGrid {
@@ -287,7 +287,7 @@
 .accessTypeCard {
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--radius-lg);
   padding: var(--spacing-3);
   text-align: center;
   cursor: pointer;
@@ -301,9 +301,9 @@
 }
 
 .accessTypeCard.selected {
-  border-color: var(--color-primary);
-  background: rgba(var(--color-primary-rgb), 0.1);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-accent-primary);
+  background: rgba(var(--color-accent-primary-rgb), 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-primary-rgb), 0.1);
 }
 
 .accessTypeName {
@@ -330,7 +330,7 @@
   width: 100%;
   padding: var(--spacing-2) var(--spacing-3);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
@@ -338,8 +338,8 @@
 
 .listSearch:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-primary-rgb), 0.1);
 }
 
 .listSearch::placeholder {
@@ -350,7 +350,7 @@
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
   padding: var(--spacing-2);
 }
@@ -360,7 +360,7 @@
   align-items: center;
   gap: var(--spacing-2);
   padding: var(--spacing-2);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   transition: background 0.2s ease;
 }
 
@@ -371,7 +371,7 @@
 .checkbox {
   width: 16px;
   height: 16px;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-accent-primary);
 }
 
 .userLabel {
@@ -396,7 +396,7 @@
   align-items: center;
   padding: var(--spacing-3);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.02);
   transition: all 0.2s ease;
 }
@@ -435,7 +435,7 @@
   padding: var(--spacing-1) var(--spacing-2);
   background: rgba(34, 197, 94, 0.2);
   color: rgb(34, 197, 94);
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--radius-sm);
   font-weight: 500;
 }
 

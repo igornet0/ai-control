@@ -96,8 +96,6 @@
 }
 
 .heroTitle {
-  --brand-cycle-duration: 7.2s;
-  --brand-ease: cubic-bezier(0.32, 0.72, 0.18, 1);
   display: flex;
   align-items: baseline;
   gap: 0.3em;
@@ -106,9 +104,10 @@
   z-index: 2;
 }
 
-.brandPrefix,
-.brandWord {
+.brandPrefix {
   display: inline-block;
+  position: relative;
+  z-index: 3;
   background: linear-gradient(to right, #60a5fa, #c084fc, #f472b6);
   -webkit-background-clip: text;
   background-clip: text;
@@ -116,186 +115,255 @@
   color: transparent;
 }
 
-.brandPrefix {
-  position: relative;
-  z-index: 3;
-  animation: brandPrefixCycle var(--brand-cycle-duration) ease-in-out infinite;
-  filter: drop-shadow(0 0 0 rgba(96, 165, 250, 0));
+.brandPrefix[data-phase='locked'] {
+  animation: prefixFlash 900ms ease-out;
 }
+
+/* ——— «Данные»: побуквенный шифр ——— */
 
 .brandStage {
   position: relative;
   display: inline-flex;
   align-items: baseline;
-  min-width: 3.2em;
 }
 
 .brandWord {
-  animation: brandWordCycle var(--brand-cycle-duration) var(--brand-ease) infinite;
-  transform-origin: 50% 62%;
-  will-change: transform, opacity;
+  position: relative;
+  display: inline-flex;
 }
+
+.brandSlot {
+  position: relative;
+  display: inline-block;
+}
+
+/* Невидимая исходная буква держит ширину слота — слово не «прыгает» при подмене символов. */
+.brandSlotSizer {
+  visibility: hidden;
+}
+
+.brandSlotSizer::before,
+.brandGlyph::before {
+  content: attr(data-ch);
+}
+
+.brandGlyph {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  /* Градиент растянут на всё слово (6 букв) и сдвинут под позицию буквы. */
+  background: linear-gradient(to right, #60a5fa, #c084fc, #f472b6);
+  background-size: 600% 100%;
+  background-position: calc(var(--i) * 20%) 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.brandGlyph[data-cipher] {
+  background-image: linear-gradient(to right, #67e8f9, #a5b4fc, #67e8f9);
+  filter: drop-shadow(0 0 6px rgba(103, 232, 249, 0.55));
+  transform: scale(0.86);
+}
+
+.brandStage[data-phase='locked'] .brandGlyph {
+  transform: scale(1.3);
+  background-image: linear-gradient(to right, #a5b4fc, #f0abfc);
+  filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.6));
+  animation: maskPop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+/* Луч-сканер */
+.brandBeam {
+  position: absolute;
+  top: 0.08em;
+  bottom: -0.02em;
+  left: 0;
+  width: 0.14em;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, #67e8f9 25%, #c084fc 75%, transparent);
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.75), 0 0 42px rgba(192, 132, 252, 0.5);
+}
+
+.brandStage[data-phase='encrypt'] .brandBeam {
+  animation: beamSweep 860ms cubic-bezier(0.45, 0, 0.2, 1) forwards;
+}
+
+.brandStage[data-phase='decrypt'] .brandBeam {
+  animation: beamSweep 900ms cubic-bezier(0.45, 0, 0.2, 1) 120ms forwards;
+}
+
+/* ——— Замок справа от слова ——— */
 
 .brandLock {
   position: absolute;
-  left: 50%;
-  top: 52%;
-  width: 1.22em;
-  height: 1.42em;
-  z-index: 2;
+  left: calc(100% + 0.2em);
+  bottom: 0.02em;
+  width: 0.8em;
+  height: 0.93em;
+  opacity: 0;
   pointer-events: none;
-  will-change: transform, opacity, filter;
-  animation:
-    brandLockCycle var(--brand-cycle-duration) var(--brand-ease) infinite,
-    brandLockGlow var(--brand-cycle-duration) ease-in-out infinite;
 }
 
 .lockIcon {
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: visible;
 }
 
 .lockShackle {
-  transform-origin: 24px 25px;
-  animation: lockShackleClose var(--brand-cycle-duration) var(--brand-ease) infinite;
+  transform: translateY(-7px);
 }
 
-@keyframes brandPrefixCycle {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: drop-shadow(0 0 0 rgba(96, 165, 250, 0));
-  }
-
-  18% {
-    opacity: 1;
-    transform: scale(1.008) translateY(-0.008em);
-    filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.14));
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: drop-shadow(0 0 0 rgba(96, 165, 250, 0));
-  }
-
-  82% {
-    opacity: 1;
-    transform: scale(1.006) translateY(-0.006em);
-    filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.12));
-  }
+.brandStage[data-phase='lock'] .brandLock {
+  animation: lockDrop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes brandWordCycle {
-  0%,
-  31%,
-  100% {
-    opacity: 1;
-    transform: translateX(0) translateY(0) scale(1);
-  }
-
-  37% {
-    opacity: 0.72;
-    transform: translateX(0) translateY(0.01em) scale(0.97);
-  }
-
-  44%,
-  78% {
-    opacity: 0;
-    transform: translateX(0) translateY(0.03em) scale(0.9);
-  }
-
-  86% {
-    opacity: 0.74;
-    transform: translateX(0.035em) translateY(-0.01em) scale(1.01);
-  }
-
-  90% {
-    opacity: 1;
-    transform: translateX(0) translateY(0) scale(1);
-  }
+.brandStage[data-phase='lock'] .lockShackle {
+  animation: shackleSnap 520ms ease-in forwards;
 }
 
-@keyframes brandLockCycle {
-  0%,
-  18%,
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateY(0.3em) scale(0.28) rotate(-7deg);
-  }
-
-  22% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateY(0.12em) scale(0.74) rotate(-3deg);
-  }
-
-  26% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.05) rotate(0deg);
-  }
-
-  31% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1) rotate(0deg);
-  }
-
-  37% {
-    opacity: 0.95;
-    transform: translate(calc(-50% - 0.24em), calc(-50% + 0.02em)) scale(0.9) rotate(-2deg);
-  }
-
-  44% {
-    opacity: 0.3;
-    transform: translate(calc(-50% - 2.5em), calc(-50% + 0.07em)) scale(0.56) rotate(-8deg);
-  }
-
-  48% {
-    opacity: 0;
-    transform: translate(calc(-50% - 3em), calc(-50% + 0.09em)) scale(0.34) rotate(-10deg);
-  }
+.brandStage[data-phase='locked'] .brandLock {
+  opacity: 1;
+  animation: lockGlow 1500ms ease-in-out;
 }
 
-@keyframes lockShackleClose {
-  0%,
-  24%,
-  100% {
-    transform: rotate(14deg);
-  }
-
-  28% {
-    transform: rotate(6deg);
-  }
-
-  31%,
-  35% {
-    transform: rotate(0deg);
-  }
-
-  39% {
-    transform: rotate(4deg);
-  }
-
-  44% {
-    transform: rotate(8deg);
-  }
+.brandStage[data-phase='locked'] .lockShackle {
+  transform: translateY(0);
 }
 
-@keyframes brandLockGlow {
-  0%,
-  23%,
-  100% {
-    filter: drop-shadow(0 0 0 rgba(96, 165, 250, 0));
+.brandStage[data-phase='unlock'] .brandLock {
+  animation: lockRelease 420ms ease-in forwards;
+}
+
+.lockRing {
+  position: absolute;
+  left: 50%;
+  top: 68%;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 0.035em solid rgba(192, 132, 252, 0.85);
+  box-shadow: 0 0 14px rgba(96, 165, 250, 0.6);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.3);
+}
+
+.brandStage[data-phase='locked'] .lockRing {
+  animation: ringBurst 700ms ease-out;
+}
+
+.lockSpark {
+  position: absolute;
+  left: 50%;
+  top: 68%;
+  width: 0.07em;
+  height: 0.07em;
+  margin: -0.035em 0 0 -0.035em;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px #c084fc, 0 0 14px #60a5fa;
+  opacity: 0;
+}
+
+.brandStage[data-phase='locked'] .lockSpark {
+  animation: sparkBurst 650ms ease-out;
+}
+
+@keyframes beamSweep {
+  0% { left: -0.2em; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes maskPop {
+  0% { transform: scale(0.2); opacity: 0; }
+  100% { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes lockDrop {
+  0% { opacity: 0; transform: translateY(-0.7em) scale(0.5) rotate(-14deg); }
+  65% { opacity: 1; transform: translateY(0.05em) scale(1.08) rotate(4deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes shackleSnap {
+  0%, 70% { transform: translateY(-7px); }
+  88% { transform: translateY(1.5px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes lockGlow {
+  0% { filter: drop-shadow(0 0 22px rgba(96, 165, 250, 0.8)) drop-shadow(0 0 12px rgba(244, 114, 182, 0.5)); }
+  50% { filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.45)); }
+  100% { filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.5)); }
+}
+
+@keyframes lockRelease {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-0.4em) scale(0.8) rotate(8deg); }
+}
+
+@keyframes ringBurst {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.3); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+}
+
+@keyframes sparkBurst {
+  0% { opacity: 1; transform: rotate(var(--a)) translateX(0.2em) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(0.85em) scale(0.3); }
+}
+
+@keyframes prefixFlash {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(96, 165, 250, 0)); }
+  30% { filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.55)); }
+}
+
+/* ——— Изображение дашборда ——— */
+
+.dashboardSection {
+  opacity: 0.75;
+}
+
+.dashboardFrame {
+  filter: brightness(0.85) contrast(1.05);
+}
+
+.dashboardImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.9;
+  filter: drop-shadow(0 10px 25px rgba(59, 130, 246, 0.15));
+}
+
+/* В одну колонку портретная картинка (2:3) растягивается почти на экран в высоту —
+   показываем верхнюю часть в кадре 4:3 с мягким затуханием снизу. */
+@media (max-width: 1023.98px) {
+  .dashboardSection {
+    width: 100%;
+    max-width: 30rem;
+    margin: 0 auto;
+    opacity: 0.85;
   }
 
-  29% {
-    filter: drop-shadow(0 0 16px rgba(96, 165, 250, 0.45))
-      drop-shadow(0 0 12px rgba(244, 114, 182, 0.28));
+  .dashboardFrame {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
   }
 
-  38% {
-    filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.35));
+  .dashboardImage {
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 16%;
   }
 }
 
@@ -317,17 +385,12 @@
   .auroraOrbBlue,
   .auroraOrbPurple,
   .auroraOrbPink,
-  .gridFade,
-  .brandPrefix,
-  .brandWord,
-  .brandLock,
-  .lockShackle {
+  .gridFade {
     animation: none;
-    opacity: 1;
-    transform: none;
   }
 
-  .brandLock {
+  .brandLock,
+  .brandBeam {
     display: none;
   }
 }

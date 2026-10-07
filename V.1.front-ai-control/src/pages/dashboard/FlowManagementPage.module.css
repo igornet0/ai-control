@@ -32,9 +32,9 @@
   align-items: center;
   gap: var(--spacing-2);
   padding: var(--spacing-2) var(--spacing-4);
-  background: var(--color-background-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -44,7 +44,7 @@
 }
 
 .backButton:hover {
-  background: var(--color-background-tertiary);
+  background: var(--color-bg-tertiary);
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
 }

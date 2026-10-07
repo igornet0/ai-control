@@ -14,6 +14,8 @@ import {
 import { getSpreadsheetPreviewData, getSpreadsheetAllSheetsPreviewData } from './spreadsheetPreview';
 import { normalizeSummaryConfig } from './spreadsheetSummary';
 import SpreadsheetTemplatePanel from './SpreadsheetTemplatePanel';
+import UnsavedChangesDialog from './UnsavedChangesDialog';
+import { useUnsavedChangesGuard } from './useUnsavedChangesGuard';
 import { downloadCsvFile, downloadCsvFilesAsZip, downloadJsonFile, rowsToCsv, sanitizeFilename } from './csvUtils';
 import { buildTemplateExportJson } from './buildTemplatePayload';
 import TemplateImportExportSection from './TemplateImportExportSection';
@@ -490,7 +492,33 @@ const TemplatePreviewPanel = ({
     }
   };
 
-  const handleCreateFromTemplate = async () => {
+  const autosaveFingerprint = React.useMemo(
+    () => JSON.stringify({
+      sheetBlocks,
+      titleTemplate,
+      titleStyle,
+      pageNumberStyle,
+      pageLayoutStyle,
+      defaultValues,
+      tableGridModel: isTableTemplate ? workbookSaveFingerprint(tableGridModel) : null,
+    }),
+    [sheetBlocks, titleTemplate, titleStyle, pageNumberStyle, pageLayoutStyle, defaultValues, tableGridModel, isTableTemplate],
+  );
+
+  const {
+    markClean,
+    requestLeave,
+    dialogProps: unsavedDialogProps,
+  } = useUnsavedChangesGuard({
+    fingerprint: autosaveFingerprint,
+    ready: !loading && !!template,
+    enabled: Boolean(templateId) && canEditTemplate,
+    // handleSaveSheet объявлен ниже; вызывается только по клику в диалоге.
+    onSave: () => handleSaveSheet(),
+  });
+  const requestClose = useCallback(() => requestLeave(() => onClose?.()), [requestLeave, onClose]);
+
+  const createFromTemplate = async () => {
     if (!templateId) return;
     setCreating(true);
     setError(null);
@@ -505,13 +533,16 @@ const TemplatePreviewPanel = ({
     }
   };
 
-  const handleEditStructure = () => {
+  // Создание документа и переход к структуре закрывают панель — сначала спрашиваем про несохранённое.
+  const handleCreateFromTemplate = () => requestLeave(createFromTemplate);
+
+  const handleEditStructure = () => requestLeave(() => {
     if (kind) onEditStructure?.(kind);
     onClose?.();
-  };
+  });
 
   const handleSaveSheet = useCallback(async ({ silent = false } = {}) => {
-    if (!templateId || !template || savingSheet) return;
+    if (!templateId || !template || savingSheet) return false;
     setError(null);
     if (!silent) setSaveMessage(null);
 
@@ -540,7 +571,8 @@ const TemplatePreviewPanel = ({
 
     if (sheetContentEqual && titleTemplateEqual && titleStyleEqual && pageNumberStyleEqual && pageLayoutStyleEqual && defaultValuesEqual) {
       if (!silent) setSaveMessage('Изменений нет. Версия не обновлена.');
-      return;
+      markClean();
+      return true;
     }
 
     setSavingSheet(true);
@@ -565,8 +597,11 @@ const TemplatePreviewPanel = ({
         setAutoSaveHint('Автосохранено');
         window.setTimeout(() => setAutoSaveHint(null), 2000);
       }
+      markClean();
+      return true;
     } catch (e) {
       setError(e.response?.data?.detail || 'Не удалось сохранить лист');
+      return false;
     } finally {
       setSavingSheet(false);
     }
@@ -583,20 +618,8 @@ const TemplatePreviewPanel = ({
     isTableTemplate,
     tableGridModel,
     kindName,
+    markClean,
   ]);
-
-  const autosaveFingerprint = React.useMemo(
-    () => JSON.stringify({
-      sheetBlocks,
-      titleTemplate,
-      titleStyle,
-      pageNumberStyle,
-      pageLayoutStyle,
-      defaultValues,
-      tableGridModel: isTableTemplate ? workbookSaveFingerprint(tableGridModel) : null,
-    }),
-    [sheetBlocks, titleTemplate, titleStyle, pageNumberStyle, pageLayoutStyle, defaultValues, tableGridModel, isTableTemplate],
-  );
 
   useEffect(() => {
     if (!autoSaveEnabled || !templateId || loading || !template || !canEditTemplate) return undefined;
@@ -750,7 +773,7 @@ const TemplatePreviewPanel = ({
   return (
     <div
       className={`${styles.editorOverlay} ${isTableTemplate ? styles.editorOverlayTable : ''}`}
-      onClick={(e) => e.target === e.currentTarget && onClose?.()}
+      onClick={(e) => e.target === e.currentTarget && requestClose()}
     >
       <div
         className={[
@@ -843,7 +866,7 @@ const TemplatePreviewPanel = ({
               </ToolbarButton>
             </div>
           )}
-          <button type="button" className={styles.editorCloseBtn} onClick={onClose} aria-label="Закрыть">
+          <button type="button" className={styles.editorCloseBtn} onClick={requestClose} aria-label="Закрыть">
             <IconClose size={18} />
           </button>
         </div>
@@ -1220,6 +1243,11 @@ const TemplatePreviewPanel = ({
         onPageLayoutChange={setPageLayoutStyle}
         structure={structure}
         placeholderVars={placeholderVars}
+      />
+      <UnsavedChangesDialog
+        {...unsavedDialogProps}
+        entityLabel={isTableTemplate ? 'шаблоне таблицы' : 'шаблоне'}
+        entityName={template?.name || templateName}
       />
     </div>
   );
