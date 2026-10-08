@@ -216,12 +216,13 @@
 
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 1rem;
   width: 100%;
   position: relative;
   isolation: isolate;
-  align-items: start;
+  /* Карточки одного ряда одной высоты — подвалы с кнопками на одной линии */
+  align-items: stretch;
 }
 
 .no-projects {

@@ -19,7 +19,7 @@ export const PROFILE_WIDGET_CATALOG = [
   { source: 'statistics', cardId: 'overdue-tasks', title: 'Просрочки' },
   { source: 'statistics', cardId: 'user-teams', title: 'Команды' },
   { source: 'statistics', cardId: 'user-projects', title: 'Проекты' },
-  { source: 'statistics', cardId: 'feedback', title: 'Жалобы и похвалы' },
+  { source: 'statistics', cardId: 'productivity', title: 'Продуктивность' },
   { source: 'task-widgets', cardId: 'progress-chart', title: 'Обзор задач' },
   { source: 'task-widgets', cardId: 'bar-chart', title: 'Приоритеты' },
   { source: 'task-widgets', cardId: 'team-ratings', title: 'Производительность' },

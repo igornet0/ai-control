@@ -1140,6 +1140,21 @@
   align-items: flex-start;
 }
 
+/* Карточка обрезает содержимое (overflow: hidden) — пока открыто меню «⋯», выпускаем его наружу. */
+.resourceCard:has(.resourceCardMenu [aria-expanded="true"]) {
+  overflow: visible;
+  z-index: 6;
+}
+
+.resourceCardMenu {
+  margin-left: auto;
+  margin-top: -0.25rem;
+  margin-right: -0.35rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
 .resourceCardIcon {
   flex-shrink: 0;
   width: 2.25rem;

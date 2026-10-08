@@ -6,7 +6,16 @@ import ProjectCard from './components/ProjectCard';
 import CreateProjectModal from './components/CreateProjectModal';
 import ProjectsCalendar from './components/ProjectsCalendar';
 import './Projects.css';
-import { CloseIcon, ProjectsIcon } from '../../components/TaskManagerIcons';
+import { CloseIcon, PlusIconSm, ProjectsIcon, SearchIcon } from '../../components/TaskManagerIcons';
+import '../tmPage.css';
+
+const pluralize = (n, one, few, many) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
 
 const Projects = ({ deepLinkProjectId = null }) => {
   const [projects, setProjects] = useState([]);
@@ -185,103 +194,124 @@ const Projects = ({ deepLinkProjectId = null }) => {
   };
 
   if (loading || userLoading) {
-    return (
-      <div className="projects-container">
-        <div className="loading">Загрузка проектов...</div>
-      </div>
-    );
+    return <div className="tm-loading">Загрузка проектов…</div>;
   }
 
+  const activeCount = projects.filter((project) => project.status === 'active').length;
+  const hasFilters = Boolean(searchTerm || statusFilter || priorityFilter);
+
   return (
-    <div className="mt-6">
-      <div className="projects-header">
-        <div className="header-left">
-          <div className="title-section">
-            <h1 className="text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
-              <ProjectsIcon size="lg" className="text-violet-400" />
-              Проекты
-            </h1>
-            <div className="projects-counter">
-              <span className="counter-label">Всего проектов:</span>
-              <span className="counter-value">
-                {projects.length}
-              </span>
-            </div>
-          </div>
+    <div className="projects-page">
+      <header className="tm-page-header">
+        <div>
+          <h1 className="tm-page-header__title">
+            <ProjectsIcon size="lg" className="text-violet-400" />
+            Проекты
+          </h1>
+          <p className="tm-page-header__subtitle">
+            <strong>{projects.length}</strong> {pluralize(projects.length, 'проект', 'проекта', 'проектов')}
+            {activeCount > 0 && <> · <strong>{activeCount}</strong> в работе</>}
+          </p>
         </div>
-        <div className="header-actions">
-          <button 
-            className="create-project-btn"
-            onClick={() => setShowCreateModal(true)}
-          >
-            Создать проект
+        <div className="tm-page-header__actions">
+          <button type="button" className="tm-btn tm-btn--primary" onClick={() => setShowCreateModal(true)}>
+            <PlusIconSm size="sm" />
+            Новый проект
           </button>
         </div>
-      </div>
+      </header>
 
       {error && (
-        <div className="error-message">
-          {error}
-          <button onClick={() => setError(null)}><CloseIcon size="sm" /></button>
+        <div className="tm-banner tm-banner--error" role="alert">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Скрыть"><CloseIcon size="sm" /></button>
         </div>
       )}
 
-      <div className="projects-tabs">
-        <button className={`tab-btn ${activeTab === 'list' ? 'tab-active' : ''}`} onClick={() => setActiveTab('list')}>Список</button>
-        <button className={`tab-btn ${activeTab === 'calendar' ? 'tab-active' : ''}`} onClick={() => setActiveTab('calendar')}>Календарь</button>
-      </div>
+      <div className="tm-toolbar">
+        <div className="tm-segmented" role="tablist" aria-label="Вид">
+          {[
+            { id: 'list', label: 'Список' },
+            { id: 'calendar', label: 'Календарь' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`tm-segmented__btn ${activeTab === tab.id ? 'tm-segmented__btn--active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      <div className="projects-filters">
-        <div className="search-box">
+        <div className="tm-search">
+          <SearchIcon size="sm" className="tm-search__icon" />
           <input
             type="text"
-            placeholder="Поиск по названию или описанию..."
+            placeholder="Поиск по названию или описанию…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+            className="tm-input"
+            aria-label="Поиск проектов"
           />
         </div>
 
-        <div className="status-filter">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="status-select"
-          >
-            <option value="">Все статусы</option>
-            <option value="planning">Планирование</option>
-            <option value="active">Активные</option>
-            <option value="on_hold">На паузе</option>
-            <option value="completed">Завершенные</option>
-            <option value="cancelled">Отмененные</option>
-            <option value="archived">Архивные</option>
-          </select>
-        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className={`tm-select ${statusFilter ? 'tm-select--active' : ''}`}
+          aria-label="Статус"
+        >
+          <option value="">Все статусы</option>
+          <option value="planning">Планирование</option>
+          <option value="active">Активные</option>
+          <option value="on_hold">На паузе</option>
+          <option value="completed">Завершённые</option>
+          <option value="cancelled">Отменённые</option>
+          <option value="archived">Архивные</option>
+        </select>
 
-        <div className="priority-filter">
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="priority-select"
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className={`tm-select ${priorityFilter ? 'tm-select--active' : ''}`}
+          aria-label="Приоритет"
+        >
+          <option value="">Все приоритеты</option>
+          <option value="low">Низкий</option>
+          <option value="medium">Средний</option>
+          <option value="high">Высокий</option>
+          <option value="critical">Критичный</option>
+          <option value="urgent">Срочный</option>
+        </select>
+
+        {hasFilters && (
+          <button
+            type="button"
+            className="tm-toolbar__reset"
+            onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('');
+              setPriorityFilter('');
+            }}
           >
-            <option value="">Все приоритеты</option>
-            <option value="low">Низкий</option>
-            <option value="medium">Средний</option>
-            <option value="high">Высокий</option>
-            <option value="critical">Критический</option>
-            <option value="urgent">Срочный</option>
-          </select>
-        </div>
+            Сбросить
+          </button>
+        )}
       </div>
 
       {activeTab === 'list' ? (
         <div className="projects-grid">
           {displayedProjects.length === 0 ? (
-            <div className="no-projects">
-              {searchTerm || statusFilter || priorityFilter 
-                ? 'Проекты не найдены' 
-                : 'Проекты не созданы'
-              }
+            <div className="tm-empty">
+              <ProjectsIcon size="2xl" className="text-slate-500" />
+              <span>{hasFilters ? 'Ничего не найдено' : 'Проектов пока нет'}</span>
+              <span className="tm-empty__hint">
+                {hasFilters ? 'Измените поиск или сбросьте фильтры' : 'Создайте первый проект — кнопка «Новый проект» вверху'}
+              </span>
             </div>
           ) : (
             displayedProjects.map(project => (

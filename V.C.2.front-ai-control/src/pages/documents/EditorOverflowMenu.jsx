@@ -3,9 +3,16 @@ import chrome from './DocumentEditorChrome.module.css';
 
 /**
  * Меню «⋯» для редких действий редактора (печать, экспорт, откат, удаление).
- * @param {{ items: Array<{ id: string, label: string, onSelect: () => void, danger?: boolean, separatorBefore?: boolean, hidden?: boolean }> }} props
+ * @param {{ items: Array<{ id: string, label: string, onSelect: () => void, danger?: boolean, separatorBefore?: boolean, hidden?: boolean, hint?: string, icon?: React.ReactNode }> }} props
+ * trigger / triggerClassName — своя кнопка вместо «⋯» (например, «Создать ▾»); align — край, к которому прижато меню.
  */
-export default function EditorOverflowMenu({ items, label = 'Ещё действия' }) {
+export default function EditorOverflowMenu({
+  items,
+  label = 'Ещё действия',
+  trigger = null,
+  triggerClassName = '',
+  align = 'right',
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const visible = items.filter((item) => !item.hidden);
@@ -29,25 +36,30 @@ export default function EditorOverflowMenu({ items, label = 'Ещё действ
     };
   }, [open]);
 
+  // Все пункты скрыты — кнопку не показываем, иначе раскрывается пустое меню.
+  if (visible.length === 0) return null;
+
   return (
     <div className={chrome.menuRoot} ref={rootRef}>
       <button
         type="button"
-        className={`${chrome.iconBtn} ${open ? chrome.iconBtnActive : ''}`}
+        className={trigger ? triggerClassName : `${chrome.iconBtn} ${open ? chrome.iconBtnActive : ''}`}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={label}
-        title={label}
+        title={trigger ? undefined : label}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="5" cy="12" r="1.7" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.7" fill="currentColor" />
-          <circle cx="19" cy="12" r="1.7" fill="currentColor" />
-        </svg>
+        {trigger || (
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.7" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.7" fill="currentColor" />
+            <circle cx="19" cy="12" r="1.7" fill="currentColor" />
+          </svg>
+        )}
       </button>
       {open && (
-        <ul className={chrome.menu} role="menu">
+        <ul className={`${chrome.menu} ${align === 'left' ? chrome.menuLeft : ''}`} role="menu">
           {visible.map((item) => (
             <li key={item.id} role="none" className={item.separatorBefore ? chrome.menuSeparated : undefined}>
               <button
@@ -61,13 +73,16 @@ export default function EditorOverflowMenu({ items, label = 'Ещё действ
                   item.onSelect();
                 }}
               >
+                {item.icon && <span className={chrome.menuIcon} aria-hidden>{item.icon}</span>}
                 {item.checked !== undefined && (
                   <span className={`${chrome.menuCheck} ${item.checked ? chrome.menuCheckOn : ''}`} aria-hidden>
                     {item.checked ? '✓' : ''}
                   </span>
                 )}
-                {item.label}
-                {item.hint && <span className={chrome.menuHint}>{item.hint}</span>}
+                <span className={chrome.menuText}>
+                  {item.label}
+                  {item.hint && <span className={chrome.menuHint}>{item.hint}</span>}
+                </span>
               </button>
             </li>
           ))}

@@ -1,0 +1,961 @@
+/* Раздел «Папки»: дерево слева, содержимое папки справа. Токены --docs-* приходят из .container.
+   Раскладка зависит от ширины самой панели (container query), а не окна: рядом есть боковое меню. */
+
+.shell {
+  container: folders / inline-size;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ——— Дерево ——— */
+.tree {
+  position: sticky;
+  top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 180px);
+  overflow-y: auto;
+  padding: 0.5rem 0.4rem;
+  background: rgba(19, 28, 53, 0.45);
+  border: 1px solid var(--docs-border);
+  border-radius: 0.8rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+.treeAll,
+.treeCreate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--docs-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.treeCreate {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  font-weight: 500;
+  color: #c4b5fd;
+  border-top: 1px solid var(--docs-border);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.treeCreate:hover {
+  color: #ddd6fe;
+  background: rgba(124, 92, 255, 0.1);
+}
+
+.treeGroup {
+  margin-top: 0.5rem;
+}
+
+.treeGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--docs-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.treeGroupHeader:hover {
+  color: var(--docs-text);
+}
+
+.groupCaret {
+  display: inline-flex;
+  transition: transform 0.15s;
+}
+
+.treeGroupCount {
+  margin-left: auto;
+  font-size: 0.66rem;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.treeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.treeEmpty {
+  margin: 0.15rem 0 0.25rem;
+  padding: 0 0.6rem 0 1.4rem;
+  font-size: 0.74rem;
+  color: var(--docs-text-muted);
+  opacity: 0.75;
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding-left: calc(var(--depth, 0) * 0.85rem);
+}
+
+.caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  color: var(--docs-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.caret:hover {
+  color: var(--docs-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.caretOpen {
+  transform: rotate(90deg);
+}
+
+.caretSpacer {
+  width: 1.15rem;
+  flex-shrink: 0;
+}
+
+.treeItem {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.32rem 0.5rem;
+  font-size: 0.83rem;
+  color: #c3cdeb;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+
+.treeItem:hover,
+.treeAll:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--docs-text);
+}
+
+.treeItemActive,
+.treeItemActive:hover {
+  color: #fff;
+  background: rgba(124, 92, 255, 0.2);
+  border-color: rgba(124, 92, 255, 0.35);
+}
+
+.treeItemDrop {
+  background: rgba(124, 92, 255, 0.28);
+  border-color: rgba(165, 180, 252, 0.7);
+  border-style: dashed;
+}
+
+.treeItemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #a5b4fc;
+}
+
+.treeItemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treeItemCount {
+  flex-shrink: 0;
+  min-width: 1.2rem;
+  padding: 0 0.3rem;
+  font-size: 0.68rem;
+  text-align: center;
+  color: #c7d2fe;
+  background: rgba(124, 92, 255, 0.18);
+  border-radius: 999px;
+}
+
+/* ——— Правая панель ——— */
+.pane {
+  min-width: 0;
+}
+
+.paneHead {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.backBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--docs-text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.55rem;
+  cursor: pointer;
+}
+
+.backBtn:hover {
+  background: rgba(124, 92, 255, 0.12);
+  border-color: rgba(124, 92, 255, 0.4);
+}
+
+.headIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: #c4b5fd;
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.25), rgba(91, 141, 239, 0.15));
+  border: 1px solid rgba(124, 92, 255, 0.3);
+  border-radius: 0.75rem;
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--docs-text-muted);
+}
+
+.crumb {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.crumb:hover {
+  color: var(--docs-text);
+  text-decoration: underline;
+}
+
+.crumbSep {
+  opacity: 0.5;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--docs-text);
+  overflow-wrap: anywhere;
+}
+
+.headMeta {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--docs-text-muted);
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.primaryBtn,
+.ghostBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.primaryBtn {
+  color: #fff;
+  background: linear-gradient(135deg, var(--docs-accent) 0%, #5b8def 100%);
+  border: 1px solid transparent;
+  box-shadow: 0 2px 12px var(--docs-glow);
+}
+
+.primaryBtn:hover,
+.primaryBtn[aria-expanded="true"] {
+  box-shadow: 0 6px 20px var(--docs-glow);
+  transform: translateY(-1px);
+}
+
+.ghostBtn {
+  font-weight: 500;
+  color: var(--docs-text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ghostBtn:hover:not(:disabled) {
+  background: rgba(124, 92, 255, 0.12);
+  border-color: rgba(124, 92, 255, 0.4);
+}
+
+.linkBtn {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #c4b5fd;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  text-decoration: underline;
+}
+
+/* Строка «Кто имеет доступ» — открывает настройки доступа. */
+.accessBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 1.35rem;
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  color: var(--docs-text);
+  background: rgba(124, 92, 255, 0.07);
+  border: 1px solid rgba(124, 92, 255, 0.2);
+  border-radius: 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.accessBar:hover {
+  background: rgba(124, 92, 255, 0.13);
+  border-color: rgba(124, 92, 255, 0.4);
+}
+
+.accessIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  color: #c4b5fd;
+  background: rgba(124, 92, 255, 0.16);
+  border-radius: 999px;
+}
+
+.accessText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.accessLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--docs-text-muted);
+}
+
+.accessSummary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+}
+
+.accessLevel {
+  flex-shrink: 0;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.accessAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+
+.block + .block {
+  margin-top: 1.4rem;
+}
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--docs-text-muted);
+}
+
+.sectionCount {
+  padding: 0 0.4rem;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  color: #c7d2fe;
+  background: rgba(124, 92, 255, 0.18);
+  border-radius: 999px;
+}
+
+/* ——— Плитки папок ——— */
+.folderGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.6rem;
+}
+
+.folderTile {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  color: var(--docs-text);
+  text-align: left;
+  background: rgba(19, 28, 53, 0.7);
+  border: 1px solid var(--docs-border);
+  border-radius: 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.folderTile:hover {
+  border-color: rgba(124, 92, 255, 0.4);
+  background: rgba(124, 92, 255, 0.08);
+}
+
+.folderTileDrop {
+  border-style: dashed;
+  border-color: rgba(165, 180, 252, 0.8);
+  background: rgba(124, 92, 255, 0.16);
+}
+
+.folderTileIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 2.1rem;
+  color: #c4b5fd;
+  background: rgba(124, 92, 255, 0.14);
+  border-radius: 0.55rem;
+}
+
+.folderTileText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.folderTileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.87rem;
+  font-weight: 500;
+}
+
+.folderTileMeta {
+  font-size: 0.72rem;
+  color: var(--docs-text-muted);
+  opacity: 0.8;
+}
+
+.folderTileMetaFilled {
+  color: #a5b4fc;
+  opacity: 1;
+}
+
+.folderTileChevron {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--docs-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.folderTile:hover .folderTileChevron {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* ——— Список документов ——— */
+.fileTable {
+  border: 1px solid var(--docs-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(13, 19, 38, 0.5);
+}
+
+.fileHeader,
+.fileMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 110px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fileHeader {
+  padding: 0.5rem 3rem 0.5rem 0.85rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--docs-text-muted);
+  border-bottom: 1px solid var(--docs-border);
+}
+
+.fileHeader > span:last-child {
+  display: none;
+}
+
+.fileList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-right: 0.5rem;
+  border-bottom: 1px solid var(--docs-border);
+  transition: background 0.12s;
+}
+
+.fileRow:last-child {
+  border-bottom: none;
+}
+
+.fileRow:hover {
+  background: rgba(124, 92, 255, 0.07);
+}
+
+/* «⋯» в строке — без рамки, проявляется при наведении на строку. */
+.fileRow [aria-haspopup="menu"] {
+  border-color: transparent;
+  opacity: 0.55;
+}
+
+.fileRow:hover [aria-haspopup="menu"],
+.fileRow [aria-haspopup="menu"][aria-expanded="true"],
+.fileRow [aria-haspopup="menu"]:focus-visible {
+  opacity: 1;
+}
+
+.fileRow[draggable="true"] {
+  cursor: grab;
+}
+
+.fileMain {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.35rem 0.6rem 0.85rem;
+  color: var(--docs-text);
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  grid-template-columns: auto minmax(0, 1fr) 150px 110px;
+}
+
+.fileHeader {
+  grid-template-columns: minmax(0, 1fr) 150px 110px;
+}
+
+.fileIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.14);
+  border-radius: 0.5rem;
+}
+
+.fileIconTable {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.fileText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.fileMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  color: var(--docs-text-muted);
+}
+
+.fileAuthor,
+.fileDate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--docs-text-muted);
+}
+
+.fileBadge {
+  flex-shrink: 0;
+  padding: 0 0.4rem;
+  font-size: 0.66rem;
+  font-weight: 500;
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 999px;
+}
+
+/* ——— Пустые состояния ——— */
+.emptyPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--docs-text-muted);
+  border: 1px dashed rgba(148, 163, 184, 0.22);
+  border-radius: 0.8rem;
+}
+
+.emptyPane p {
+  margin: 0;
+  max-width: 440px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.emptyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.25rem;
+  color: #c4b5fd;
+  background: rgba(124, 92, 255, 0.12);
+  border-radius: 999px;
+}
+
+.emptyPane .emptyTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--docs-text);
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.emptyInline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.82rem;
+  color: var(--docs-text-muted);
+  border: 1px dashed rgba(148, 163, 184, 0.22);
+  border-radius: 0.7rem;
+}
+
+.error {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 0.55rem;
+}
+
+/* ——— Диалоги выбора ——— */
+.textInput {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--docs-text);
+  background: var(--docs-surface-2);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.55rem;
+  outline: none;
+}
+
+.textInput:focus {
+  border-color: rgba(124, 92, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.18);
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--docs-text-muted);
+}
+
+.pickList {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  max-height: min(52dvh, 420px);
+  overflow-y: auto;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.6rem;
+}
+
+.pickItem {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  padding-left: calc(0.75rem + var(--depth, 0) * 1rem);
+  font-size: 0.85rem;
+  color: var(--docs-text);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--docs-border);
+  cursor: pointer;
+}
+
+.pickList li:last-child .pickItem {
+  border-bottom: none;
+}
+
+.pickItem:hover:not(:disabled) {
+  background: rgba(124, 92, 255, 0.1);
+}
+
+.pickItem:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pickItemActive,
+.pickItemActive:hover:not(:disabled) {
+  background: rgba(124, 92, 255, 0.2);
+}
+
+.pickItemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #a5b4fc;
+}
+
+.pickItemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.pickItemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickItemMeta {
+  font-size: 0.72rem;
+  color: var(--docs-text-muted);
+}
+
+.pickEmpty {
+  padding: 1rem;
+  font-size: 0.82rem;
+  text-align: center;
+  color: var(--docs-text-muted);
+}
+
+.roleSelect {
+  min-width: 0;
+  max-width: 160px;
+}
+
+.grantRole {
+  font-size: 0.72rem;
+  color: #c4b5fd;
+}
+
+.inheritList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--docs-text-muted);
+}
+
+.inheritList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.inheritList svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #a5b4fc;
+}
+
+/* Узкая панель: без дерева — навигация плитками и кнопкой «Назад». */
+@container folders (max-width: 760px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tree {
+    display: none;
+  }
+
+  .backBtn {
+    display: inline-flex;
+  }
+
+  .headIcon {
+    display: none;
+  }
+
+  .fileHeader,
+  .fileMain {
+    grid-template-columns: auto minmax(0, 1fr) 90px;
+  }
+
+  .fileHeader {
+    grid-template-columns: minmax(0, 1fr) 90px;
+  }
+
+  .fileAuthor {
+    display: none;
+  }
+}
+
+@container folders (max-width: 520px) {
+  .paneHead {
+    flex-wrap: wrap;
+  }
+
+  .headText {
+    flex-basis: calc(100% - 3.5rem);
+  }
+
+  .headActions {
+    width: 100%;
+  }
+
+  .accessLevel,
+  .fileDate {
+    display: none;
+  }
+
+  .fileHeader,
+  .fileMain {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .fileHeader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .folderGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

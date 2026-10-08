@@ -4,6 +4,7 @@ import { projectService } from "../../../services/projectService";
 import { getTask } from "../../../services/taskService";
 import EmployeeHoverTrigger from "../../profile/components/employees/EmployeeHoverTrigger";
 import { canDeleteTask } from "../utils/taskPermissions";
+import { normalizeTaskStatus } from "../utils/performanceUtils";
 import {
   IconWithText,
   LightbulbIcon,
@@ -375,12 +376,7 @@ export default function TaskTable({
         (getTaskProject(t)?.name || '').toLowerCase().includes(search.toLowerCase())
       )
       .filter((t) => {
-        // Маппинг статусов для обратной совместимости
-        const statusMap = {
-          "todo": "created",
-          "done": "completed"
-        };
-        const mappedStatus = statusMap[t.status] || t.status;
+        const mappedStatus = normalizeTaskStatus(t.status);
         // Если статус есть в фильтрах, используем значение фильтра, иначе показываем задачу
         return statusFilters.hasOwnProperty(mappedStatus) ? statusFilters[mappedStatus] : true;
       })

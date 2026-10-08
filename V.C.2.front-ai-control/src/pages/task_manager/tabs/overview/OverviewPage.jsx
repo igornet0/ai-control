@@ -15,31 +15,25 @@ import { OverviewAiAnalysisWidget } from './OverviewAiAnalysisWidget';
 import { OverviewAiChatWidget } from './OverviewAiChatWidget';
 import { useOverviewLiveState } from './useOverviewLiveState';
 import './overviewWidget.css';
+import '../statistics/statisticsWidget.css';
 
 export default function OverviewPage({ user }) {
   const model = useOverviewLiveState(user);
 
   return (
-    <div className="mt-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
+    <div>
+      <header className="stat-page-header">
+        <h1 className="stat-page-header__title">
           <OverviewIcon size="lg" className="text-cyan-400" />
           Обзор
         </h1>
-        <div className="text-sm text-slate-400 hidden lg:flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <circle cx="12" cy="5" r="2" />
-            <circle cx="12" cy="12" r="2" />
-            <circle cx="12" cy="19" r="2" />
-          </svg>
-          Настройте порядок и размер виджетов ниже
-        </div>
-      </div>
+        <p className="stat-page-header__subtitle">Приоритеты, сроки, проекты и заметки — всё на одном экране</p>
+      </header>
 
       {model.loading ? (
-        <div className="text-slate-400 mt-8">Загрузка...</div>
+        <div className="stat-loading">Загрузка…</div>
       ) : (
-        <div className="mt-8">
+        <div>
           {model.dataError && (
             <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {model.dataError}

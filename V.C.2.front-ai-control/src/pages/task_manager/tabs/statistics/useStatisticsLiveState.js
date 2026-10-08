@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getUserStatistics } from '../../../../services/statsService';
 
 const LIVE_REFRESH_MS = 30000;
@@ -40,9 +40,19 @@ export function useStatisticsLiveState({ enabled = true, live = false } = {}) {
     }
     fetchStats();
     return undefined;
-    // Initial load and when the hook is enabled. Period changes apply via «Обновить».
+    // Первая загрузка и включение хука; смена периода — эффект ниже.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
+
+  // Смена периода (быстрые кнопки или даты) — сразу пересчитываем, без мигания «Загрузки»
+  const lastPeriodRef = useRef(`${periodFrom}|${periodTo}`);
+  useEffect(() => {
+    const key = `${periodFrom}|${periodTo}`;
+    if (lastPeriodRef.current === key) return;
+    lastPeriodRef.current = key;
+    fetchStats({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodFrom, periodTo]);
 
   useEffect(() => {
     if (!enabled || !live) return undefined;

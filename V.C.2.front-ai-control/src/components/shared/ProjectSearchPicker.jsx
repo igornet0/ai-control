@@ -25,6 +25,8 @@ export default function ProjectSearchPicker({
   emptyMessage = 'Нет доступных проектов',
   searchPlaceholder = 'Поиск по названию, описанию или ID…',
   title,
+  /** variant="button": поле на всю ширину в стиле CustomSelect */
+  fullWidth = false,
 }) {
   const [search, setSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -182,9 +184,11 @@ export default function ProjectSearchPicker({
   if (loading) {
     if (variant === 'button') {
       return (
-        <button type="button" className="project-search-picker__trigger" disabled>
-          Загрузка проектов…
-        </button>
+        <div className={`project-search-picker--button${fullWidth ? ' project-search-picker--field' : ''}`}>
+          <button type="button" className="project-search-picker__trigger" disabled>
+            Загрузка проектов…
+          </button>
+        </div>
       );
     }
     return <p className="text-sm text-slate-400 mt-2">Загрузка проектов…</p>;
@@ -193,9 +197,11 @@ export default function ProjectSearchPicker({
   if (!projects.length) {
     if (variant === 'button') {
       return (
-        <button type="button" className="project-search-picker__trigger" disabled>
-          {emptyMessage}
-        </button>
+        <div className={`project-search-picker--button${fullWidth ? ' project-search-picker--field' : ''}`}>
+          <button type="button" className="project-search-picker__trigger" disabled>
+            {emptyMessage}
+          </button>
+        </div>
       );
     }
     return <p className="text-sm text-slate-400 mt-2">{emptyMessage}</p>;
@@ -207,7 +213,10 @@ export default function ProjectSearchPicker({
       : buttonPlaceholder;
 
     return (
-      <div className="project-search-picker project-search-picker--button" ref={pickerRef}>
+      <div
+        className={`project-search-picker project-search-picker--button${fullWidth ? ' project-search-picker--field' : ''}`}
+        ref={pickerRef}
+      >
         <button
           type="button"
           ref={triggerRef}
@@ -225,7 +234,13 @@ export default function ProjectSearchPicker({
           title={title}
         >
           <span className="project-search-picker__trigger-label">{triggerLabel}</span>
-          <span className="project-search-picker__trigger-caret" aria-hidden>▾</span>
+          {fullWidth ? (
+            <svg className="project-search-picker__trigger-caret" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          ) : (
+            <span className="project-search-picker__trigger-caret" aria-hidden>▾</span>
+          )}
         </button>
         {dropdownOpen && !disabled && dropdownPos && typeof document !== 'undefined' && createPortal(
           renderDropdown(true),

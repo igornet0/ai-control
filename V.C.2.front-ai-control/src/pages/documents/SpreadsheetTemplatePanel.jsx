@@ -50,6 +50,15 @@ import {
 import { computeFormulaDisplayMap } from './spreadsheetCellFormula';
 import SpreadsheetFormulaBar from './SpreadsheetFormulaBar';
 import { ALIGN_ICONS } from './DocumentIcons';
+import { buildFormulaRangeMarks, useFormulaCellPicking } from './spreadsheetFormulaHighlight';
+import {
+  fillCells,
+  handleGridHotkey,
+  isInFillPreview,
+  useFillHandleDrag,
+  useGridHistory,
+} from './spreadsheetGridOps';
+import fh from './FormulaHighlight.module.css';
 import styles from './DocumentsApp.module.css';
 import s from './SpreadsheetTemplatePanel.module.css';
 
@@ -426,6 +435,121 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
     setRange(nextRange);
   }, []);
 
+  /* ── Excel-поведение: навигация, история, подсветка формул, автозаполнение ── */
+  const dataStartRow = hasHeaderRow ? 1 : 0;
+  const cellInputRefs = useRef({});
+  const [editingCell, setEditingCell] = useState(null);
+  const editingCellRef = useRef(null);
+  editingCellRef.current = editingCell;
+  const [barFocused, setBarFocused] = useState(false);
+  const history = useGridHistory(modelProp, onChange || null);
+  const focusAfterSelectRef = useRef(false);
+  const skipFocusResetRef = useRef(false);
+
+  const selectCellKb = useCallback((r, c, { extend = false } = {}) => {
+    const next = extend ? { a: rangeRef.current.a, f: { r, c } } : { a: { r, c }, f: { r, c } };
+    focusAfterSelectRef.current = true;
+    skipFocusResetRef.current = extend;
+    setRangeSelection(next);
+  }, [setRangeSelection]);
+
+  useEffect(() => {
+    if (!focusAfterSelectRef.current) return;
+    focusAfterSelectRef.current = false;
+    cellInputRefs.current[cellKey(focus.r, focus.c)]?.focus();
+  }, [focus.r, focus.c]);
+
+  const moveSelection = useCallback((dir, { extend = false } = {}) => {
+    const f = rangeRef.current.f;
+    let { r, c } = f;
+    if (dir === 'up') r = Math.max(dataStartRow, r - 1);
+    else if (dir === 'down') r = Math.min(rowCount - 1, r + 1);
+    else if (dir === 'left') c = Math.max(0, c - 1);
+    else c = Math.min(colCount - 1, c + 1);
+    if (r === f.r && c === f.c) return;
+    selectCellKb(r, c, { extend });
+  }, [dataStartRow, rowCount, colCount, selectCellKb]);
+
+  const applyCellsToSheet = useCallback((nextCells) => {
+    if (!onChange) return;
+    history.breakGroup();
+    emitWorkbook(patchWorkbookActiveSheet(workbookRef.current, { cells: nextCells }));
+  }, [onChange, history, emitWorkbook]);
+
+  const patchCellRef = useRef(patchCell);
+  patchCellRef.current = patchCell;
+  const picking = useFormulaCellPicking({
+    readOnly: !onChange,
+    getEditor: () => {
+      const ed = editingCellRef.current;
+      if (!ed) return null;
+      const input = cellInputRefs.current[cellKey(ed.r, ed.c)];
+      return input ? { r: ed.r, c: ed.c, input } : null;
+    },
+    applyValue: (r, c, v) => patchCellRef.current(r, c, { value: v }),
+  });
+
+  const handleCellMouseDown = useCallback((r, c, e) => {
+    if (e.button !== 0) return;
+    if (picking.handlePointerDown(r, c, e)) return;
+    if (e.shiftKey) {
+      e.preventDefault();
+      setRange((prev) => ({ ...prev, f: { r, c } }));
+    }
+  }, [picking]);
+
+  const resolveCellFromPoint = useCallback((x, y) => {
+    const td = document.elementFromPoint(x, y)?.closest?.('td[data-grid-r][data-grid-c]');
+    if (!td || !scrollRef.current?.contains(td)) return null;
+    return {
+      r: Math.max(dataStartRow, Math.min(rowCount - 1, Number(td.dataset.gridR))),
+      c: Math.max(0, Math.min(colCount - 1, Number(td.dataset.gridC))),
+    };
+  }, [dataStartRow, rowCount, colCount]);
+
+  const { startFillDrag, fillPreview } = useFillHandleDrag({
+    resolveCell: resolveCellFromPoint,
+    getSource: () => selectionBounds(rangeRef.current.a, rangeRef.current.f),
+    onFill: (source, target) => {
+      applyCellsToSheet(fillCells(modelRef.current.cells || {}, source, target));
+      setRangeSelection({ a: { r: target.r0, c: target.c0 }, f: { r: target.r1, c: target.c1 } });
+    },
+  });
+
+  const hotkeyApiRef = useRef(null);
+  hotkeyApiRef.current = {
+    getBounds: () => selectionBounds(rangeRef.current.a, rangeRef.current.f),
+    getFocus: () => rangeRef.current.f,
+    select: (r, c, opts) => selectCellKb(r, c, opts),
+    focusEditor: (r, c) => {
+      const el = cellInputRefs.current[cellKey(r, c)];
+      if (!el) return;
+      el.focus();
+      const len = String(el.value ?? '').length;
+      el.setSelectionRange?.(len, len);
+    },
+    getCells: () => modelRef.current.cells || {},
+    applyCells: applyCellsToSheet,
+    undo: history.undo,
+    redo: history.redo,
+    copyTsv: (text) => navigator.clipboard?.writeText?.(text).catch(() => {}),
+    limits: { rowStart: dataStartRow, rowEnd: rowCount - 1, colEnd: colCount - 1 },
+  };
+
+  // Подсветка диапазонов формулы, которую правят в ячейке или в строке формулы.
+  const editingRaw = editingCell ? String(getCellState(cells, editingCell.r, editingCell.c).value ?? '') : '';
+  const barRaw = String(getCellState(cells, focus.r, focus.c).value ?? '');
+  const highlightText = barFocused && barRaw.trimStart().startsWith('=')
+    ? barRaw
+    : (editingCell && editingRaw.trimStart().startsWith('=') ? editingRaw : '');
+  const highlightRow = barFocused ? focus.r : editingCell?.r ?? 0;
+  const formulaMarks = useMemo(
+    () => (highlightText
+      ? buildFormulaRangeMarks(highlightText, { row: highlightRow, rowCount, colCount })
+      : null),
+    [highlightText, highlightRow, rowCount, colCount],
+  );
+
   const selectColumn = useCallback((c) => {
     setRangeSelection(spreadsheetColumnSelection(c, { rowCount, dataStart: 0 }));
   }, [rowCount, setRangeSelection]);
@@ -457,6 +581,9 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
         selectAllCells();
         return;
       }
+
+      // Ctrl+Z/Y, Ctrl+X, Ctrl+D/R, F2, Ctrl+стрелки, Enter/Tab — как в Excel.
+      if (hotkeyApiRef.current && handleGridHotkey(e, hotkeyApiRef.current)) return;
 
       if (e.key === 'Backspace' || e.key === 'Delete') {
         if (!rangeRef.current) return;
@@ -599,6 +726,8 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
         sheetName={activeSheet?.name}
         resultPreview={formulaDisplay[cellKey(focus.r, focus.c)]}
         onChange={(v) => patchCell(focus.r, focus.c, { value: v })}
+        onFocus={() => setBarFocused(true)}
+        onBlur={() => setBarFocused(false)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.defaultPrevented) {
             e.preventDefault();
@@ -775,7 +904,8 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
                     }}
                     title="Двойной клик — выделить строку"
                   >
-                    {i + 1}
+                    {/* Номер строки как в формулах (A2 = первая строка данных под заголовками). */}
+                    {r + 1}
                   </th>
                   {Array.from({ length: colCount }, (_, c) => {
                     const meta = getCellState(cells, r, c);
@@ -784,26 +914,27 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
                     const effective = getEffectiveCellValue(cells, r, c, tableColsMeta, hasHeaderRow);
                     const inR = r >= b.r0 && r <= b.r1 && c >= b.c0 && c <= b.c1;
                     const fcs = isFocusCell(r, c);
+                    const refMark = formulaMarks?.get(k);
+                    const inFillPreview = isInFillPreview(fillPreview, b, r, c);
+                    const isFillCorner = !!onChange && r === b.r1 && c === b.c1 && r >= dataStartRow;
                     return (
                       <td
                         key={c}
-                        className={`${styles.spreadsheetCell} ${inR ? styles.spreadsheetCellInRange : ''} ${
+                        data-grid-r={r}
+                        data-grid-c={c}
+                        className={`${styles.spreadsheetCell} ${fh.cellHost} ${inR ? styles.spreadsheetCellInRange : ''} ${
                           fcs ? styles.spreadsheetCellSelected : ''
-                        }`.trim()}
-                        onMouseDown={(e) => {
-                          if (e.button !== 0) return;
-                          if (e.shiftKey) {
-                            e.preventDefault();
-                            setRange((prev) => ({ ...prev, f: { r, c } }));
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') setRange({ a: { r, c }, f: { r, c } });
-                        }}
+                        } ${inFillPreview ? fh.fillPreviewCell : ''}`.trim()}
+                        onMouseDown={(e) => handleCellMouseDown(r, c, e)}
+                        onMouseEnter={() => picking.handlePointerEnter(r, c)}
                         role="gridcell"
                         tabIndex={-1}
                       >
                         <SpreadsheetColumnCellInput
+                          ref={(el) => {
+                            if (el) cellInputRefs.current[k] = el;
+                            else delete cellInputRefs.current[k];
+                          }}
                           colDataType={tableColsMeta[c]?.dataType}
                           displayType={meta.displayType}
                           inHeader={false}
@@ -812,11 +943,34 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
                           align={meta.align}
                           bold={meta.bold}
                           italic={meta.italic}
-                          onChange={(v) => patchCell(r, c, { value: v })}
-                          onFocus={() => setRange({ a: { r, c }, f: { r, c } })}
+                          onChange={(v) => {
+                            picking.resetPick();
+                            patchCell(r, c, { value: v });
+                          }}
+                          onFocus={() => {
+                            setEditingCell({ r, c });
+                            if (skipFocusResetRef.current) {
+                              skipFocusResetRef.current = false;
+                              return;
+                            }
+                            setRange({ a: { r, c }, f: { r, c } });
+                          }}
+                          onBlur={() => setEditingCell((prev) => (prev && prev.r === r && prev.c === c ? null : prev))}
+                          onMouseDown={(e) => handleCellMouseDown(r, c, e)}
+                          onNavigate={moveSelection}
+                          highlightRefs
                           className={styles.spreadsheetCellInput}
                           ariaLabel={`Ячейка ${r + 1} ${excelColumnLabel(c)}`}
                         />
+                        {refMark && <span className={fh.refMark} style={refMark} aria-hidden />}
+                        {isFillCorner && (
+                          <span
+                            className={styles.spreadsheetFillHandle}
+                            role="presentation"
+                            title="Тяните, чтобы заполнить ячейки (ряд чисел, даты, формулы)"
+                            onMouseDown={startFillDrag}
+                          />
+                        )}
                       </td>
                     );
                   })}
@@ -871,10 +1025,13 @@ const SpreadsheetTemplatePanel = ({ model: modelProp, onChange }) => {
       </div>
 
       <p className={s.hint}>
-        Редактор сетки: Shift+клик — прямоугольное выделение; двойной клик по заголовку столбца или строки — выделить столбец/строку; Ctrl+A — вся таблица; {''}
-        Ctrl+C / Ctrl+V — копирование и вставка (как в таблицах); Backspace / Delete — очистить выделенные ячейки.
-        ПКМ по заголовку столбца — вставка/удаление, переименование. В шапке столбца — «По умолчанию»: значение или формула (кнопка ƒ) для новых строк — да/нет, дата (календарь или =DATE, =TODAY), =ЕСЛИ(B&gt;0, 1, 0).
-        Клик по ячейке итоговой строки (или «Настроить итог» в меню столбца) — тип итога: SUM, AVG, формула (=SUM(B2:B100), B_SUM * C_SUM). В документ и CSV итоговая строка не попадает.
+        Памятка: стрелки, Enter / Tab — переход; Ctrl+стрелка — к краю данных (с Shift — выделение);
+        F2 — правка ячейки; Ctrl+Z / Ctrl+Y — отмена и повтор; Ctrl+C / Ctrl+X / Ctrl+V — копировать, вырезать, вставить;
+        Ctrl+D / Ctrl+R — заполнить вниз / вправо; Delete — очистить выделение; Ctrl+A — вся таблица.
+        Маркер в углу выделения — протяните, чтобы продолжить ряд чисел, дат или скопировать формулы.
+        При вводе формулы клик по ячейке вставляет ссылку, протягивание — диапазон.
+        ПКМ по заголовку столбца — вставка/удаление, переименование. «По умолчанию» в шапке столбца — значение или формула для новых строк.
+        Клик по итоговой строке — тип итога (сумма, среднее, формула); в документ и CSV итоговая строка не попадает.
       </p>
 
       {ctx && (

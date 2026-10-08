@@ -74,8 +74,15 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
   displayValue,
   readOnly = false,
   wrapText = false,
+  onBlur,
+  /** Раскрашивать ссылки формулы при правке (как рамки диапазонов на сетке). */
+  highlightRefs = false,
 }, ref) {
   const [focused, setFocused] = useState(false);
+  const handleBlur = (e) => {
+    setFocused(false);
+    onBlur?.(e);
+  };
   const isFormulaCell = isFormulaCellValue(cellValue);
   const isFormulaDraft = isFormulaDraftValue(cellValue);
   const useFormulaInput = isFormulaCell || isFormulaDraft;
@@ -124,7 +131,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
           value={selectValue}
           onChange={(e) => onChange(valueFromBooleanSelect(e.target.value))}
           onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-          onBlur={() => setFocused(false)}
+          onBlur={handleBlur}
           onMouseDown={handleMouseDown}
           onKeyDown={onKeyDown}
           title={title}
@@ -154,7 +161,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
         value={formulaInputValue}
         onChange={onChange}
         onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-        onBlur={() => setFocused(false)}
+        onBlur={handleBlur}
         onMouseDown={handleMouseDown}
         onKeyDown={onKeyDown}
         title={title}
@@ -163,6 +170,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
         aria-label={ariaLabel}
         inputMode={desc.variant === 'number' && !useFormulaInput ? (desc.inputMode || 'decimal') : undefined}
         wrapText={wrapText}
+        highlightRefs={highlightRefs && focused}
       />
     );
   }
@@ -179,7 +187,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
           value={prep.value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-          onBlur={() => setFocused(false)}
+          onBlur={handleBlur}
           onMouseDown={handleMouseDown}
           onKeyDown={onKeyDown}
           title={title}
@@ -198,7 +206,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
         placeholder="ДД.ММ.ГГГГ или ГГГГ-ММ-ДД"
         onChange={(e) => onChange(e.target.value)}
         onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-        onBlur={() => setFocused(false)}
+        onBlur={handleBlur}
         onMouseDown={handleMouseDown}
         onKeyDown={onKeyDown}
         title={title}
@@ -216,7 +224,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
       value={formulaInputValue}
       onChange={onChange}
       onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-      onBlur={() => setFocused(false)}
+      onBlur={handleBlur}
       onMouseDown={handleMouseDown}
       onKeyDown={onKeyDown}
       title={title}
@@ -224,6 +232,7 @@ const SpreadsheetColumnCellInput = forwardRef(function SpreadsheetColumnCellInpu
       errorClassName={errorClassName}
       aria-label={ariaLabel}
       wrapText={wrapText}
+      highlightRefs={highlightRefs && focused}
     />
   );
 });

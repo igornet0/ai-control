@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { teamService } from '../../../../../services/teamService';
 import EditTeamModal from './EditTeamModal';
-import styles from './TeamCard.module.css';
+import EmployeeHoverTrigger from '../../../../profile/components/employees/EmployeeHoverTrigger';
+import { confirmAction } from '../../../../../components/shared/confirmAction';
+import '../../tmPage.css';
 import {
   calcTeamProjectStats,
   formatActiveProjectLabel,
@@ -11,14 +13,64 @@ import {
 import {
   CloseIcon,
   EditIcon,
-  IconWithText,
   PlusIconSm,
   TasksIcon,
-  TeamsIcon,
 } from '../../../components/TaskManagerIcons';
 
 const memberDisplayName = (member) =>
   member.user_name || member.user_email || `User ${member.user_id}`;
+
+const TEAM_STATUS_TONES = {
+  active: 'green',
+  inactive: 'slate',
+  archived: 'amber',
+  disbanded: 'red',
+};
+
+const MEMBER_ROLE_LABELS = {
+  manager: 'Менеджер',
+  member: 'Участник',
+};
+
+const TASK_STATUS_LABELS = {
+  created: 'Создана',
+  todo: 'Создана',
+  in_progress: 'В работе',
+  review: 'На проверке',
+  completed: 'Завершена',
+  done: 'Завершена',
+  cancelled: 'Отменена',
+  on_hold: 'На паузе',
+  blocked: 'Заблокирована',
+};
+
+const TASK_STATUS_TONES = {
+  created: 'slate',
+  todo: 'slate',
+  in_progress: 'blue',
+  review: 'amber',
+  completed: 'green',
+  done: 'green',
+  cancelled: 'slate',
+  on_hold: 'amber',
+  blocked: 'red',
+};
+
+const TASK_PRIORITY_LABELS = {
+  low: 'Низкий',
+  medium: 'Средний',
+  high: 'Высокий',
+  critical: 'Критичный',
+  urgent: 'Срочный',
+};
+
+const pluralize = (n, one, few, many) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
 
 const getMemberCount = (team) =>
   team.members?.length ?? team.member_count ?? 0;
@@ -105,8 +157,13 @@ const TeamCard = ({
     }
   };
 
-  const handleRemoveMember = async (userId) => {
-    if (window.confirm('Удалить участника из команды?')) {
+  const handleRemoveMember = async (userId, name) => {
+    const confirmed = await confirmAction({
+      title: name ? `Убрать ${name} из команды?` : 'Убрать участника из команды?',
+      confirmLabel: 'Убрать',
+      danger: true,
+    });
+    if (confirmed) {
       try {
         await teamService.removeTeamMember(team.id, userId);
         const updatedTeam = await teamService.getTeam(team.id);
@@ -115,16 +172,6 @@ const TeamCard = ({
         console.error('Error removing member:', error);
       }
     }
-  };
-
-  const getStatusColor = (status) => {
-    const statusColors = {
-      active: 'bg-slate-500',
-      inactive: 'bg-gray-500',
-      archived: 'bg-amber-500',
-      disbanded: 'bg-red-500',
-    };
-    return statusColors[status] || 'bg-gray-500';
   };
 
   const getStatusText = (status) => {
@@ -154,229 +201,195 @@ const TeamCard = ({
       : projectStats.avgTaskCompletionDays;
 
   return (
-    <div className="card animate-fadeIn hover-lift">
-      <div className="card-header">
-        <div className="team-title">
-          <h3 className="text-lg font-semibold text-slate-100">{team.name}</h3>
-          <div className="team-badges">
-            <span className={`badge ${getStatusColor(teamStatus)} text-white px-3 py-1 rounded-full text-xs font-medium`}>
+    <article className={`tm-card${showDetails ? ' tm-card--active' : ''}`}>
+      <div className="tm-card__head">
+        <div className="tm-card__heading">
+          <h3 className="tm-card__title">{team.name}</h3>
+          <div className="tm-card__badges">
+            <span className={`tm-pill tm-pill--${TEAM_STATUS_TONES[teamStatus] || 'slate'}`}>
+              <span className="tm-pill__dot" aria-hidden />
               {getStatusText(teamStatus)}
             </span>
           </div>
         </div>
-        <div className="team-actions">
-          <button
-            onClick={handleToggleDetails}
-            className="btn btn-ghost btn-sm"
-            title={showDetails ? 'Свернуть' : 'Развернуть'}
-          >
-            {showDetails ? '▼' : '▶'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleToggleDetails}
+          className={`tm-expand-btn${showDetails ? ' tm-expand-btn--open' : ''}`}
+          aria-expanded={showDetails}
+          title={showDetails ? 'Скрыть участников и задачи' : 'Показать участников и задачи'}
+        >
+          Участники
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
 
-      <div className="card-body">
-        {team.description && (
-          <p className="text-slate-300 mb-4 leading-relaxed">
-            {team.description}
-          </p>
-        )}
+      {team.description && (
+        <p className="tm-card__desc" title={team.description}>{team.description}</p>
+      )}
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
-            <span className="text-sm text-slate-400">Участников:</span>
-            <span className="text-sm font-semibold text-slate-100">{memberCount}</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
-            <span className="text-sm text-slate-400">Авторасформирование:</span>
-            <span className="text-sm font-medium text-slate-200">{formatDate(team.auto_disband_date)}</span>
-          </div>
-
-          {team.created && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
-              <span className="text-sm text-slate-400">Создана:</span>
-              <span className="text-sm font-medium text-slate-200">{formatDate(team.created)}</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
-            <span className="text-sm text-slate-400">Выполнено проектов:</span>
-            <span className="text-sm font-semibold text-slate-100">
-              {projectStats.completedProjectsCount}
-            </span>
-          </div>
-
-          <div className="p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-slate-400">Среднее время выполнения:</span>
-              <span className="text-sm font-medium text-slate-200 shrink-0">
-                {formatAvgCompletionDays(avgCompletionDays)}
-              </span>
-            </div>
-            <div
-              className="inline-flex rounded-lg border border-slate-600/60 bg-slate-900/40 p-0.5"
-              role="group"
-              aria-label="Тип среднего времени"
-            >
+      <dl className="tm-meta">
+        <div className="tm-meta__item">
+          <dt className="tm-meta__label">Участников</dt>
+          <dd className="tm-meta__value">{memberCount}</dd>
+        </div>
+        <div className="tm-meta__item">
+          <dt className="tm-meta__label">Выполнено проектов</dt>
+          <dd className="tm-meta__value">{projectStats.completedProjectsCount}</dd>
+        </div>
+        <div className="tm-meta__item tm-meta__item--wide">
+          <dt className="tm-meta__label">Активный проект</dt>
+          <dd
+            className={`tm-meta__value${projectStats.hasActiveProject ? ' tm-meta__value--success' : ' tm-meta__value--muted'}`}
+            title={formatActiveProjectLabel(projectStats)}
+          >
+            {formatActiveProjectLabel(projectStats)}
+          </dd>
+        </div>
+        <div className="tm-meta__item tm-meta__item--wide">
+          <dt className="tm-meta__label">
+            Среднее время выполнения
+            <span className="tm-segmented tm-segmented--sm" role="group" aria-label="Среднее время для">
               {[
                 { id: 'project', label: 'Проект' },
-                { id: 'task', label: 'Задачи' },
+                { id: 'task', label: 'Задача' },
               ].map((option) => (
                 <button
                   key={option.id}
                   type="button"
                   onClick={() => setAvgTimeMode(option.id)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                    avgTimeMode === option.id
-                      ? 'bg-slate-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`tm-segmented__btn ${avgTimeMode === option.id ? 'tm-segmented__btn--active' : ''}`}
                   aria-pressed={avgTimeMode === option.id}
                 >
                   {option.label}
                 </button>
               ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 backdrop-blur-sm">
-            <span className="text-sm text-slate-400">Активный проект:</span>
-            <span
-              className={`text-sm font-medium text-right max-w-[58%] truncate ${
-                projectStats.hasActiveProject ? 'text-emerald-300' : 'text-slate-400'
-              }`}
-              title={formatActiveProjectLabel(projectStats)}
-            >
-              {formatActiveProjectLabel(projectStats)}
             </span>
-          </div>
+          </dt>
+          <dd className={`tm-meta__value${avgCompletionDays == null ? ' tm-meta__value--muted' : ''}`}>
+            {formatAvgCompletionDays(avgCompletionDays)}
+          </dd>
         </div>
+      </dl>
 
-        {team.tags && team.tags.length > 0 && (
-          <div className="mt-4">
-            <div className="flex flex-wrap gap-2">
-              {team.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 text-xs font-medium bg-slate-700/50 text-slate-300 rounded-md border border-slate-600/50"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+      {team.tags && team.tags.length > 0 && (
+        <div className="tm-tags">
+          {team.tags.map((tag, index) => (
+            <span key={index} className="tm-tag">{tag}</span>
+          ))}
+        </div>
+      )}
 
-        {showDetails && (
-          <div className="mt-6 pt-6 border-t border-slate-700/50 space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-                  <IconWithText icon={TeamsIcon}>Участники команды</IconWithText>
-                </h4>
-                {canManage && (
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setShowAddMemberModal(true)}
-                  >
-                    <IconWithText icon={PlusIconSm}>Добавить</IconWithText>
-                  </button>
-                )}
-              </div>
-
-              {detailsLoading ? (
-                <p className="text-slate-400 text-sm">Загрузка участников...</p>
-              ) : team.members && team.members.length > 0 ? (
-                <div className="space-y-3">
-                  {team.members.map((member) => {
-                    const name = memberDisplayName(member);
-                    return (
-                      <div key={member.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/40 backdrop-blur-sm border border-slate-700/50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-center text-white font-semibold text-sm">
-                            {name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-slate-200">{name}</span>
-                            {member.user_email && (
-                              <div className="text-xs text-slate-500">{member.user_email}</div>
-                            )}
-                            <div className="text-xs text-slate-400">{member.role}</div>
-                          </div>
-                        </div>
-                        {canManage && (
-                          <button
-                            className="btn btn-ghost btn-sm text-red-400 hover:text-red-300"
-                            onClick={() => handleRemoveMember(member.user_id)}
-                            title="Удалить участника"
-                          >
-                            <CloseIcon size="xs" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-slate-400 text-sm">Участники не найдены</p>
+      {showDetails && (
+        <>
+          <div className="tm-divider" />
+          <section>
+            <h4 className="tm-section-title">
+              Участники
+              {canManage && (
+                <button type="button" className="tm-expand-btn" onClick={() => setShowAddMemberModal(true)}>
+                  <PlusIconSm size="xs" />
+                  Добавить
+                </button>
               )}
-            </div>
+            </h4>
 
-            {team.tasks && team.tasks.length > 0 && (
-              <div>
-                <h4 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
-                  <IconWithText icon={TasksIcon}>Задачи команды</IconWithText>
-                </h4>
-                <div className="space-y-3">
-                  {team.tasks.map((task) => (
-                    <div key={task.id} className="p-3 rounded-lg bg-slate-800/40 backdrop-blur-sm border border-slate-700/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-200">{task.title}</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)} text-white`}>
-                          {task.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-slate-400">
-                        <span>Приоритет: {task.priority}</span>
-                        {task.due_date && (
-                          <span>Срок: {formatDate(task.due_date)}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {detailsLoading ? (
+              <p className="tm-meta__hint">Загрузка участников…</p>
+            ) : team.members && team.members.length > 0 ? (
+              <ul className="tm-list">
+                {team.members.map((member) => {
+                  const name = memberDisplayName(member);
+                  return (
+                    <li key={member.id} className="tm-list__item">
+                      <EmployeeHoverTrigger
+                        employee={{ id: member.user_id, name }}
+                        className="tm-list__person"
+                        clickToPin
+                      >
+                        <span className="tm-avatar" aria-hidden>{name.charAt(0).toUpperCase()}</span>
+                        <div className="tm-list__main">
+                          <p className="tm-list__title">{name}</p>
+                          <p className="tm-list__sub">
+                            {MEMBER_ROLE_LABELS[member.role] || member.role}
+                            {member.user_email ? ` · ${member.user_email}` : ''}
+                          </p>
+                        </div>
+                      </EmployeeHoverTrigger>
+                      {canManage && (
+                        <button
+                          type="button"
+                          className="tm-icon-btn tm-icon-btn--danger"
+                          onClick={() => handleRemoveMember(member.user_id, name)}
+                          title="Убрать из команды"
+                          aria-label={`Убрать ${name} из команды`}
+                        >
+                          <CloseIcon size="xs" />
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="tm-meta__hint">В команде пока нет участников</p>
             )}
-          </div>
-        )}
-      </div>
+          </section>
 
-      <div className="card-footer">
-        <div className="team-stats">
+          {team.tasks && team.tasks.length > 0 && (
+            <section>
+              <h4 className="tm-section-title">Задачи команды</h4>
+              <ul className="tm-list">
+                {team.tasks.map((task) => (
+                  <li key={task.id} className="tm-list__item">
+                    <div className="tm-list__main">
+                      <p className="tm-list__title">{task.title}</p>
+                      <p className="tm-list__sub">
+                        {TASK_PRIORITY_LABELS[task.priority] || task.priority}
+                        {task.due_date ? ` · до ${formatDate(task.due_date)}` : ''}
+                      </p>
+                    </div>
+                    <span className={`tm-pill tm-pill--${TASK_STATUS_TONES[task.status] || 'slate'}`}>
+                      {TASK_STATUS_LABELS[task.status] || task.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+
+      <div className="tm-card__footer">
+        <div className="tm-card__stats">
+          {team.created && <span>Создана {formatDate(team.created)}</span>}
+          {team.auto_disband_date && (
+            <span title="Дата авторасформирования">Расформирование {formatDate(team.auto_disband_date)}</span>
+          )}
           {team.tasks && (
-            <span className="text-sm text-slate-400">
-              <IconWithText icon={TasksIcon}>
-                {team.tasks.length} задач
-              </IconWithText>
-            </span>
+            <span><TasksIcon size="sm" /> {team.tasks.length} {pluralize(team.tasks.length, 'задача', 'задачи', 'задач')}</span>
           )}
         </div>
 
         {canManage && (
-          <div className="flex gap-2">
+          <div className="tm-card__actions">
             <button
+              type="button"
               onClick={() => setShowEditModal(true)}
-              className="btn btn-outline btn-sm"
+              className="tm-icon-btn"
               title="Редактировать команду"
+              aria-label="Редактировать команду"
             >
-              <IconWithText icon={EditIcon}>Изменить</IconWithText>
+              <EditIcon size="sm" />
             </button>
             <button
               type="button"
               onClick={handleDelete}
-              className="btn btn-danger btn-sm inline-flex items-center justify-center"
+              className="tm-icon-btn tm-icon-btn--danger"
               title="Удалить команду"
+              aria-label="Удалить команду"
             >
               <TrashIcon className="h-4 w-4 shrink-0" aria-hidden />
             </button>
@@ -440,7 +453,7 @@ const TeamCard = ({
           </div>
         </div>
       )}
-    </div>
+    </article>
   );
 };
 

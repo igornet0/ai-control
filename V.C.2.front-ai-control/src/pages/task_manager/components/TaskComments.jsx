@@ -20,6 +20,7 @@ import {
   countCommentsInTree,
   COMMENTS_COLLAPSE_LIMIT,
 } from '../utils/commentTreeUtils';
+import { confirmAction } from '../../../components/shared/confirmAction';
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleString('ru-RU', {
@@ -190,7 +191,11 @@ function CommentItem({
   );
 }
 
-export default function TaskComments({ taskId, task, currentUser, canModerate = false }) {
+/**
+ * embedded — без своей карточки и заголовка (для вкладок в окне задачи);
+ * onCountChange(count) — сообщает число комментариев, например для счётчика на вкладке.
+ */
+export default function TaskComments({ taskId, task, currentUser, canModerate = false, embedded = false, onCountChange }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [replyToId, setReplyToId] = useState(null);
@@ -224,6 +229,10 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
   const visibleFlat = expanded ? flatComments : flatComments.slice(0, COMMENTS_COLLAPSE_LIMIT);
   const hiddenCount = Math.max(0, totalCount - COMMENTS_COLLAPSE_LIMIT);
 
+  useEffect(() => {
+    onCountChange?.(totalCount);
+  }, [totalCount, onCountChange]);
+
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -249,7 +258,7 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('Удалить комментарий?')) return;
+    if (!(await confirmAction({ title: 'Удалить комментарий?', confirmLabel: 'Удалить', danger: true }))) return;
     try {
       await deleteTaskComment(taskId, commentId);
       await loadComments();
@@ -277,23 +286,29 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
     }
   };
 
-  if (loading) {
+  // При перезагрузке уже показанного списка не прячем его за «Загрузкой»
+  if (loading && comments.length === 0) {
     return (
-      <div className="p-4 text-center text-slate-400 bg-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700/50">
+      <div className={embedded
+        ? 'py-6 text-center text-sm text-slate-400'
+        : 'p-4 text-center text-slate-400 bg-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700/50'}
+      >
         Загрузка комментариев...
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-slate-700/50">
-      <h3 className="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
-        <CommentsIcon size="md" />
-        <span>Комментарии</span>
-        {totalCount > 0 && (
-          <span className="text-sm font-normal text-slate-400">({totalCount})</span>
-        )}
-      </h3>
+    <div className={embedded ? '' : 'bg-slate-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-slate-700/50'}>
+      {!embedded && (
+        <h3 className="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
+          <CommentsIcon size="md" />
+          <span>Комментарии</span>
+          {totalCount > 0 && (
+            <span className="text-sm font-normal text-slate-400">({totalCount})</span>
+          )}
+        </h3>
+      )}
 
       <form onSubmit={handleSubmitComment} className="mb-4">
         {replyToId && (

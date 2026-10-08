@@ -61,12 +61,26 @@ body.widget-dnd-active .widget-grid--profile-widgets iframe,
   max-height: none;
 }
 
+/* Статистика: на телефоне — высота по содержимому, начиная с планшета — строки по 148px,
+   размеры карточек задаёт StatisticsPage (fixedCardSizes) */
 .widget-grid--statistics {
-  grid-auto-rows: minmax(300px, auto);
+  grid-auto-rows: auto;
 }
 
 .widget-grid--statistics .widget-grid__item .overview-widget {
-  min-height: 300px;
+  min-height: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .widget-grid--statistics .widget-grid__item {
+    grid-row: auto !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .widget-grid--statistics {
+    grid-auto-rows: 148px;
+  }
 }
 
 @media (min-width: 768px) {

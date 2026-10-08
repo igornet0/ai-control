@@ -1,61 +1,54 @@
+/* Окна редактирования проекта и команды (EditProjectModal, EditTeamModal).
+   Шапка и кнопки закреплены, прокручивается только содержимое — как в окне задачи. */
+
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
   display: grid;
-  place-items: start center;
-  padding: 1.25rem;
-  padding-top: 3.5rem;
-  overflow: auto;
-  background: rgba(2, 6, 23, 0.62);
-  backdrop-filter: blur(10px);
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(6px);
 }
 
 .modal {
-  width: min(680px, 100%);
-  max-height: min(88vh, 920px);
+  width: min(720px, 100%);
+  max-height: min(90vh, 940px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 1.25rem;
-  margin: auto 0 1.5rem;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.16), transparent 42%),
-    linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
-  border: 1px solid rgba(165, 180, 252, 0.18);
-  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.5);
+  border-radius: 1.1rem;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.55);
 }
 
+/* ——— Шапка ——— */
 .head {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem 1.4rem 1rem;
+  padding: 1rem 1.4rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(30, 41, 59, 0.4);
   flex-shrink: 0;
-}
-
-.kicker {
-  margin: 0 0 0.2rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #a5b4fc;
 }
 
 .head h3 {
   margin: 0;
   font-size: 1.2rem;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: #f8fafc;
+  overflow-wrap: anywhere;
 }
 
 .subtitle {
-  margin: 0.35rem 0 0;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: #94a3b8;
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
 }
 
 .close {
@@ -64,8 +57,8 @@
   height: 2.1rem;
   flex-shrink: 0;
   border: none;
-  border-radius: 0.7rem;
-  background: rgba(15, 23, 42, 0.55);
+  border-radius: 0.6rem;
+  background: transparent;
   color: #94a3b8;
   display: grid;
   place-items: center;
@@ -73,84 +66,211 @@
 }
 
 .close svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .close:hover {
   color: #f8fafc;
-  background: rgba(51, 65, 85, 0.7);
+  background: rgba(148, 163, 184, 0.12);
 }
 
 .error {
   margin: 0.9rem 1.4rem 0;
   padding: 0.65rem 0.8rem;
-  border-radius: 0.75rem;
-  background: rgba(244, 63, 94, 0.12);
-  border: 1px solid rgba(251, 113, 133, 0.28);
-  color: #fecdd3;
-  font-size: 0.8rem;
+  border-radius: 0.7rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fecaca;
+  font-size: 0.82rem;
 }
 
+/* ——— Содержимое ——— */
 .form {
-  padding: 1.1rem 1.4rem 1.35rem;
-  overflow: auto;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.1rem 1.4rem 0.4rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
 
 .section {
-  margin-bottom: 1.05rem;
+  padding-bottom: 1.15rem;
+  margin-bottom: 1.15rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .sectionTitle {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  margin: 0 0 0.7rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #94a3b8;
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.sectionCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.3rem;
+  height: 1.25rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
 }
 
 .hintMuted {
-  margin: -0.35rem 0 0.7rem;
+  margin: -0.35rem 0 0.75rem;
   font-size: 0.78rem;
-  line-height: 1.4;
+  line-height: 1.45;
   color: #64748b;
 }
 
+.searchWrap + .hintMuted {
+  margin: 0.45rem 0 0;
+}
+
+/* ——— Поля ——— */
+.field {
+  margin-bottom: 0.85rem;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.required {
+  color: #f87171;
+}
+
+.field input,
+.field textarea,
+.searchWrap input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 4.6rem;
+  line-height: 1.5;
+}
+
+.field input:hover,
+.field textarea:hover,
+.searchWrap input:hover {
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.field input:focus,
+.field textarea:focus,
+.searchWrap input:focus {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.14);
+}
+
+.field input::placeholder,
+.field textarea::placeholder,
+.searchWrap input::placeholder {
+  color: #64748b;
+}
+
+.field input[type="date"] {
+  color-scheme: dark;
+  min-height: 2.65rem;
+}
+
+.invalid {
+  border-color: rgba(248, 113, 113, 0.7) !important;
+}
+
+.hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.74rem;
+  color: #fca5a5;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.row > .field {
+  margin-bottom: 0;
+}
+
+/* ——— Люди (менеджеры, участники) ——— */
 .people {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  margin-bottom: 0.7rem;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.people:first-child,
+.hintMuted + .people {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
 }
 
 .person {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.8rem;
-  background: rgba(15, 23, 42, 0.45);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.75rem;
+  background: rgba(148, 163, 184, 0.06);
+  min-width: 0;
 }
 
 .avatar {
   width: 2rem;
   height: 2rem;
   flex-shrink: 0;
-  border-radius: 0.65rem;
+  border-radius: 999px;
   display: grid;
   place-items: center;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #c7d2fe;
-  background: rgba(79, 70, 229, 0.28);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #e0e7ff;
+  background: rgba(99, 102, 241, 0.28);
 }
 
 .personBody {
@@ -159,9 +279,12 @@
 }
 
 .personBody strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.85rem;
-  color: #f8fafc;
+  font-weight: 500;
+  color: #f1f5f9;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -177,51 +300,98 @@
   white-space: nowrap;
 }
 
-.ownerBadge {
+.ownerBadge,
+.newBadge {
   flex-shrink: 0;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #a5b4fc;
-  padding: 0.2rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.18);
+}
+
+.ownerBadge {
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.newBadge {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.14);
 }
 
 .cardToggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   flex-shrink: 0;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: #94a3b8;
   cursor: pointer;
   user-select: none;
 }
 
 .cardToggle input {
-  accent-color: #6366f1;
+  accent-color: #3b82f6;
 }
 
 .removePerson {
   appearance: none;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.75rem;
+  height: 1.75rem;
   flex-shrink: 0;
   border: none;
-  border-radius: 0.55rem;
-  background: rgba(244, 63, 94, 0.12);
-  color: #fda4af;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #64748b;
   display: grid;
   place-items: center;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .removePerson:hover {
-  background: rgba(244, 63, 94, 0.22);
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.14);
 }
 
+.removedList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+
+.removedLabel {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.removedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px dashed rgba(248, 113, 113, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: #fca5a5;
+  font-size: 0.74rem;
+  text-decoration: line-through;
+  cursor: pointer;
+}
+
+.removedChip span {
+  text-decoration: none;
+  color: #94a3b8;
+}
+
+.removedChip:hover {
+  border-style: solid;
+  color: #fecaca;
+}
+
+/* ——— Поиск сотрудника ——— */
 .searchWrap {
   position: relative;
 }
@@ -229,7 +399,8 @@
 .searchWrap > svg {
   position: absolute;
   left: 0.75rem;
-  top: 0.78rem;
+  top: 50%;
+  transform: translateY(-50%);
   width: 1rem;
   height: 1rem;
   color: #64748b;
@@ -237,24 +408,7 @@
 }
 
 .searchWrap input {
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.7);
-  color: #e2e8f0;
-  padding: 0.7rem 0.85rem 0.7rem 2.2rem;
-  font-size: 0.85rem;
-}
-
-.searchWrap input:focus {
-  outline: none;
-  border-color: rgba(165, 180, 252, 0.55);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
-}
-
-.searchWrap input::placeholder {
-  color: #64748b;
+  padding-left: 2.25rem;
 }
 
 .searchResults {
@@ -263,107 +417,45 @@
   left: 0;
   right: 0;
   top: calc(100% + 0.3rem);
-  max-height: 12rem;
+  max-height: 14rem;
   overflow: auto;
+  padding: 0.3rem;
   border-radius: 0.8rem;
-  background: #0f172a;
+  background: #111a2e;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.45);
+  box-shadow: 0 16px 36px rgba(2, 6, 23, 0.55);
 }
 
 .searchResults button {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   text-align: left;
   appearance: none;
   border: none;
+  border-radius: 0.55rem;
   background: transparent;
-  color: #e2e8f0;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.82rem;
+  padding: 0.5rem 0.65rem;
   cursor: pointer;
 }
 
-.searchResults button:hover {
-  background: rgba(79, 70, 229, 0.2);
-}
-
-.field {
-  margin-bottom: 0.75rem;
-}
-
-.field:last-child {
-  margin-bottom: 0;
-}
-
-.field label {
-  display: block;
-  margin-bottom: 0.4rem;
-  color: #cbd5e1;
-  font-weight: 600;
-  font-size: 0.78rem;
-}
-
-.required {
-  color: #a5b4fc;
-}
-
-.field input,
-.field textarea {
-  width: 100%;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.7);
-  color: #e2e8f0;
-  padding: 0.7rem 0.85rem;
-  font-size: 0.85rem;
-  box-sizing: border-box;
-}
-
-.field textarea {
-  resize: vertical;
-  min-height: 4.6rem;
-}
-
-.field input:focus,
-.field textarea:focus {
+.searchResults button:hover,
+.searchResults button:focus-visible {
+  background: rgba(59, 130, 246, 0.16);
   outline: none;
-  border-color: rgba(165, 180, 252, 0.55);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
 }
 
-.field input::placeholder,
-.field textarea::placeholder {
+.resultName {
+  font-size: 0.84rem;
+  color: #f1f5f9;
+}
+
+.resultMeta {
+  font-size: 0.72rem;
   color: #64748b;
 }
 
-.field input[type="date"] {
-  color-scheme: dark;
-  min-height: 2.7rem;
-}
-
-.invalid {
-  border-color: rgba(244, 63, 94, 0.7) !important;
-}
-
-.hint {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 0.72rem;
-  color: #fda4af;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.row > .field {
-  margin-bottom: 0;
-}
-
+/* ——— Теги ——— */
 .tagsRow {
   display: flex;
   gap: 0.5rem;
@@ -375,48 +467,46 @@
 
 .addTag {
   appearance: none;
-  width: 2.7rem;
+  width: 2.65rem;
   flex-shrink: 0;
-  border: none;
-  border-radius: 0.85rem;
-  background: rgba(99, 102, 241, 0.85);
-  color: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.7rem;
+  background: rgba(30, 41, 59, 0.7);
+  color: #e2e8f0;
   font-size: 1.15rem;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .addTag:hover {
-  background: #6366f1;
+  background: rgba(51, 65, 85, 0.8);
 }
 
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
   margin-top: 0.55rem;
 }
 
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.28rem 0.55rem 0.28rem 0.7rem;
+  gap: 0.25rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.18);
-  border: 1px solid rgba(165, 180, 252, 0.28);
-  color: #e0e7ff;
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
   font-size: 0.75rem;
 }
 
 .tag button {
   appearance: none;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.1rem;
+  height: 1.1rem;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: #a5b4fc;
+  color: #94a3b8;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -424,14 +514,15 @@
 }
 
 .tag button:hover {
-  background: rgba(244, 63, 94, 0.2);
-  color: #fda4af;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
+/* ——— Файлы ——— */
 .fileBox {
-  border: 1px dashed rgba(148, 163, 184, 0.28);
-  border-radius: 0.95rem;
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.4);
   padding: 0.85rem;
 }
 
@@ -441,21 +532,32 @@
   font-size: 0.8rem;
 }
 
+.fileBox input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.6rem;
+  background: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .files {
   margin: 0.7rem 0 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .fileItem {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.7rem;
-  background: rgba(30, 41, 59, 0.7);
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.65rem;
+  background: rgba(148, 163, 184, 0.06);
   font-size: 0.8rem;
 }
 
@@ -494,57 +596,78 @@
 }
 
 .bar {
-  height: 0.45rem;
+  height: 0.4rem;
   border-radius: 999px;
-  background: rgba(51, 65, 85, 0.9);
+  background: rgba(148, 163, 184, 0.14);
   overflow: hidden;
 }
 
 .fill {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1, #38bdf8);
+  background: #3b82f6;
+  transition: width 0.3s ease;
 }
 
+/* ——— Кнопки внизу ——— */
 .footer {
   display: flex;
-  gap: 0.55rem;
+  gap: 0.5rem;
   align-items: center;
-  margin-top: 0.35rem;
-  padding-top: 1rem;
+  flex-shrink: 0;
+  padding: 0.85rem 1.4rem;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.footerNote {
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .ghost,
 .primary,
 .danger {
   appearance: none;
-  min-height: 2.5rem;
+  height: 2.4rem;
   padding: 0 1rem;
-  border-radius: 0.8rem;
-  font-size: 0.84rem;
+  border-radius: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ghost {
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: transparent;
-  color: #cbd5e1;
+  border: none;
+  background: rgba(148, 163, 184, 0.1);
+  color: #e2e8f0;
 }
 
-.ghost:hover {
-  background: rgba(51, 65, 85, 0.45);
+.ghost:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.18);
 }
 
 .primary {
   border: none;
-  background: #4f46e5;
+  background: #2563eb;
   color: #fff;
-  margin-left: auto;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
 }
 
 .primary:hover:not(:disabled) {
-  background: #6366f1;
+  background: #3b82f6;
+}
+
+.danger {
+  margin-right: auto;
+  border: none;
+  background: transparent;
+  color: #fca5a5;
+}
+
+.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.14);
 }
 
 .primary:disabled,
@@ -552,31 +675,235 @@
 .ghost:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.danger {
-  border: 1px solid rgba(251, 113, 133, 0.28);
-  background: rgba(244, 63, 94, 0.12);
-  color: #fecdd3;
-}
-
-.danger:hover:not(:disabled) {
-  background: rgba(244, 63, 94, 0.2);
+  box-shadow: none;
 }
 
 @media (max-width: 640px) {
+  .overlay {
+    padding: 0.5rem;
+  }
+
+  .modal {
+    max-height: calc(100vh - 1rem);
+  }
+
   .row {
     grid-template-columns: 1fr;
   }
 
-  .footer {
+  /* Имя — на всю строку, переключатель роли и кнопки — второй строкой под ним */
+  .person {
     flex-wrap: wrap;
+    row-gap: 0.45rem;
   }
 
-  .primary,
-  .ghost,
-  .danger {
-    width: 100%;
-    margin-left: 0;
+  .personBody {
+    flex: 1 1 calc(100% - 5.5rem);
   }
+
+  .person > :global(.tm-segmented) {
+    margin-left: 2.65rem;
+  }
+
+  .footerNote {
+    display: none;
+  }
+
+  .danger {
+    margin-right: auto;
+  }
+}
+
+/* ——— Выбор команд и задач (ProjectFormSelectors) внутри окна редактирования.
+   Базовые стили общие с окном создания (CreateProjectModal.css), здесь — только облегчение. */
+.modal :global(.teams-selection__list),
+.modal :global(.project-tasks-table-wrap) {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  gap: 0.35rem;
+}
+
+.modal :global(.team-checkbox),
+.modal :global(.team-selected-item) {
+  border: none;
+  border-radius: 0.75rem;
+  background: rgba(148, 163, 184, 0.06);
+  padding: 0.55rem 0.7rem;
+}
+
+.modal :global(.team-checkbox--selected) {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.modal :global(.team-selected-item--clickable:hover),
+.modal :global(.team-selected-item--clickable:focus-visible) {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.modal :global(.picker-add-btn) {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(30, 41, 59, 0.7);
+  color: #e2e8f0;
+}
+
+.modal :global(.picker-add-btn:hover) {
+  transform: none;
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(51, 65, 85, 0.8);
+  color: #fff;
+}
+
+.modal :global(.picker-count) {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.modal :global(.picker-empty) {
+  border-radius: 0.75rem;
+  border-color: rgba(148, 163, 184, 0.2);
+  background: transparent;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* ——— Выпадающий список, переключатели, мелочи (окна создания) ——— */
+.field select {
+  width: 100%;
+  height: 2.65rem;
+  box-sizing: border-box;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.6)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 0.8rem center;
+  color: #e2e8f0;
+  padding: 0 2.2rem 0 0.85rem;
+  font-size: 0.875rem;
+  appearance: none;
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+.field select:focus {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.14);
+}
+
+.field select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.field input[type="datetime-local"] {
+  color-scheme: dark;
+  min-height: 2.65rem;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.8rem;
+  margin-bottom: 0.45rem;
+  border-radius: 0.75rem;
+  background: rgba(148, 163, 184, 0.06);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.toggleTitle {
+  font-size: 0.86rem;
+  color: #e2e8f0;
+}
+
+.toggleHint {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 1.35rem;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.switch:checked {
+  background: #2563eb;
+}
+
+.switch:checked::after {
+  transform: translateX(1.05rem);
+}
+
+.switch:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 2px;
+}
+
+.warningNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #fcd34d;
+}
+
+.hintAfter {
+  margin: 0.5rem 0 0;
+}
+
+.pushRight {
+  margin-left: auto;
+}
+
+.summaryBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.7rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.summaryBox strong {
+  font-weight: 500;
+  color: #e2e8f0;
 }

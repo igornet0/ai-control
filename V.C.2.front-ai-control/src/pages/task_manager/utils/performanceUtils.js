@@ -1,5 +1,14 @@
 const CLOSED_STATUSES = new Set(['completed', 'cancelled', 'done']);
 
+// В БД задачи хранятся со статусами todo/done; GET /api/tasks/{id}/ отдаёт их как есть
+// (на них рассчитано мобильное приложение), а список — уже как created/completed.
+const BACKEND_TO_FRONTEND_STATUS = { todo: 'created', done: 'completed' };
+
+/** Приводит статус задачи к значениям фронта (created/completed вместо todo/done). */
+export function normalizeTaskStatus(status) {
+  return BACKEND_TO_FRONTEND_STATUS[status] || status;
+}
+
 export function isTaskClosed(status) {
   return CLOSED_STATUSES.has(status);
 }

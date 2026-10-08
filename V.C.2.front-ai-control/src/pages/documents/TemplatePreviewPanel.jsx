@@ -456,7 +456,8 @@ const TemplatePreviewPanel = ({
 
   const autosaveFingerprint = React.useMemo(
     () => JSON.stringify({
-      sheetBlocks,
+      // В шаблоне таблицы блок листа пересобирается из сетки при каждой правке — сравниваем саму сетку.
+      sheetBlocks: isTableTemplate ? null : sheetBlocks,
       titleTemplate,
       titleStyle,
       pageNumberStyle,

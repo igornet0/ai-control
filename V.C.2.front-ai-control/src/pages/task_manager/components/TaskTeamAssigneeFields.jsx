@@ -142,10 +142,10 @@ export default function TaskTeamAssigneeFields({
   };
 
   const labelClass = compact
-    ? 'text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5 block'
+    ? 'text-xs font-medium text-slate-400 block'
     : 'text-slate-300';
   const hintClass = compact
-    ? 'block text-[11px] text-slate-500 mt-1'
+    ? 'block text-[11px] leading-snug text-slate-500 mt-0.5 mb-1.5'
     : 'block text-xs text-slate-500 mt-0.5 mb-1';
 
   return (

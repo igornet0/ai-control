@@ -7,6 +7,7 @@ import styles from './App.module.css';
 import { useAuth } from './context/AuthContext';
 import { MMM_OPEN_DIRECT_EVENT } from './services/messagingNavigation';
 import MessagingGlobalHost from './components/messaging/MessagingGlobalHost';
+import { ConfirmActionHost } from './components/shared/confirmAction';
 import { isEmbeddedPath, isEmbeddedShell } from './utils/embeddedShell';
 import { useDocumentTitle, useDocumentTitleBadge } from './hooks/useDocumentTitle';
 import { useMessagingAlerts } from './context/MessagingAlertsContext';
@@ -314,6 +315,7 @@ const AppContent = ({ user, isAuthenticated, authLoading, login, logout }) => {
           <Suspense fallback={null}>
             <CookieConsentBanner />
           </Suspense>
+          <ConfirmActionHost />
         </AuthModalProvider>
       </EditModeProvider>
     </div>

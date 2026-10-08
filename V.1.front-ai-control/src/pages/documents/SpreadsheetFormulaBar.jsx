@@ -53,6 +53,7 @@ const SpreadsheetFormulaBar = forwardRef(function SpreadsheetFormulaBar({
           onBlur={onBlur}
           onKeyDown={onKeyDown}
           spellCheck={false}
+          highlightRefs
           aria-label="Строка формулы"
           title={readOnly ? 'Только просмотр' : 'Клик по ячейке вставляет ссылку в формулу'}
         />

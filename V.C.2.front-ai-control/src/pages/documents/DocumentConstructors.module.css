@@ -1,0 +1,483 @@
+/* Конструкторы «Структура» и «Автозаполнение».
+   Каркас (список слева, шапка, плитки, пустые состояния) — из DocumentFolders.module.css,
+   здесь только элементы самих конструкторов. Токены --docs-* приходят из .container. */
+
+.listSearch {
+  padding: 0.15rem 0.15rem 0.45rem;
+}
+
+.listSearch input {
+  width: 100%;
+  padding: 0.42rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--docs-text);
+  background: rgba(6, 8, 22, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.5rem;
+  outline: none;
+}
+
+.listSearch input:focus {
+  border-color: rgba(124, 92, 255, 0.55);
+}
+
+.listLabel {
+  margin: 0.55rem 0 0.15rem;
+  padding: 0 0.55rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--docs-text-muted);
+}
+
+.listEmpty {
+  margin: 0.35rem 0;
+  padding: 0 0.6rem;
+  font-size: 0.76rem;
+  color: var(--docs-text-muted);
+}
+
+/* Пояснение под шапкой. */
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #cbd5f5;
+  background: rgba(124, 92, 255, 0.07);
+  border: 1px solid rgba(124, 92, 255, 0.2);
+  border-radius: 0.7rem;
+}
+
+.note svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: #c4b5fd;
+}
+
+.sectionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.sectionRow > h4 {
+  margin: 0;
+}
+
+.smallBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ddd6fe;
+  background: rgba(124, 92, 255, 0.12);
+  border: 1px solid rgba(124, 92, 255, 0.3);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.smallBtn:hover {
+  background: rgba(124, 92, 255, 0.2);
+}
+
+/* ——— Поля структуры ——— */
+.fieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fieldCard {
+  padding: 0.6rem 0.7rem;
+  background: rgba(19, 28, 53, 0.65);
+  border: 1px solid var(--docs-border);
+  border-radius: 0.75rem;
+  transition: border-color 0.15s;
+}
+
+.fieldCard:focus-within {
+  border-color: rgba(124, 92, 255, 0.4);
+}
+
+.fieldMain {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reorder {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.reorderBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1rem;
+  padding: 0;
+  color: var(--docs-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.reorderBtn:hover:not(:disabled) {
+  color: var(--docs-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.reorderBtn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  background: rgba(124, 92, 255, 0.14);
+  border-radius: 0.5rem;
+}
+
+.typeBadge_number { color: #93c5fd; background: rgba(59, 130, 246, 0.14); }
+.typeBadge_date { color: #fcd34d; background: rgba(245, 158, 11, 0.13); }
+.typeBadge_table { color: #6ee7b7; background: rgba(16, 185, 129, 0.14); }
+.typeBadge_boolean { color: #f9a8d4; background: rgba(236, 72, 153, 0.13); }
+
+.input,
+.select {
+  min-width: 0;
+  height: 2.15rem;
+  padding: 0 0.65rem;
+  font-size: 0.85rem;
+  color: var(--docs-text);
+  background: rgba(6, 8, 22, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+  outline: none;
+}
+
+.input:focus,
+.select:focus {
+  border-color: rgba(124, 92, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.15);
+}
+
+.nameInput {
+  flex: 1;
+  font-weight: 500;
+}
+
+.typeSelect {
+  flex: 0 0 8.5rem;
+}
+
+.requiredToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  height: 2.15rem;
+  padding: 0 0.65rem;
+  font-size: 0.78rem;
+  color: var(--docs-text-muted);
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.requiredToggle input {
+  margin: 0;
+  accent-color: #7c5cff;
+}
+
+.requiredOn {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--docs-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.iconBtn:hover:not(:disabled) {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.fieldExtra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  padding-left: 4.4rem;
+}
+
+.fieldExtraLabel {
+  font-size: 0.75rem;
+  color: var(--docs-text-muted);
+}
+
+.fieldExtra > :last-child {
+  flex: 1;
+  min-width: 180px;
+  max-width: 420px;
+}
+
+.columnsPanel {
+  margin-top: 0.6rem;
+  margin-left: 4.4rem;
+}
+
+/* Появляется внизу, пока есть несохранённые изменения. */
+.saveBar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 0.6rem 0.7rem 0.6rem 1rem;
+  background: rgba(19, 24, 48, 0.92);
+  border: 1px solid rgba(252, 211, 77, 0.35);
+  border-radius: 0.8rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: saveBarIn 160ms ease-out;
+}
+
+.saveBarText {
+  flex: 1;
+  min-width: 160px;
+  font-size: 0.84rem;
+  color: #fde68a;
+}
+
+.saveBarText small {
+  margin-left: 0.4rem;
+  font-size: 0.74rem;
+  color: var(--docs-text-muted);
+}
+
+@keyframes saveBarIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.addFieldBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  margin-top: 0.55rem;
+  padding: 0.65rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #c4b5fd;
+  background: transparent;
+  border: 1px dashed rgba(124, 92, 255, 0.35);
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.addFieldBtn:hover {
+  background: rgba(124, 92, 255, 0.08);
+  border-color: rgba(124, 92, 255, 0.6);
+}
+
+/* ——— Правила автозаполнения ——— */
+.ruleList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(13, 19, 38, 0.5);
+}
+
+.ruleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.6rem 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--docs-border);
+}
+
+.ruleRow:last-child {
+  border-bottom: none;
+}
+
+.ruleRow:hover {
+  background: rgba(124, 92, 255, 0.06);
+}
+
+.ruleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  color: #c4b5fd;
+  background: rgba(124, 92, 255, 0.14);
+  border-radius: 0.5rem;
+}
+
+.ruleText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.ruleField {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--docs-text);
+}
+
+.ruleDesc {
+  font-size: 0.78rem;
+  color: var(--docs-text-muted);
+}
+
+.ruleDesc b {
+  font-weight: 500;
+  color: #ddd6fe;
+}
+
+.addCard {
+  margin-top: 1.4rem;
+  padding: 0.85rem 0.95rem 0.95rem;
+  background: rgba(19, 28, 53, 0.65);
+  border: 1px solid rgba(124, 92, 255, 0.25);
+  border-radius: 0.8rem;
+}
+
+.addTitle {
+  margin: 0 0 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--docs-text);
+}
+
+.addGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.formField > span {
+  font-size: 0.74rem;
+  color: var(--docs-text-muted);
+}
+
+.addFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.ruleHint {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--docs-text-muted);
+}
+
+.inlineError {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 0.5rem;
+}
+
+@container folders (max-width: 760px) {
+  .addGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@container folders (max-width: 560px) {
+  .fieldMain {
+    flex-wrap: wrap;
+  }
+
+  .nameInput {
+    flex-basis: calc(100% - 6rem);
+  }
+
+  .typeSelect {
+    flex: 1 1 auto;
+  }
+
+  .fieldExtra,
+  .columnsPanel {
+    padding-left: 0;
+    margin-left: 0;
+  }
+
+  .addGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

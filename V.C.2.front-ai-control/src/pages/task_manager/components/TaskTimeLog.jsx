@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { getTaskTimeLogs, addTaskTimeLog, deleteTaskTimeLog } from '../../../services/taskService';
 import { ChartIcon, IconWithText, PlayIconSm, TimerIcon } from './TaskManagerIcons';
+import { confirmAction } from '../../../components/shared/confirmAction';
 
-export default function TaskTimeLog({ taskId, currentUser, canModerate = false, onTimeUpdate }) {
+/**
+ * embedded — без своей карточки и заголовка (для вкладок в окне задачи);
+ * onCountChange(count) — сообщает число записей учёта времени.
+ */
+export default function TaskTimeLog({ taskId, currentUser, canModerate = false, onTimeUpdate, embedded = false, onCountChange }) {
   const [isTracking, setIsTracking] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -110,7 +115,7 @@ export default function TaskTimeLog({ taskId, currentUser, canModerate = false, 
   };
 
   const handleDeleteLog = async (logId) => {
-    if (!window.confirm('Удалить запись учёта времени?')) return;
+    if (!(await confirmAction({ title: 'Удалить запись учёта времени?', confirmLabel: 'Удалить', danger: true }))) return;
     try {
       await deleteTaskTimeLog(taskId, logId);
       await loadTimeLogs();
@@ -122,13 +127,25 @@ export default function TaskTimeLog({ taskId, currentUser, canModerate = false, 
 
   const totalHours = timeLogs.reduce((sum, log) => sum + log.hours, 0);
 
-  if (loading) {
+  useEffect(() => {
+    onCountChange?.(timeLogs.length);
+  }, [timeLogs.length, onCountChange]);
+
+  const containerClass = embedded
+    ? ''
+    : 'bg-slate-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-slate-700/50';
+  const heading = !embedded && (
+    <h3 className="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
+      <TimerIcon size="md" />
+      <span>Учёт времени</span>
+    </h3>
+  );
+
+  // При перезагрузке уже показанного списка не прячем его за «Загрузкой»
+  if (loading && timeLogs.length === 0) {
     return (
-      <div className="bg-slate-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-slate-700/50">
-        <h3 className="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
-          <TimerIcon size="md" />
-          <span>Учёт времени</span>
-        </h3>
+      <div className={containerClass}>
+        {heading}
         <div className="text-center text-slate-400 text-sm py-4">
           Загрузка...
         </div>
@@ -137,11 +154,8 @@ export default function TaskTimeLog({ taskId, currentUser, canModerate = false, 
   }
 
   return (
-    <div className="bg-slate-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-slate-700/50">
-      <h3 className="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
-        <TimerIcon size="md" />
-        <span>Учёт времени</span>
-      </h3>
+    <div className={containerClass}>
+      {heading}
 
       {/* Трекер времени */}
       <div className="mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/30">

@@ -5,7 +5,7 @@ const getDefaultStatisticsLayout = () => ({
   'overdue-tasks': { position: 1, visible: true },
   'user-teams': { position: 2, visible: true },
   'user-projects': { position: 3, visible: true },
-  feedback: { position: 4, visible: true },
+  productivity: { position: 4, visible: true, col_span: 2 },
 });
 
 export const statisticsLayoutService = {

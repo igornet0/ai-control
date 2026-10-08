@@ -4,14 +4,28 @@ import DraggableGrid from '../../../../components/DraggableGrid';
 import { StatisticsIcon } from '../../components/TaskManagerIcons';
 import {
   StatisticsCompletedWidget,
-  StatisticsFeedbackWidget,
   StatisticsOverdueWidget,
+  StatisticsProductivityWidget,
   StatisticsProjectsWidget,
   StatisticsTeamsWidget,
 } from './StatisticsLiveWidgets';
 import { useStatisticsLiveState } from './useStatisticsLiveState';
 import '../overview/overviewWidget.css';
 import './statisticsWidget.css';
+
+/**
+ * Размеры карточек задаёт дизайн, а не сохранённая раскладка (менять размер здесь нельзя).
+ * В сетке из 3 колонок по строкам 148px: две карточки по 2 строки и столбец из двух
+ * компактных — ровный блок 3×2; продуктивность — на всю ширину под ним или над ним.
+ */
+const statisticsCardSizes = (gridColumns) => ({
+  'completed-tasks': { col_span: 1, row_span: 2 },
+  'overdue-tasks': { col_span: 1, row_span: 2 },
+  'user-teams': { col_span: 1, row_span: 1 },
+  'user-projects': { col_span: 1, row_span: 1 },
+  // При 3 колонках содержимое продуктивности идёт в три столбца, при 2 — в два и выше
+  productivity: { col_span: 3, row_span: gridColumns >= 3 ? 3 : 4 },
+});
 
 export default function StatisticsPage() {
   const { user } = useAuth();
@@ -25,14 +39,7 @@ export default function StatisticsPage() {
           <StatisticsIcon size="lg" className="text-emerald-400" />
           Статистика
         </h1>
-        <p className="stat-page-header__hint hidden md:flex">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <circle cx="12" cy="5" r="2" />
-            <circle cx="12" cy="12" r="2" />
-            <circle cx="12" cy="19" r="2" />
-          </svg>
-          Перетаскивайте за троеточие ⋮ — переместить
-        </p>
+        <p className="stat-page-header__subtitle">Результаты по задачам, сроки и продуктивность</p>
       </header>
 
       {loading ? (
@@ -40,12 +47,17 @@ export default function StatisticsPage() {
       ) : error ? (
         <div className="stat-error">{error}</div>
       ) : (
-        <DraggableGrid user={user} enableDragAndDrop layoutType="statistics">
+        <DraggableGrid
+          user={user}
+          enableDragAndDrop
+          layoutType="statistics"
+          fixedCardSizes={statisticsCardSizes}
+        >
           <StatisticsCompletedWidget cardId="completed-tasks" model={model} />
           <StatisticsOverdueWidget cardId="overdue-tasks" model={model} />
           <StatisticsTeamsWidget cardId="user-teams" model={model} />
           <StatisticsProjectsWidget cardId="user-projects" model={model} />
-          <StatisticsFeedbackWidget cardId="feedback" />
+          <StatisticsProductivityWidget cardId="productivity" />
         </DraggableGrid>
       )}
 

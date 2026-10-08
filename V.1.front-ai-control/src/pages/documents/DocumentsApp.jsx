@@ -10,6 +10,8 @@ import DocumentEditorPanel from './DocumentEditorPanel';
 import TemplatePreviewPanel from './TemplatePreviewPanel';
 import CreateTemplateModal from './CreateTemplateModal';
 import ResourceCard from './ResourceCard';
+import DocumentFoldersView from './DocumentFoldersView';
+import { useAuth } from '../../context/AuthContext';
 import { useCollapsibleSidebar } from '../../hooks/useCollapsibleSidebar.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import MobileSidebarChrome from '../../components/layout/MobileSidebarChrome.jsx';
@@ -58,6 +60,13 @@ const NAV_SECTIONS = [
     label: 'Данные',
     items: [
       {
+        id: 'folders',
+        label: 'Папки',
+        icon: 'folder',
+        title: 'Папки',
+        breadcrumb: 'Папки',
+      },
+      {
         id: 'documents',
         label: 'Документы',
         icon: 'documentStack',
@@ -84,7 +93,6 @@ const NAV_SECTIONS = [
         icon: 'structure',
         title: 'Конструктор структуры документа',
         breadcrumb: 'Структура',
-        subtitle: 'Поля и типы данных вида документа',
       },
       {
         id: 'autofill',
@@ -92,7 +100,6 @@ const NAV_SECTIONS = [
         icon: 'autofill',
         title: 'Конструктор логики автозаполнения',
         breadcrumb: 'Автозаполнение',
-        subtitle: 'Правила подстановки значений',
       },
       {
         id: 'defaults',
@@ -107,12 +114,16 @@ const NAV_SECTIONS = [
 ];
 
 const ALL_NAV_ITEMS = NAV_SECTIONS.flatMap((s) => s.items);
-const SEARCH_TABS = new Set(['template_docs', 'template_tables', 'documents', 'table_records']);
+const SEARCH_TABS = new Set(['template_docs', 'template_tables', 'documents', 'table_records', 'folders']);
 const SIDEBAR_COLLAPSED_KEY = 'documents-sidebar-collapsed';
 
 const DocumentsApp = () => {
   const location = useLocation();
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('template_docs');
+  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [foldersRefreshKey, setFoldersRefreshKey] = useState(0);
+  const [editingDocKindId, setEditingDocKindId] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [kinds, setKinds] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -256,11 +267,12 @@ const DocumentsApp = () => {
     });
   }, [trackRecentOpen]);
 
-  const openDocumentEditor = useCallback((d) => {
+  const openDocumentEditor = useCallback((d, { keepTab = false } = {}) => {
     if (!d?.id) return;
     const isTable = isSpreadsheetDocument(d, templates);
-    setActiveTab(isTable ? 'table_records' : 'documents');
+    if (!keepTab) setActiveTab(isTable ? 'table_records' : 'documents');
     setEditingDocumentId(d.id);
+    setEditingDocKindId(d.document_kind_id ?? null);
     setSelectedDocId(d.id);
     trackRecentOpen({
       kind: isTable ? 'table_record' : 'document',
@@ -834,6 +846,7 @@ const DocumentsApp = () => {
             </div>
           )}
           {error && <div className={styles.error} role="alert">{error}</div>}
+          {(activeTabConfig.subtitle || showCreateTemplate) && (
           <header className={styles.header}>
             <div>
               {activeTabConfig.subtitle && (
@@ -855,6 +868,7 @@ const DocumentsApp = () => {
               </div>
             )}
           </header>
+          )}
           <div className={styles.content}>
             <div className={styles.contentPanel}>
             {activeTab === 'template_docs' && (
@@ -1124,6 +1138,7 @@ const DocumentsApp = () => {
                             d.department_id
                               ? `Отдел: ${getDepartmentLabel(d.department_id, d.department_name)}`
                               : null,
+                            d.folder_name ? `Папка: ${d.folder_name}` : null,
                             d.project_id
                               ? `Проект: ${getProjectLabel(d.project_id, d.project_name)}`
                               : (activeTab === 'table_records' ? 'Таблица' : 'Документ'),
@@ -1147,10 +1162,28 @@ const DocumentsApp = () => {
               </section>
             )}
 
+            {activeTab === 'folders' && (
+              <section className={styles.section}>
+                <DocumentFoldersView
+                  currentUserId={currentUser?.id}
+                  folderId={activeFolderId}
+                  onFolderChange={setActiveFolderId}
+                  templates={templates}
+                  myDocuments={documents}
+                  getKindName={getKindName}
+                  searchQuery={searchQuery}
+                  refreshKey={foldersRefreshKey}
+                  onOpenDocument={(d) => openDocumentEditor(d, { keepTab: true })}
+                  onDocumentsChanged={loadDocuments}
+                />
+              </section>
+            )}
+
             {activeTab === 'structure' && (
               <section className={styles.section}>
                 <StructureConstructor
                   kinds={kindsWithTemplates}
+                  templates={templates}
                   initialKindId={structurePreselectedKindId ?? undefined}
                   onPreselectConsumed={() => setStructurePreselectedKindId(null)}
                 />
@@ -1175,16 +1208,20 @@ const DocumentsApp = () => {
         <DocumentEditorPanel
           documentId={editingDocumentId}
           initialReviewOpen={initialReviewOpen}
-          kindName={getKindName(documents.find((d) => d.id === editingDocumentId)?.document_kind_id)}
+          kindName={getKindName(
+            documents.find((d) => d.id === editingDocumentId)?.document_kind_id ?? editingDocKindId,
+          )}
           onClose={() => {
             setEditingDocumentId(null);
             setInitialReviewOpen(false);
           }}
           onSaved={() => {
             loadDocuments();
+            setFoldersRefreshKey((k) => k + 1);
           }}
           onDeleted={() => {
             loadDocuments();
+            setFoldersRefreshKey((k) => k + 1);
             setEditingDocumentId(null);
             setInitialReviewOpen(false);
           }}

@@ -34,6 +34,7 @@ import { useDocumentPlaceholderVars } from './useDocumentPlaceholderVars';
 import { renderResolvedTextLines } from './documentSheetPreviewUtils';
 import UnsavedChangesDialog from './UnsavedChangesDialog';
 import EditorOverflowMenu from './EditorOverflowMenu';
+import { FolderPickerDialog } from './FolderDialogs';
 import chrome from './DocumentEditorChrome.module.css';
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard';
 import styles from './DocumentsApp.module.css';
@@ -179,6 +180,11 @@ const DocumentEditorPanel = ({
     [fieldData, documentTitle, autoDocumentTitle],
   );
   const [propsOpen, setPropsOpen] = useState(false);
+  const [folderPicker, setFolderPicker] = useState(null);
+  const [folderSaving, setFolderSaving] = useState(false);
+  // Документ из общей папки с правом «Просмотр» — только чтение.
+  const canEdit = doc?.can_edit !== false;
+  const canDelete = doc?.can_delete !== false;
   const {
     isDirty,
     markClean,
@@ -187,6 +193,7 @@ const DocumentEditorPanel = ({
   } = useUnsavedChangesGuard({
     fingerprint: editFingerprint,
     ready: !loading && !!doc,
+    enabled: canEdit,
     // handleSave объявлен ниже; вызывается только по клику в диалоге.
     onSave: () => handleSave(),
   });
@@ -555,7 +562,29 @@ const DocumentEditorPanel = ({
     setFieldData((prev) => ({ ...prev, [fieldName]: value }));
   }, []);
 
+  const openFolderPicker = useCallback(async () => {
+    setError(null);
+    try {
+      const folders = await documentService.getFolders();
+      setFolderPicker(Array.isArray(folders) ? folders : []);
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Не удалось загрузить папки');
+    }
+  }, []);
+
+  const handleFolderChange = useCallback(async (nextFolderId) => {
+    setFolderSaving(true);
+    try {
+      const updated = await documentService.moveDocumentToFolder(documentId, nextFolderId);
+      setDoc((prev) => (prev ? { ...prev, ...updated, field_data: prev.field_data } : updated));
+      onSaved?.();
+    } finally {
+      setFolderSaving(false);
+    }
+  }, [documentId, onSaved]);
+
   const handleSave = async () => {
+    if (!canEdit) return false;
     setSaving(true);
     setError(null);
     try {
@@ -1004,9 +1033,10 @@ const DocumentEditorPanel = ({
               className={`${styles.editorTitle} ${styles.editorTitleInput} ${chrome.titleInput}`}
               value={documentTitle}
               onChange={(e) => setDocumentTitle(e.target.value)}
+              readOnly={!canEdit}
               placeholder={isTableDocument ? `Таблица — № ${doc?.number ?? ''}` : `${kindName} — № ${doc?.number ?? ''}`}
               aria-label={isTableDocument ? 'Заголовок таблицы' : 'Заголовок документа'}
-              title="Нажмите, чтобы переименовать"
+              title={canEdit ? 'Нажмите, чтобы переименовать' : 'Только просмотр'}
             />
             <div className={chrome.meta}>
               {doc?.template_id && (
@@ -1026,7 +1056,9 @@ const DocumentEditorPanel = ({
                 )
               )}
               <span className={`${doc?.template_id ? chrome.metaDot : ''} ${isDirty ? chrome.dirty : chrome.saved}`.trim()} role="status">
-                {saving ? 'Сохранение…' : isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
+                {!canEdit
+                  ? 'Только просмотр — изменения не сохраняются'
+                  : saving ? 'Сохранение…' : isDirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены'}
               </span>
             </div>
           </div>
@@ -1036,10 +1068,10 @@ const DocumentEditorPanel = ({
               className={`${chrome.ghostBtn} ${propsOpen ? chrome.ghostBtnActive : ''}`}
               onClick={() => setPropsOpen((v) => !v)}
               aria-expanded={propsOpen}
-              title="Проект, отдел и версия шаблона"
+              title="Папка, проект, отдел и версия шаблона"
             >
               Свойства
-              {(projectId || departmentId) && <span className={chrome.badgeDot} aria-hidden />}
+              {(projectId || departmentId || doc?.folder_id) && <span className={chrome.badgeDot} aria-hidden />}
             </button>
             <button
               type="button"
@@ -1066,18 +1098,21 @@ const DocumentEditorPanel = ({
                   onSelect: handleDelete,
                   danger: true,
                   separatorBefore: true,
+                  hidden: !canDelete,
                 },
               ]}
             />
-            <button
-              type="button"
-              className={`${styles.primaryButton} ${styles.editorSaveBtn} ${!isDirty && !saving ? chrome.saveBtnClean : ''}`}
-              onClick={handleSave}
-              disabled={saving}
-              title={isDirty ? 'Сохранить изменения' : 'Изменений нет'}
-            >
-              {saving ? 'Сохранение…' : 'Сохранить'}
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                className={`${styles.primaryButton} ${styles.editorSaveBtn} ${!isDirty && !saving ? chrome.saveBtnClean : ''}`}
+                onClick={handleSave}
+                disabled={saving}
+                title={isDirty ? 'Сохранить изменения' : 'Изменений нет'}
+              >
+                {saving ? 'Сохранение…' : 'Сохранить'}
+              </button>
+            )}
             <button type="button" className={chrome.iconBtn} onClick={requestClose} aria-label="Закрыть" title="Закрыть">
               <IconClose size={18} />
             </button>
@@ -1086,7 +1121,30 @@ const DocumentEditorPanel = ({
         {propsOpen && (
           <div className={chrome.propsPanel}>
             <div className={chrome.propsField}>
+              <div className={styles.docProjectPickerButton}>
+                <div className={styles.docProjectPickerButtonRow}>
+                  <span className={styles.docProjectPickerButtonLabel}>Папка</span>
+                  {folderSaving && <span className={styles.docProjectPickerSaving}>Сохранение…</span>}
+                </div>
+                <div className={styles.docProjectPickerButtonControl}>
+                  <button
+                    type="button"
+                    className={`project-search-picker__trigger${doc?.folder_id ? ' project-search-picker__trigger--selected' : ''}`}
+                    onClick={openFolderPicker}
+                    disabled={!canEdit || folderSaving}
+                    title="Документ в папке доступен её участникам"
+                  >
+                    <span className="project-search-picker__trigger-label">
+                      {doc?.folder_id ? (doc.folder_name || `Папка #${doc.folder_id}`) : 'Без папки — нажмите, чтобы выбрать'}
+                    </span>
+                    <span className="project-search-picker__trigger-caret" aria-hidden>▾</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className={chrome.propsField}>
               <DocumentProjectPicker
+                disabled={!canEdit}
                 variant="button"
                 value={projectId}
                 onChange={handleProjectChange}
@@ -1099,6 +1157,7 @@ const DocumentEditorPanel = ({
             <div className={chrome.propsField}>
               <DepartmentPicker
                 variant="button"
+                disabled={!canEdit}
                 value={departmentId}
                 onChange={handleDepartmentChange}
                 saving={departmentSaving}
@@ -1357,6 +1416,19 @@ const DocumentEditorPanel = ({
         open={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
       />
+      {folderPicker && (
+        <FolderPickerDialog
+          title={isTableDocument ? 'Папка таблицы' : 'Папка документа'}
+          subtitle={documentTitle}
+          folders={folderPicker}
+          currentFolderId={doc?.folder_id ?? null}
+          rootOption={doc?.folder_id ? { label: 'Без папки', hint: 'Документ останется только у автора' } : null}
+          confirmLabel="Сохранить"
+          zIndex={overlayZIndex + 70}
+          onPick={handleFolderChange}
+          onClose={() => setFolderPicker(null)}
+        />
+      )}
       <UnsavedChangesDialog
         {...unsavedDialogProps}
         entityLabel={isTableDocument ? 'таблице' : 'документе'}

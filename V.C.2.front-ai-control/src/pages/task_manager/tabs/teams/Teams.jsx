@@ -5,15 +5,22 @@ import { getTasks } from '../../../../services/taskService';
 import useAuth from '../../../../hooks/useAuth';
 import CreateTeamModal from './components/CreateTeamModal';
 import TeamCard from './components/TeamCard';
-import styles from './Teams.module.css';
 import {
   CloseIcon,
-  CreateIcon,
-  IconWithText,
-  SearchInput,
+  PlusIconSm,
+  SearchIcon,
   TeamsIcon,
-  UserSingleIcon,
 } from '../../components/TaskManagerIcons';
+import { confirmAction } from '../../../../components/shared/confirmAction';
+import '../tmPage.css';
+
+const pluralize = (n, one, few, many) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
 import { canUserCreateTeam, canUserManageTeam } from './teamPermissions';
 
 const isUserTeamMember = (team, userId) =>
@@ -144,7 +151,14 @@ const Teams = () => {
   };
 
   const handleDeleteTeam = async (teamId) => {
-    if (window.confirm('Вы уверены, что хотите удалить эту команду? Это действие нельзя отменить.')) {
+    const team = teams.find((item) => item.id === teamId);
+    const confirmed = await confirmAction({
+      title: team ? `Удалить команду «${team.name}»?` : 'Удалить команду?',
+      message: 'Это действие нельзя отменить.',
+      confirmLabel: 'Удалить',
+      danger: true,
+    });
+    if (confirmed) {
       try {
         await teamService.deleteTeam(teamId);
         setTeams((prev) => prev.filter((team) => team.id !== teamId));
@@ -182,146 +196,133 @@ const Teams = () => {
   };
 
   if (loading || userLoading) {
-    return (
-      <div className={styles['teams-container']}>
-        <div className={styles['loading']}>Загрузка команд...</div>
-      </div>
-    );
+    return <div className="tm-loading">Загрузка команд…</div>;
   }
 
   const myTeamsCount = user
     ? teams.filter((team) => isUserTeamMember(team, user.id)).length
     : 0;
   const allowCreateTeam = canUserCreateTeam(user);
+  const hasFilters = Boolean(searchTerm || statusFilter);
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div className="animate-slideInLeft">
-          <h1 className="text-3xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
+    <div className="teams-page">
+      <header className="tm-page-header">
+        <div>
+          <h1 className="tm-page-header__title">
             <TeamsIcon size="lg" className="text-indigo-400" />
-            Управление командами
+            Команды
           </h1>
-          <p className="text-slate-400 mt-1">Создавайте и координируйте рабочие группы</p>
-          {user ? (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-slate-500">Мои команды:</span>
-              <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-sm font-medium rounded-md">
-                {myTeamsCount}
-              </span>
-            </div>
-          ) : (
-            <div className="mt-2">
-              <span className="text-sm text-slate-500">Загрузка пользователя...</span>
-            </div>
-          )}
+          <p className="tm-page-header__subtitle">
+            <strong>{teams.length}</strong> {pluralize(teams.length, 'команда', 'команды', 'команд')}
+            {user && <> · вы в <strong>{myTeamsCount}</strong></>}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-3 animate-slideInRight">
-          {user ? (
-            <button
-              onClick={() => setShowMyTeams(!showMyTeams)}
-              className={`btn ${showMyTeams ? 'btn-primary' : 'btn-outline'} transition-all duration-300`}
-              title={showMyTeams ? 'Показать все команды' : 'Показать только мои команды'}
-            >
-              {showMyTeams ? (
-                <IconWithText icon={TeamsIcon}>Все команды</IconWithText>
-              ) : (
-                <IconWithText icon={UserSingleIcon}>Мои команды</IconWithText>
-              )}
-            </button>
-          ) : (
-            <button
-              className="btn btn-outline opacity-50 cursor-not-allowed"
-              disabled
-              title="Загрузка пользователя..."
-            >
-              <IconWithText icon={UserSingleIcon}>Мои команды</IconWithText>
-            </button>
-          )}
-          {allowCreateTeam && (
-            <button
-              className="btn btn-primary"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <IconWithText icon={CreateIcon}>Создать команду</IconWithText>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-gradient-to-r from-red-500/20 to-rose-600/20 border border-red-500/30 text-red-300 p-4 rounded-xl mb-6 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <span>{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-300 hover:text-red-100 transition-colors"
-            >
-              <CloseIcon size="sm" />
+        {allowCreateTeam && (
+          <div className="tm-page-header__actions">
+            <button type="button" className="tm-btn tm-btn--primary" onClick={() => setShowCreateModal(true)}>
+              <PlusIconSm size="sm" />
+              Новая команда
             </button>
           </div>
+        )}
+      </header>
+
+      {error && (
+        <div className="tm-banner tm-banner--error" role="alert">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Скрыть"><CloseIcon size="sm" /></button>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <SearchInput
+      <div className="tm-toolbar">
+        <div className="tm-segmented" role="tablist" aria-label="Какие команды показывать">
+          {[
+            { id: false, label: 'Все' },
+            { id: true, label: 'Мои' },
+          ].map((option) => (
+            <button
+              key={String(option.id)}
+              type="button"
+              role="tab"
+              aria-selected={showMyTeams === option.id}
+              disabled={!user}
+              className={`tm-segmented__btn ${showMyTeams === option.id ? 'tm-segmented__btn--active' : ''}`}
+              onClick={() => setShowMyTeams(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="tm-search">
+          <SearchIcon size="sm" className="tm-search__icon" />
+          <input
+            type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Поиск по названию или описанию..."
-            inputClassName="form-input w-full"
+            placeholder="Поиск по названию или описанию…"
+            className="tm-input"
+            aria-label="Поиск команд"
           />
         </div>
 
-        <div className="sm:w-48">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="form-input w-full"
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className={`tm-select ${statusFilter ? 'tm-select--active' : ''}`}
+          aria-label="Статус"
+        >
+          <option value="">Все статусы</option>
+          <option value="active">Активные</option>
+          <option value="inactive">Неактивные</option>
+          <option value="archived">Архивные</option>
+          <option value="disbanded">Расформированные</option>
+        </select>
+
+        {hasFilters && (
+          <button
+            type="button"
+            className="tm-toolbar__reset"
+            onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('');
+            }}
           >
-            <option value="">Все статусы</option>
-            <option value="active">Активные</option>
-            <option value="inactive">Неактивные</option>
-            <option value="archived">Архивные</option>
-            <option value="disbanded">Расформированные</option>
-          </select>
-        </div>
+            Сбросить
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="tm-grid">
         {filteredTeams.length === 0 ? (
-          <div className="col-span-full text-center py-16">
-            <TeamsIcon size="4xl" className="mb-4 opacity-50 mx-auto text-slate-500" />
-            <div className="text-slate-400 text-lg mb-2">
+          <div className="tm-empty">
+            <TeamsIcon size="2xl" className="text-slate-500" />
+            <span>
               {!user
-                ? 'Загрузка пользователя...'
+                ? 'Загрузка пользователя…'
                 : showMyTeams
                   ? 'Вы не состоите ни в одной команде'
-                  : searchTerm || statusFilter
-                    ? 'Команды не найдены'
-                    : 'Команды не созданы'}
-            </div>
-            {!showMyTeams && !searchTerm && !statusFilter && allowCreateTeam && (
-              <p className="text-slate-500 text-sm">Создайте первую команду для начала работы</p>
+                  : hasFilters
+                    ? 'Ничего не найдено'
+                    : 'Команд пока нет'}
+            </span>
+            {!showMyTeams && !hasFilters && allowCreateTeam && (
+              <span className="tm-empty__hint">Создайте первую команду — кнопка «Новая команда» вверху</span>
             )}
           </div>
         ) : (
-          filteredTeams.map((team, index) => (
-            <div
+          filteredTeams.map((team) => (
+            <TeamCard
               key={team.id}
-              className="animate-fadeIn"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <TeamCard
-                team={team}
-                projects={projects}
-                catalogTasks={catalogTasks}
-                canManage={canUserManageTeam(team, user)}
-                onDelete={handleDeleteTeam}
-                onUpdate={handleUpdateTeam}
-                onRefresh={handleRefreshTeam}
-              />
-            </div>
+              team={team}
+              projects={projects}
+              catalogTasks={catalogTasks}
+              canManage={canUserManageTeam(team, user)}
+              onDelete={handleDeleteTeam}
+              onUpdate={handleUpdateTeam}
+              onRefresh={handleRefreshTeam}
+            />
           ))
         )}
       </div>

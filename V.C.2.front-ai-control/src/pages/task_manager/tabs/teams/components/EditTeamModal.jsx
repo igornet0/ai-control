@@ -1,13 +1,30 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { teamService } from '../../../../../services/teamService';
 import { CloseIcon } from '../../../components/TaskManagerIcons';
-import './CreateTeamModal.css';
+// Та же оболочка и поля, что у окна редактирования проекта — окна выглядят одинаково
+import styles from '../../projects/components/EditProjectModal.module.css';
+import '../../tmPage.css';
 
 const memberDisplayName = (member) =>
   member.user_name || member.user_email || `User ${member.user_id}`;
 
 const cloneMembers = (list = []) =>
   list.map((member) => ({ ...member }));
+
+const initials = (name) => String(name || '?')
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0])
+  .join('')
+  .toUpperCase();
+
+const ROLE_OPTIONS = [
+  { id: 'member', label: 'Участник' },
+  { id: 'manager', label: 'Менеджер' },
+];
 
 const EditTeamModal = ({ team, onClose, onSubmit, onMembersChanged, overlayClassName = 'modal-overlay' }) => {
   const [teamData, setTeamData] = useState({
@@ -127,8 +144,8 @@ const EditTeamModal = ({ team, onClose, onSubmit, onMembersChanged, overlayClass
     }
   };
 
-  const handleRemoveMember = (userId, userName) => {
-    if (!window.confirm(`Удалить «${userName}» из команды?`)) return;
+  // Изменения применяются только по «Сохранить» — убранного можно вернуть, подтверждение не нужно
+  const handleRemoveMember = (userId) => {
     draftDirtyRef.current = true;
     setMembers((prev) => prev.filter((member) => member.user_id !== userId));
     if (errors.general) {
@@ -226,151 +243,207 @@ const EditTeamModal = ({ team, onClose, onSubmit, onMembersChanged, overlayClass
     }
   };
 
-  return (
-    <div className={overlayClassName} onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Редактировать команду</h2>
-          <button type="button" onClick={onClose} className="close-btn">
-            <CloseIcon size="sm" />
+  const isNested = String(overlayClassName).includes('nested');
+  const initialUserIds = useMemo(
+    () => new Set(initialMembers.map((member) => member.user_id)),
+    [initialMembers],
+  );
+  const removedMembers = initialMembers.filter((member) => !memberUserIds.has(member.user_id));
+  const handleRestoreMember = (member) => {
+    draftDirtyRef.current = true;
+    setMembers((prev) => [...prev, { ...member }]);
+  };
+
+  // Вложенное окно (из формы проекта) закрывает по Esc родитель; самостоятельное — само
+  useEffect(() => {
+    if (isNested) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !loading) onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isNested, loading, onClose]);
+
+  const searchHint = (() => {
+    if (memberSearch.length === 0) return null;
+    if (memberSearch.length < 2) return 'Введите минимум 2 символа';
+    if (memberSearchLoading) return 'Поиск…';
+    if (memberSearchResults.length === 0) return 'Сотрудники не найдены';
+    if (availableMemberSearchResults.length === 0) return 'Все найденные сотрудники уже в команде';
+    return null;
+  })();
+
+  return createPortal(
+    <div
+      className={styles.overlay}
+      style={isNested ? { zIndex: 10010 } : undefined}
+      onClick={() => !loading && onClose()}
+      role="presentation"
+    >
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-team-modal-title"
+      >
+        <div className={styles.head}>
+          <div>
+            <h3 id="edit-team-modal-title">{teamData.name || team?.name || 'Команда'}</h3>
+            <p className={styles.subtitle}>Редактирование команды</p>
+          </div>
+          <button type="button" onClick={onClose} className={styles.close} aria-label="Закрыть">
+            <XMarkIcon />
           </button>
         </div>
 
-        {errors.general && (
-          <div className="error-message">
-            {errors.general}
-          </div>
-        )}
+        {errors.general && <div className={styles.error} role="alert">{errors.general}</div>}
 
-        <form onSubmit={handleSubmit} className="team-form">
-          <div className="form-group">
-            <label>Название команды *</label>
-            <input
-              type="text"
-              value={teamData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              className={errors.name ? 'error-input' : ''}
-              placeholder="Введите название команды"
-            />
-            {errors.name && <span className="error-text">{errors.name}</span>}
-          </div>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.body}>
+            <div className={styles.section}>
+              <p className={styles.sectionTitle}>Основное</p>
+              <div className={styles.field}>
+                <label htmlFor="edit-team-name">Название <span className={styles.required}>*</span></label>
+                <input
+                  id="edit-team-name"
+                  type="text"
+                  value={teamData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  className={errors.name ? styles.invalid : ''}
+                  placeholder="Например, Backend Core"
+                  maxLength={100}
+                />
+                {errors.name && <span className={styles.hint}>{errors.name}</span>}
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="edit-team-description">Описание</label>
+                <textarea
+                  id="edit-team-description"
+                  value={teamData.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  className={errors.description ? styles.invalid : ''}
+                  placeholder="Чем занимается команда"
+                  rows={3}
+                />
+                {errors.description && <span className={styles.hint}>{errors.description}</span>}
+              </div>
+            </div>
 
-          <div className="form-group">
-            <label>Описание</label>
-            <textarea
-              value={teamData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              className={errors.description ? 'error-input' : ''}
-              placeholder="Опишите команду"
-              rows={3}
-            />
-            {errors.description && <span className="error-text">{errors.description}</span>}
-          </div>
+            <div className={styles.section}>
+              <p className={styles.sectionTitle}>
+                Участники
+                {!membersLoading && <span className={styles.sectionCount}>{members.length}</span>}
+              </p>
 
-          <div className="form-group">
-            <label>Участники команды</label>
-            <p className="member-search-hint">
-              Изменения ролей и состава применяются только после «Сохранить изменения»
-            </p>
+              <div className={styles.searchWrap}>
+                <MagnifyingGlassIcon />
+                <input
+                  type="text"
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  placeholder="Добавить сотрудника — имя или email…"
+                  disabled={membersLoading}
+                  aria-label="Поиск сотрудника"
+                />
+                {memberSearch.length >= 2 && !memberSearchLoading && availableMemberSearchResults.length > 0 && (
+                  <div className={styles.searchResults}>
+                    {availableMemberSearchResults.map((user) => (
+                      <button key={user.id} type="button" onClick={() => handleAddMember(user)}>
+                        <span className={styles.resultName}>{user.name || user.login}</span>
+                        {user.email && <span className={styles.resultMeta}>{user.email}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {searchHint && <p className={styles.hintMuted}>{searchHint}</p>}
 
-            <div className="user-search">
-              <input
-                type="text"
-                value={memberSearch}
-                onChange={(e) => setMemberSearch(e.target.value)}
-                placeholder="Поиск сотрудника для добавления..."
-                className="user-search-input"
-                disabled={membersLoading}
-              />
-
-              {memberSearch.length >= 2 && memberSearchLoading && (
-                <p className="member-search-hint">Поиск...</p>
+              {membersLoading ? (
+                <p className={styles.hintMuted}>Загрузка участников…</p>
+              ) : members.length > 0 ? (
+                <div className={styles.people}>
+                  {members.map((member) => {
+                    const name = memberDisplayName(member);
+                    const isNew = !initialUserIds.has(member.user_id);
+                    return (
+                      <div key={member.id ?? member.user_id} className={styles.person}>
+                        <div className={styles.avatar}>{initials(name)}</div>
+                        <div className={styles.personBody}>
+                          <strong>
+                            {name}
+                            {isNew && <span className={styles.newBadge}>новый</span>}
+                          </strong>
+                          {member.user_email && member.user_email !== name && <em>{member.user_email}</em>}
+                        </div>
+                        <span className="tm-segmented tm-segmented--sm" role="group" aria-label={`Роль: ${name}`}>
+                          {ROLE_OPTIONS.map((option) => (
+                            <button
+                              key={option.id}
+                              type="button"
+                              className={`tm-segmented__btn ${member.role === option.id ? 'tm-segmented__btn--active' : ''}`}
+                              aria-pressed={member.role === option.id}
+                              onClick={() => handleRoleChange(member.user_id, option.id)}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.removePerson}
+                          onClick={() => handleRemoveMember(member.user_id)}
+                          aria-label={`Убрать ${name} из команды`}
+                          title="Убрать из команды"
+                        >
+                          <CloseIcon size="xs" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className={styles.hintMuted}>В команде пока нет участников — найдите сотрудника выше.</p>
               )}
 
-              {memberSearch.length >= 2 && !memberSearchLoading && availableMemberSearchResults.length > 0 && (
-                <div className="search-results">
-                  {availableMemberSearchResults.map((user) => (
+              {removedMembers.length > 0 && (
+                <div className={styles.removedList}>
+                  <span className={styles.removedLabel}>Будут убраны:</span>
+                  {removedMembers.map((member) => (
                     <button
-                      key={user.id}
+                      key={member.user_id}
                       type="button"
-                      onClick={() => handleAddMember(user)}
-                      className="search-result-item"
+                      className={styles.removedChip}
+                      onClick={() => handleRestoreMember(member)}
+                      title="Вернуть в команду"
                     >
-                      <span className="user-name">{user.name || user.login}</span>
-                      {user.email && <span className="user-email">{user.email}</span>}
-                      {user.login && user.login !== user.name && (
-                        <span className="user-role">{user.login}</span>
-                      )}
+                      {memberDisplayName(member)}
+                      <span aria-hidden>↺</span>
                     </button>
                   ))}
                 </div>
               )}
-
-              {memberSearch.length >= 2 && !memberSearchLoading && memberSearchResults.length > 0 && availableMemberSearchResults.length === 0 && (
-                <p className="member-search-hint">Все найденные сотрудники уже в команде</p>
-              )}
-
-              {memberSearch.length >= 2 && !memberSearchLoading && memberSearchResults.length === 0 && (
-                <p className="member-search-hint">Сотрудники не найдены</p>
-              )}
-
-              {memberSearch.length > 0 && memberSearch.length < 2 && (
-                <p className="member-search-hint">Введите минимум 2 символа для поиска</p>
-              )}
             </div>
-
-            {membersLoading ? (
-              <p className="text-slate-400 text-sm mt-3">Загрузка участников...</p>
-            ) : members.length > 0 ? (
-              <div className="members-list mt-3">
-                {members.map((member) => {
-                  const name = memberDisplayName(member);
-                  return (
-                    <div key={member.id ?? member.user_id} className="member-item">
-                      <span className="member-name">{name}</span>
-                      <select
-                        value={member.role}
-                        onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
-                        className="member-role-select"
-                      >
-                        <option value="manager">Менеджер</option>
-                        <option value="member">Участник</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMember(member.user_id, name)}
-                        className="remove-member-btn"
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-slate-400 text-sm mt-3">Участники не найдены</p>
-            )}
           </div>
 
-          <div className="form-actions">
-            <button
-              type="button"
-              onClick={onClose}
-              className="cancel-btn"
-            >
+          <div className={styles.footer}>
+            <span className={styles.footerNote}>Состав и роли применятся после сохранения</span>
+            <button type="button" onClick={onClose} className={styles.ghost} disabled={loading}>
               Отмена
             </button>
-            <button
-              type="submit"
-              disabled={loading || membersLoading}
-              className="submit-btn"
-            >
-              {loading ? 'Обновление...' : 'Сохранить изменения'}
+            <button type="submit" disabled={loading || membersLoading} className={styles.primary}>
+              {loading ? 'Сохранение…' : 'Сохранить'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

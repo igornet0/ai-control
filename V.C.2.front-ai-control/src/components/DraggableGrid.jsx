@@ -56,6 +56,12 @@ const DraggableGrid = ({
   onRemoveCard = null,
   moveTargets = null,
   onMoveCard = null,
+  /**
+   * Размеры по id карточки, которые важнее сохранённой раскладки: { [cardId]: { col_span, row_span } }
+   * или функция (gridColumns) => такой объект. Для вкладок без изменения размера, где сетку задаёт
+   * сам дизайн (col_span больше числа колонок = на всю ширину).
+   */
+  fixedCardSizes = null,
 }) => {
   const resolveCardId = (child) => {
     const props = child?.props;
@@ -97,7 +103,7 @@ const DraggableGrid = ({
         { id: 'overdue-tasks', title: 'Просрочки' },
         { id: 'user-teams', title: 'Команды пользователя' },
         { id: 'user-projects', title: 'Проекты пользователя' },
-        { id: 'feedback', title: 'Жалобы и похвалы' },
+        { id: 'productivity', title: 'Продуктивность' },
       ];
     }
     if (layoutType === 'task-widgets') {
@@ -459,9 +465,13 @@ const DraggableGrid = ({
         row_span: resizePreview.row_span,
       };
     }
+    const fixedSizes = typeof fixedCardSizes === 'function' ? fixedCardSizes(gridColumns) : fixedCardSizes;
+    if (fixedSizes?.[cardId]) {
+      return normalizeCardSize(fixedSizes[cardId], gridColumns);
+    }
     const entry = layoutRef.current[cardId] ?? {};
     return normalizeCardSize(entry, gridColumns);
-  }, [resizePreview, gridColumns]);
+  }, [resizePreview, gridColumns, fixedCardSizes]);
 
   const commitLayoutRef = useRef(commitLayout);
   commitLayoutRef.current = commitLayout;
@@ -568,11 +578,14 @@ const DraggableGrid = ({
     return (
       <div className={gridClassName}>
         {Array.from({ length: Math.max(defaultCards.length, 1) }).map((_, index) => (
-          <div key={index} className="bg-[#0F1717] rounded-xl p-4 border border-gray-700 animate-pulse">
-            <div className="h-6 bg-gray-700 rounded mb-3" />
+          <div key={index} className="rounded-[1.1rem] p-4 border border-slate-400/10 bg-slate-900/60 animate-pulse">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-9 w-9 rounded-xl bg-slate-700/50" />
+              <div className="h-4 w-1/3 rounded bg-slate-700/50" />
+            </div>
             <div className="space-y-2">
-              <div className="h-4 bg-gray-700 rounded w-3/4" />
-              <div className="h-4 bg-gray-700 rounded w-1/2" />
+              <div className="h-3.5 rounded bg-slate-700/40 w-3/4" />
+              <div className="h-3.5 rounded bg-slate-700/40 w-1/2" />
             </div>
           </div>
         ))}
@@ -596,22 +609,23 @@ const DraggableGrid = ({
     >
       {enableDragAndDrop && user && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {resizeEnabled ? (
-            <p className="text-xs text-slate-400">
-              ⋮ — переместить. Нижний/правый край или угол — изменить размер.
-            </p>
-          ) : (
-            <p className="text-xs text-slate-400">
-              ⋮ — переместить виджет.
-            </p>
-          )}
+          <p className="flex items-center gap-1.5 text-xs text-slate-500">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
+              <circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" />
+              <circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" />
+            </svg>
+            {resizeEnabled
+              ? 'Перетаскивайте виджеты за ручку, тяните за край — чтобы изменить размер'
+              : 'Перетаскивайте виджеты за ручку'}
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             {canResetLayout && (
               <button
                 type="button"
                 onClick={handleResetLayout}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-500/40 bg-slate-800/80 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Вернуть размеры и порядок виджетов к значениям по умолчанию"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -625,10 +639,10 @@ const DraggableGrid = ({
             <button
               type="button"
               onClick={() => setShowVisibilitySettings(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-indigo-400/35 bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-900/30 transition-colors hover:bg-indigo-500"
-              title="Настроить виджеты"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700/70"
+              title="Показать или скрыть виджеты"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L19 7.5C18.8 6.9 18.6 6.4 18.3 5.9L19.5 4.5L18 3L16.6 4.2C16.1 3.9 15.6 3.7 15 3.5L14.5 1.5H12.5L12 3.5C11.4 3.7 10.9 3.9 10.4 4.2L9 3L7.5 4.5L8.7 5.9C8.4 6.4 8.2 6.9 8 7.5L6 7V9L8 8.5C8.2 9.1 8.4 9.6 8.7 10.1L7.5 11.5L9 13L10.4 11.8C10.9 12.1 11.4 12.3 12 12.5L12.5 14.5H14.5L15 12.5C15.6 12.3 16.1 12.1 16.6 11.8L18 13L19.5 11.5L18.3 10.1C18.6 9.6 18.8 9.1 19 8.5L21 9Z" />
               </svg>
               Настроить виджеты

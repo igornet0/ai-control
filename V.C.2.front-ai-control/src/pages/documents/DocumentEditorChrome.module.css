@@ -145,6 +145,16 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* Пункты с пояснениями — меню шире, чтобы подсказки не ломались на 3 строки. */
+.menu:has(.menuHint) {
+  min-width: 290px;
+}
+
+.menuLeft {
+  right: auto;
+  left: 0;
+}
+
 .menuSeparated {
   margin-top: 0.3rem;
   padding-top: 0.3rem;
@@ -152,7 +162,9 @@
 }
 
 .menuItem {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
   width: 100%;
   padding: 0.5rem 0.7rem;
   font-size: 0.85rem;
@@ -194,6 +206,17 @@
   color: #fff;
   background: #7c5cff;
   border-color: #7c5cff;
+}
+
+.menuIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+  color: #a5b4fc;
+}
+
+.menuText {
+  min-width: 0;
 }
 
 .menuHint {

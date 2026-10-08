@@ -18,19 +18,15 @@
   margin-bottom: 0;
 }
 
-.project-card-row--expanded .project-card:hover {
-  transform: none;
-}
-
 .project-card-sidepanel {
   flex: 1;
   min-width: 0;
-  align-self: flex-start;
-  background: linear-gradient(135deg, #1e293b 0%, #273449 100%);
-  border: 1px solid #475569;
-  border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  align-self: stretch;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.55) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 1.1rem;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.28);
   display: flex;
   flex-direction: column;
 }
@@ -38,7 +34,7 @@
 .project-card-sidepanel__header {
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -49,9 +45,9 @@
 .project-card-sidepanel__view-toggle {
   display: inline-flex;
   padding: 3px;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid #374151;
+  gap: 2px;
+  border-radius: 0.7rem;
+  background: rgba(148, 163, 184, 0.08);
 }
 
 .project-card-view-btn {
@@ -61,7 +57,7 @@
   font-size: 12px;
   font-weight: 500;
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: 0.55rem;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 }
@@ -70,9 +66,10 @@
   color: #e2e8f0;
 }
 
-.project-card-view-btn--active {
-  background: rgba(59, 130, 246, 0.22);
-  color: #bfdbfe;
+.project-card-view-btn--active,
+.project-card-view-btn--active:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .project-card-tasks-calendar-wrap {
@@ -85,7 +82,7 @@
 .project-card-sidepanel__header h4 {
   margin: 0;
   color: #f1f5f9;
-  font-size: 16px;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
@@ -308,24 +305,12 @@
   font-weight: 600;
 }
 
+/* Внешний вид карточки — .tm-card (tabs/tmPage.css) */
 .project-card {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border: 1px solid #475569;
-  border-radius: 12px;
-  padding: 20px;
   margin-bottom: 0;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   position: relative;
-  overflow: hidden;
   z-index: 1;
   width: 100%;
-}
-
-.project-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  border-color: #60a5fa;
 }
 
 .project-card--compact .project-description {

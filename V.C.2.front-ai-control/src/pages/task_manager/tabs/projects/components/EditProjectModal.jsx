@@ -289,9 +289,8 @@ const EditProjectModal = ({ project, onClose, onSubmit, onDelete }) => {
       >
         <div className={styles.head}>
           <div>
-            <p className={styles.kicker}>Проект</p>
-            <h3 id="edit-project-modal-title">{project.name || 'Редактирование'}</h3>
-            <p className={styles.subtitle}>Название, сроки, менеджеры, команды и задачи. Изменения сохраняются после обновления.</p>
+            <h3 id="edit-project-modal-title">{projectData.name || project.name || 'Проект'}</h3>
+            <p className={styles.subtitle}>Редактирование проекта</p>
           </div>
           <button type="button" onClick={onClose} className={styles.close} aria-label="Закрыть">
             <XMarkIcon />
@@ -301,6 +300,7 @@ const EditProjectModal = ({ project, onClose, onSubmit, onDelete }) => {
         {errors.general && <div className={styles.error}>{errors.general}</div>}
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.body}>
           <div className={styles.section}>
             <p className={styles.sectionTitle}>Основное</p>
             <div className={styles.field}>
@@ -328,11 +328,10 @@ const EditProjectModal = ({ project, onClose, onSubmit, onDelete }) => {
           <div className={styles.section}>
             <p className={styles.sectionTitle}>Менеджеры</p>
             <p className={styles.hintMuted}>
-              Владелец задаётся при создании.
               {canAssignManagers
-                ? ' Дополнительных менеджеров могут назначать владелец и уже добавленные менеджеры проекта — они тоже смогут редактировать проект.'
-                : ' Назначать менеджеров могут только владелец и уже добавленные менеджеры проекта.'}
-              {canConfigureCard ? ' Отметьте, кого показывать в строке «Менеджер» на карточке проекта.' : ''}
+                ? 'Менеджеры могут редактировать проект.'
+                : 'Добавлять менеджеров могут владелец и менеджеры проекта.'}
+              {canConfigureCard ? ' «На карточке» — показывать в строке «Менеджер» на карточке проекта.' : ''}
             </p>
             <div className={styles.people}>
               <div className={styles.person}>
@@ -436,7 +435,8 @@ const EditProjectModal = ({ project, onClose, onSubmit, onDelete }) => {
                           setManagerResults([]);
                         }}
                       >
-                        {u.name} — {u.email}
+                        <span className={styles.resultName}>{u.name}</span>
+                        {u.email && <span className={styles.resultMeta}>{u.email}</span>}
                       </button>
                     ))}
                   </div>
@@ -605,6 +605,8 @@ const EditProjectModal = ({ project, onClose, onSubmit, onDelete }) => {
                 </div>
               )}
             </div>
+          </div>
+
           </div>
 
           <div className={styles.footer}>

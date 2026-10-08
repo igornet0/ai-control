@@ -9,6 +9,7 @@ import ProjectTasksCalendar from './ProjectTasksCalendar';
 import EmployeeHoverTrigger from '../../../../profile/components/employees/EmployeeHoverTrigger';
 import { userCanManageProject, visibleCardManagers } from './projectManagers';
 import './ProjectCard.css';
+import '../../tmPage.css';
 import { CheckIcon, EditIcon, IconWithText, TaskPriorityIcon, TasksIcon, TaskStatusIcon, TeamsIcon } from '../../../components/TaskManagerIcons';
 
 function formatTaskDate(value) {
@@ -18,13 +19,48 @@ function formatTaskDate(value) {
   return date.toLocaleDateString('ru-RU');
 }
 
-const PROJECT_STATUS_COLORS = {
-  planning: 'bg-gray-500',
-  active: 'bg-green-500',
-  on_hold: 'bg-yellow-500',
-  completed: 'bg-blue-500',
-  cancelled: 'bg-red-500',
-  archived: 'bg-gray-700',
+const PROJECT_STATUS_TONES = {
+  planning: 'violet',
+  active: 'green',
+  on_hold: 'amber',
+  completed: 'blue',
+  cancelled: 'red',
+  archived: 'slate',
+};
+
+const PRIORITY_ICON_COLORS = {
+  low: 'text-slate-400',
+  medium: 'text-blue-400',
+  high: 'text-amber-400',
+  critical: 'text-orange-400',
+  urgent: 'text-red-400',
+};
+
+const pluralize = (n, one, few, many) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
+const shortDate = (value) => new Date(value).toLocaleDateString('ru-RU', {
+  day: '2-digit', month: '2-digit', year: '2-digit',
+});
+
+/** «26.05.26 – 06.08.26», «до 06.08.26», «с 26.05.26» или «Без срока». */
+function formatDateRange(start, due) {
+  if (start && due) return `${shortDate(start)} – ${shortDate(due)}`;
+  if (due) return `до ${shortDate(due)}`;
+  if (start) return `с ${shortDate(start)}`;
+  return 'Без срока';
+}
+
+const progressColor = (percent) => {
+  if (percent >= 100) return '#34d399';
+  if (percent >= 60) return '#60a5fa';
+  if (percent >= 30) return '#fbbf24';
+  return '#94a3b8';
 };
 
 const PROJECT_STATUS_LABELS = {
@@ -46,14 +82,6 @@ const TASK_STATUS_LABELS = {
   cancelled: 'Отменена',
   on_hold: 'На паузе',
   blocked: 'Заблокирована',
-};
-
-const PRIORITY_COLORS = {
-  low: 'bg-gray-400',
-  medium: 'bg-blue-400',
-  high: 'bg-yellow-400',
-  critical: 'bg-orange-400',
-  urgent: 'bg-red-400',
 };
 
 const PRIORITY_LABELS = {
@@ -86,13 +114,9 @@ const ProjectCard = ({ project, onDelete, onUpdate, isExpanded = false, onExpand
   const [showEditModal, setShowEditModal] = useState(false);
   const { user } = useAuth();
 
-  const getProjectStatusColor = (status) => PROJECT_STATUS_COLORS[status] || 'bg-gray-500';
-
   const getProjectStatusText = (status) => PROJECT_STATUS_LABELS[status] || status;
 
   const getTaskStatusText = (status) => TASK_STATUS_LABELS[status] || status;
-
-  const getPriorityColor = (priority) => PRIORITY_COLORS[priority] || 'bg-gray-400';
 
   const getPriorityText = (priority) => PRIORITY_LABELS[priority] || priority;
 
@@ -102,6 +126,13 @@ const ProjectCard = ({ project, onDelete, onUpdate, isExpanded = false, onExpand
 
   const getTaskPriorityBadgeClass = (priority) => (
     TASK_PRIORITY_BADGE_STYLES[priority] || TASK_PRIORITY_BADGE_STYLES.low
+  );
+
+  const progress = Math.max(0, Math.min(100, Math.round(Number(project.progress) || 0)));
+  const isOverdue = Boolean(
+    project.due_date
+    && !['completed', 'cancelled', 'archived'].includes(project.status)
+    && new Date(project.due_date).setHours(23, 59, 59, 999) < Date.now()
   );
 
   const toggleExpanded = () => {
@@ -255,163 +286,139 @@ const ProjectCard = ({ project, onDelete, onUpdate, isExpanded = false, onExpand
 
   return (
     <div className={`project-card-row${isExpanded ? ' project-card-row--expanded' : ''}`}>
-      <div className={`project-card${isExpanded ? ' project-card--compact' : ''}`}>
-      <div className="card-header">
-        <div className="project-title">
-          <h3>{project.name}</h3>
-          <div className="project-badges">
-            <span className={`status-badge ${getProjectStatusColor(project.status)}`}>
-              {getProjectStatusText(project.status)}
-            </span>
-            <span className={`priority-badge ${getPriorityColor(project.priority)}`}>
-              {getPriorityText(project.priority)}
-            </span>
+      <article className={`project-card tm-card${isExpanded ? ' project-card--compact tm-card--active' : ''}`}>
+        <div className="tm-card__head">
+          <div className="tm-card__heading">
+            <h3 className="tm-card__title">{project.name}</h3>
+            <div className="tm-card__badges">
+              <span className={`tm-pill tm-pill--${PROJECT_STATUS_TONES[project.status] || 'slate'}`}>
+                <span className="tm-pill__dot" aria-hidden />
+                {getProjectStatusText(project.status)}
+              </span>
+              {project.priority && (
+                <span className="tm-pill tm-pill--plain" title="Приоритет">
+                  <TaskPriorityIcon priority={project.priority} className={PRIORITY_ICON_COLORS[project.priority]} />
+                  {getPriorityText(project.priority)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="project-actions">
           <button
             type="button"
             onClick={toggleExpanded}
-            className="expand-btn"
-            title={isExpanded ? 'Свернуть' : 'Развернуть'}
+            className={`tm-expand-btn${isExpanded ? ' tm-expand-btn--open' : ''}`}
+            aria-expanded={isExpanded}
+            title={isExpanded ? 'Скрыть задачи проекта' : 'Показать задачи проекта'}
           >
-            {isExpanded ? '◀' : '▶'}
+            Задачи
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
-      </div>
 
-      <div className="card-body">
         {project.description && (
-          <p className="project-description">
-            {project.description}
-          </p>
+          <p className="tm-card__desc project-description" title={project.description}>{project.description}</p>
         )}
 
-        <div className="project-info">
-          <div className="info-row info-row--managers">
-            <span className="info-label">Менеджер:</span>
-            <span className="info-value info-value--managers">
+        <div className="tm-progress">
+          <div className="tm-progress__head">
+            <span>Прогресс</span>
+            <span className="tm-progress__value">{progress}%</span>
+          </div>
+          <div className="tm-progress__bar" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+            <div className="tm-progress__fill" style={{ width: `${progress}%`, background: progressColor(progress) }} />
+          </div>
+        </div>
+
+        <dl className="tm-meta">
+          <div className="tm-meta__item">
+            <dt className="tm-meta__label">{managersOnCard.length > 1 ? 'Менеджеры' : 'Менеджер'}</dt>
+            <dd className={`tm-meta__value${managersOnCard.length === 0 ? ' tm-meta__value--muted' : ''}`}>
               {managersOnCard.length === 0 ? (
                 'Не назначен'
               ) : (
                 managersOnCard.map((manager, index) => (
                   <span key={manager.user_id} className="project-manager-chip-wrap">
-                    {index > 0 ? <span className="project-manager-sep">,</span> : null}
+                    {index > 0 ? <span className="project-manager-sep">, </span> : null}
                     <EmployeeHoverTrigger
                       employee={{ id: manager.user_id, name: manager.name || 'Менеджер' }}
                       className="project-manager-hover"
                     >
-                      <span className="project-manager-name">
+                      <span className="project-manager-name" title={manager.isOwner ? 'Владелец проекта' : undefined}>
                         {manager.name || manager.username || `ID ${manager.user_id}`}
-                        {manager.isOwner ? <em className="project-manager-owner">владелец</em> : null}
                       </span>
                     </EmployeeHoverTrigger>
                   </span>
                 ))
               )}
-            </span>
+            </dd>
           </div>
-          
-          <div className="info-row">
-            <span className="info-label">Дата начала:</span>
-            <span className="info-value">
-              {formatDate(project.start_date)}
-            </span>
+          <div className="tm-meta__item">
+            <dt className="tm-meta__label">Сроки</dt>
+            <dd
+              className={`tm-meta__value${isOverdue ? ' tm-meta__value--danger' : ''}${!project.start_date && !project.due_date ? ' tm-meta__value--muted' : ''}`}
+              title={isOverdue ? 'Срок проекта прошёл' : undefined}
+            >
+              {formatDateRange(project.start_date, project.due_date)}
+            </dd>
           </div>
-          
-          <div className="info-row">
-            <span className="info-label">Срок:</span>
-            <span className="info-value">
-              {formatDate(project.due_date)}
-            </span>
-          </div>
-          
-          <div className="info-row">
-            <span className="info-label">Прогресс:</span>
-            <span className="info-value">
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${project.progress}%` }}
-                ></div>
-              </div>
-              <span className="progress-text">{project.progress}%</span>
-            </span>
-          </div>
-
-          {project.budget && (
-            <div className="info-row">
-              <span className="info-label">Бюджет:</span>
-              <span className="info-value">
-                {project.budget.toLocaleString()} ₽
-              </span>
+          {project.budget ? (
+            <div className="tm-meta__item">
+              <dt className="tm-meta__label">Бюджет</dt>
+              <dd className="tm-meta__value">{Number(project.budget).toLocaleString('ru-RU')} ₽</dd>
             </div>
-          )}
-
+          ) : null}
           {project.updated && (
-            <div className="info-row">
-              <span className="info-label">Последнее обновление:</span>
-              <span className="info-value">
+            <div className="tm-meta__item">
+              <dt className="tm-meta__label">Обновлён</dt>
+              <dd className="tm-meta__value" title={project.updated_by_username ? `Изменил: ${project.updated_by_username}` : undefined}>
                 {formatDate(project.updated)}
-                {project.updated_by_username && (
-                  <span className="edit-info"> от {project.updated_by_username}</span>
-                )}
-              </span>
+                {project.updated_by_username && <span className="tm-meta__hint"> · {project.updated_by_username}</span>}
+              </dd>
             </div>
           )}
-        </div>
+        </dl>
 
         {project.tags && project.tags.length > 0 && (
-          <div className="project-tags">
+          <div className="tm-tags">
             {project.tags.map((tag, index) => (
-              <span key={index} className="tag">
-                {tag}
-              </span>
+              <span key={index} className="tm-tag">{tag}</span>
             ))}
           </div>
         )}
 
-      </div>
-
-      <div className="card-footer">
-        <div className="project-stats">
-          <span className="stat">
-            <IconWithText icon={TasksIcon}>
-              {project.task_count} задач
-            </IconWithText>
-          </span>
-          <span className="stat">
-            <IconWithText icon={TeamsIcon}>
-              {project.team_count} команд
-            </IconWithText>
-          </span>
-        </div>
-        
-        <div className="project-actions">
+        <div className="tm-card__footer">
+          <div className="tm-card__stats">
+            <span><TasksIcon size="sm" /> {project.task_count || 0} {pluralize(project.task_count || 0, 'задача', 'задачи', 'задач')}</span>
+            <span><TeamsIcon size="sm" /> {project.team_count || 0} {pluralize(project.team_count || 0, 'команда', 'команды', 'команд')}</span>
+          </div>
           {canManageProject && (
-            <>
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="edit-btn"
-                title="Редактировать проект"
-              >
-                <EditIcon size="sm" />
-              </button>
+            <div className="tm-card__actions">
               {project.status !== 'completed' && (
                 <button
                   type="button"
                   onClick={handleCompleteProject}
-                  className="complete-btn"
+                  className="tm-icon-btn tm-icon-btn--success"
                   title="Завершить проект"
+                  aria-label="Завершить проект"
                 >
                   <CheckIcon size="sm" />
                 </button>
               )}
-            </>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="tm-icon-btn"
+                title="Редактировать проект"
+                aria-label="Редактировать проект"
+              >
+                <EditIcon size="sm" />
+              </button>
+            </div>
           )}
         </div>
-      </div>
-      </div>
+      </article>
 
       {isExpanded && (
         <div className="project-card-sidepanel">

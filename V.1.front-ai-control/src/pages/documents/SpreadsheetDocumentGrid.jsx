@@ -43,6 +43,15 @@ import {
   isCellFormula,
 } from './spreadsheetCellFormula';
 import { ALIGN_ICONS, IconWrapText } from './DocumentIcons';
+import { buildFormulaRangeMarks, useFormulaCellPicking } from './spreadsheetFormulaHighlight';
+import {
+  fillCells,
+  handleGridHotkey,
+  isInFillPreview,
+  useFillHandleDrag,
+  useGridHistory,
+} from './spreadsheetGridOps';
+import fh from './FormulaHighlight.module.css';
 import styles from './DocumentsApp.module.css';
 import s from './SpreadsheetTemplatePanel.module.css';
 
@@ -133,9 +142,9 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
   const formulaPickRef = useRef(null);
   const formulaPickDraggingRef = useRef(false);
   const rangeRef = useRef(range);
+  const hotkeyApiRef = useRef(null);
   const selectedRef = useRef(selected);
   const modelRef = useRef(null);
-  const fillDragRef = useRef(null);
   const extendSelectionRef = useRef(false);
   const blockKeyRef = useRef(null);
   const sheetDataMapRef = useRef(sheetDataMap);
@@ -147,6 +156,11 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
   /** field_data — только значения; совпадение с последним onChange = своё обновление, нельзя сбрасывать cells (B, I, выравнивание, type). */
   const lastEmittedDataJson = useRef(null);
   const [model, setModel] = useState(() => mergeSpreadsheetSheetWithDataRows(sheetBlock, rows));
+  /** Ячейка, в поле которой сейчас фокус (правка значения или формулы). */
+  const [editingCell, setEditingCell] = useState(null);
+  const editingCellRef = useRef(null);
+  editingCellRef.current = editingCell;
+  const history = useGridHistory(value, readOnly ? null : onChange);
 
   const emitSheetRows = useCallback((nextRows) => {
     if (readOnly || !onChange) return;
@@ -546,6 +560,19 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
     return true;
   }, [readOnly, activeSheet?.name, updateFormulaDraft]);
 
+  const patchCellRef = useRef(patchCell);
+  patchCellRef.current = patchCell;
+  const picking = useFormulaCellPicking({
+    readOnly,
+    getEditor: () => {
+      const ed = editingCellRef.current;
+      if (!ed) return null;
+      const input = cellRefs.current[cellKey(ed.r, ed.c)];
+      return input ? { r: ed.r, c: ed.c, input } : null;
+    },
+    applyValue: (r, c, v) => patchCellRef.current(r, c, { value: v }),
+  });
+
   const tryInsertFormulaRef = useCallback((r, c, opts = {}) => (
     applyFormulaPickRef(r, c, opts)
   ), [applyFormulaPickRef]);
@@ -555,6 +582,8 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
       handleCellPointerDown(r, c, e);
       return;
     }
+    // Правка формулы в самой ячейке: клик по другой ячейке вставляет ссылку (режим указания Excel).
+    if (!formulaSessionRef.current && picking.handlePointerDown(r, c, e)) return;
     if (formulaSessionRef.current && !readOnly) {
       e.preventDefault();
       e.stopPropagation();
@@ -564,12 +593,13 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
       return;
     }
     handleCellPointerDown(r, c, e);
-  }, [tryInsertFormulaRef, handleCellPointerDown, readOnly]);
+  }, [tryInsertFormulaRef, handleCellPointerDown, readOnly, picking]);
 
   const handleCellPointerEnterWithFormula = useCallback((r, c) => {
+    picking.handlePointerEnter(r, c);
     if (!formulaPickDraggingRef.current || !formulaSessionRef.current) return;
     tryInsertFormulaRef(r, c, { extend: true });
-  }, [tryInsertFormulaRef]);
+  }, [tryInsertFormulaRef, picking]);
 
   const selectSheetKeepingFormula = useCallback((sheetId) => {
     const keepFormula = !!formulaSessionRef.current;
@@ -710,6 +740,9 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
         return;
       }
 
+      // Ctrl+Z/Y, Ctrl+X, Ctrl+D/R, F2, Ctrl+стрелки, Enter/Tab — как в Excel.
+      if (hotkeyApiRef.current && handleGridHotkey(e, hotkeyApiRef.current)) return;
+
       if (e.key === 'Backspace' || e.key === 'Delete') {
         if (!isMulti) return;
         e.preventDefault();
@@ -784,26 +817,6 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
   );
 
   useEffect(() => {
-    const onMove = (e) => {
-      const drag = fillDragRef.current;
-      if (!drag) return;
-      const next = resolveGridCellFromPoint(e.clientX, e.clientY);
-      if (!next) return;
-      setRange({ a: drag.anchor, f: next });
-    };
-    const onUp = () => {
-      if (!fillDragRef.current) return;
-      fillDragRef.current = null;
-    };
-    document.addEventListener('mousemove', onMove, true);
-    document.addEventListener('mouseup', onUp, true);
-    return () => {
-      document.removeEventListener('mousemove', onMove, true);
-      document.removeEventListener('mouseup', onUp, true);
-    };
-  }, [resolveGridCellFromPoint]);
-
-  useEffect(() => {
     if (!ctx) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape') setCtx(null);
@@ -822,6 +835,62 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
       document.removeEventListener('keydown', onKey);
     };
   }, [ctx]);
+
+  const { startFillDrag, fillPreview } = useFillHandleDrag({
+    resolveCell: resolveGridCellFromPoint,
+    getSource: () => selectionBounds(rangeRef.current.a, rangeRef.current.f),
+    onFill: (source, target) => {
+      history.breakGroup();
+      emitRows(fillCells(modelRef.current.cells || {}, source, target));
+      setRangeSelection({ a: { r: target.r0, c: target.c0 }, f: { r: target.r1, c: target.c1 } });
+      setCellErr({});
+    },
+  });
+
+  hotkeyApiRef.current = {
+    getBounds: () => selectionBounds(rangeRef.current.a, rangeRef.current.f),
+    getFocus: () => selectedRef.current,
+    select: (r, c, { extend } = {}) => (extend ? extendSelectionTo(r, c) : setSingleSelection(r, c)),
+    focusEditor: (r, c) => {
+      const el = cellRefs.current[cellKey(r, c)];
+      if (!el) return;
+      el.focus();
+      const len = String(el.value ?? '').length;
+      el.setSelectionRange?.(len, len);
+    },
+    getCells: () => modelRef.current.cells || {},
+    applyCells: (next) => {
+      history.breakGroup();
+      emitRows(next);
+    },
+    undo: history.undo,
+    redo: history.redo,
+    copyTsv: (text, bb) => {
+      setCopiedRange({ a: { r: bb.r0, c: bb.c0 }, f: { r: bb.r1, c: bb.c1 } });
+      navigator.clipboard?.writeText?.(text).catch(() => {});
+    },
+    limits: { rowStart: dataStart, rowEnd: rowCount - 1, colEnd: colCount - 1 },
+  };
+
+  // Формула, которую сейчас правят: строка формулы или ячейка с «=».
+  const editingValue = editingCell ? String(getCellState(cells, editingCell.r, editingCell.c).value ?? '') : '';
+  const highlightText = formulaSession
+    ? String(formulaSession.draft ?? '')
+    : (editingCell && editingValue.trimStart().startsWith('=') ? editingValue : '');
+  const highlightRow = formulaSession ? formulaSession.r : editingCell?.r ?? 0;
+  const highlightSheet = formulaSession ? formulaSession.sheetName : activeSheet?.name;
+  const formulaMarks = useMemo(
+    () => (highlightText
+      ? buildFormulaRangeMarks(highlightText, {
+        row: highlightRow,
+        formulaSheetName: highlightSheet,
+        viewSheetName: activeSheet?.name,
+        rowCount,
+        colCount,
+      })
+      : null),
+    [highlightText, highlightRow, highlightSheet, activeSheet?.name, rowCount, colCount],
+  );
 
   const sel = getCellState(cells, selected.r, selected.c);
   const formulaBarSelected = formulaSession
@@ -1058,7 +1127,8 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
                     }}
                     title={readOnly ? undefined : 'Двойной клик — выделить строку'}
                   >
-                    {i + 1}
+                    {/* Номер строки как в формулах (A2 = первая строка данных под заголовками). */}
+                    {r + 1}
                   </th>
                   {Array.from({ length: colCount }, (_, c) => {
                     const meta = getCellState(cells, r, c);
@@ -1070,12 +1140,15 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
                     const errMsg = cellErr[k];
                     const stored = meta.value ?? '';
                     const effective = getEffectiveCellValue(cells, r, c, tableColumns, hasHeaderRow);
+                    const refMark = formulaMarks?.get(k);
+                    const isFillCorner = r === bounds.r1 && c === bounds.c1;
+                    const inFillPreview = isInFillPreview(fillPreview, bounds, r, c);
                     return (
                       <td
                         key={c}
                         data-grid-r={r}
                         data-grid-c={c}
-                        className={`${styles.spreadsheetCell} ${r >= bounds.r0 && r <= bounds.r1 && c >= bounds.c0 && c <= bounds.c1 ? styles.spreadsheetCellInRange : ''} ${inCopied ? styles.spreadsheetCellCopied : ''} ${isSel ? styles.spreadsheetCellSelected : ''}`}
+                        className={`${styles.spreadsheetCell} ${fh.cellHost} ${r >= bounds.r0 && r <= bounds.r1 && c >= bounds.c0 && c <= bounds.c1 ? styles.spreadsheetCellInRange : ''} ${inCopied ? styles.spreadsheetCellCopied : ''} ${isSel ? styles.spreadsheetCellSelected : ''} ${inFillPreview ? fh.fillPreviewCell : ''}`}
                         onMouseDown={(e) => handleCellPointerDownWithFormula(r, c, e)}
                         onMouseEnter={() => handleCellPointerEnterWithFormula(r, c)}
                         role="gridcell"
@@ -1094,8 +1167,16 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
                           align={meta.align}
                           bold={meta.bold}
                           italic={meta.italic}
-                          onChange={(v) => patchCell(r, c, { value: v })}
-                          onFocus={() => focusCell(r, c)}
+                          onChange={(v) => {
+                            picking.resetPick();
+                            patchCell(r, c, { value: v });
+                          }}
+                          onFocus={() => {
+                            focusCell(r, c);
+                            setEditingCell({ r, c });
+                          }}
+                          onBlur={() => setEditingCell((prev) => (prev && prev.r === r && prev.c === c ? null : prev))}
+                          highlightRefs
                           onMouseDown={(e) => handleCellPointerDownWithFormula(r, c, e)}
                           onNavigate={moveSelection}
                           className={styles.spreadsheetCellInput}
@@ -1106,18 +1187,13 @@ const SpreadsheetDocumentGrid = ({ block, value, onChange, readOnly = false }) =
                           readOnly={readOnly}
                           wrapText={wrapText}
                         />
-                        {!readOnly && isSel && (
+                        {refMark && <span className={fh.refMark} style={refMark} aria-hidden />}
+                        {!readOnly && isFillCorner && (
                           <span
                             className={styles.spreadsheetFillHandle}
                             role="presentation"
-                            title="Тяните для выделения диапазона; двойной клик — заполнить вниз"
-                            onMouseDown={(e) => {
-                              if (e.button !== 0) return;
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const anchor = selectedRef.current;
-                              fillDragRef.current = { anchor };
-                            }}
+                            title="Тяните, чтобы заполнить ячейки (ряд чисел, даты, формулы); двойной клик — заполнить вниз"
+                            onMouseDown={startFillDrag}
                             onDoubleClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();

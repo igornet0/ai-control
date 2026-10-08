@@ -132,6 +132,7 @@ export const documentService = {
     if (options.linkedOnly) params.linked_only = true;
     if (options.onlyMy) params.only_my = true;
     if (options.search) params.search = options.search;
+    if (options.folderId != null) params.folder_id = options.folderId;
     const response = await api.get(`${PREFIX}/`, { params });
     return response.data;
   },
@@ -143,10 +144,11 @@ export const documentService = {
     const response = await api.post(`${PREFIX}/`, data);
     return response.data;
   },
-  async createFromTemplate(templateId, projectId = null, departmentId = undefined) {
+  async createFromTemplate(templateId, projectId = null, departmentId = undefined, folderId = null) {
     const body = {};
     if (projectId != null) body.project_id = projectId;
     if (departmentId !== undefined) body.department_id = departmentId;
+    if (folderId != null) body.folder_id = folderId;
     const response = await api.post(
       `${PREFIX}/from-template/${templateId}/`,
       Object.keys(body).length ? body : undefined,
@@ -163,6 +165,43 @@ export const documentService = {
   },
   async deleteDocument(id) {
     await api.delete(`${PREFIX}/${id}/`);
+  },
+  async moveDocumentToFolder(id, folderId) {
+    const response = await api.put(`${PREFIX}/${id}/folder/`, { folder_id: folderId ?? null });
+    return response.data;
+  },
+
+  // Folders
+  async getFolders() {
+    const response = await api.get(`${PREFIX}/folders/`);
+    return response.data;
+  },
+  async getFolderMeta() {
+    const response = await api.get(`${PREFIX}/folders/meta/`);
+    return response.data;
+  },
+  async createFolder(data) {
+    const response = await api.post(`${PREFIX}/folders/`, data);
+    return response.data;
+  },
+  async updateFolder(id, data) {
+    const response = await api.patch(`${PREFIX}/folders/${id}/`, data);
+    return response.data;
+  },
+  async deleteFolder(id) {
+    await api.delete(`${PREFIX}/folders/${id}/`);
+  },
+  async getFolderAccess(id) {
+    const response = await api.get(`${PREFIX}/folders/${id}/access/`);
+    return response.data;
+  },
+  async updateFolderAccess(id, data) {
+    const response = await api.put(`${PREFIX}/folders/${id}/access/`, data);
+    return response.data;
+  },
+  async getFolderDocuments(folderId) {
+    const response = await api.get(`${PREFIX}/`, { params: { folder_id: folderId, limit: 500 } });
+    return response.data;
   },
 
   async getProposals(documentId, status = 'submitted') {

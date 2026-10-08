@@ -1,4 +1,5 @@
 import { isPlatformAdmin } from '../../../utils/isPlatformAdmin';
+import { normalizeTaskStatus } from './performanceUtils';
 
 export function isTaskAdmin(user) {
   if (!user) return false;
@@ -11,7 +12,7 @@ export function getTaskPermissions(task, currentUser) {
     task?.executor_id != null && currentUser?.id != null && task.executor_id === currentUser.id;
   const isCreator =
     task?.creator_id != null && currentUser?.id != null && task.creator_id === currentUser.id;
-  const status = task?.status || 'created';
+  const status = normalizeTaskStatus(task?.status) || 'created';
   const admin = isTaskAdmin(currentUser);
   const canModerate = admin || isCreator;
 

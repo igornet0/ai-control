@@ -1,5 +1,6 @@
 import React from 'react';
 import { DocIcon } from './DocumentIcons';
+import EditorOverflowMenu from './EditorOverflowMenu';
 import styles from './DocumentsApp.module.css';
 
 /**
@@ -21,6 +22,8 @@ const ResourceCard = ({
   primaryLoading = false,
   primaryDisabled = false,
   ariaLabel,
+  menuItems = null,
+  dragProps = null,
 }) => (
   <li
     className={`${styles.resourceCard} ${styles[`resourceCardAccent_${accent}`]} ${selected ? styles.resourceCardSelected : ''}`}
@@ -34,6 +37,7 @@ const ResourceCard = ({
       }
     }}
     aria-label={ariaLabel}
+    {...dragProps}
   >
     <div className={styles.resourceCardGlow} aria-hidden />
     <div className={styles.resourceCardPreview} aria-hidden>
@@ -53,6 +57,16 @@ const ResourceCard = ({
           </div>
           {subtitle && <span className={styles.resourceCardSubtitle}>{subtitle}</span>}
         </div>
+        {menuItems && menuItems.some((item) => !item.hidden) && (
+          <div
+            className={styles.resourceCardMenu}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            <EditorOverflowMenu items={menuItems} label="Действия с документом" />
+          </div>
+        )}
       </div>
       {(meta || metaDetail) && (
         <div className={styles.resourceCardStats}>

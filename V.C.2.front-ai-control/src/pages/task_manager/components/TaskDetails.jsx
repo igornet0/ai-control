@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import CustomSelect from "../selector/CustomSelect";
 import { updateTask, getTask, submitTaskForReview, approveTaskReview, rejectTaskReview } from "../../../services/taskService";
 import { getTaskPermissions } from "../utils/taskPermissions";
 import { getTaskChangeLog } from "../utils/taskChangeLogUtils";
+import { isTaskOverdue, normalizeTaskStatus } from "../utils/performanceUtils";
 import { toDateInputValue, fromDateInputValue } from "../utils/dateInputUtils";
 import { projectService } from "../../../services/projectService";
 import ProjectSearchPicker, { findProjectIdForTask } from "../../../components/shared/ProjectSearchPicker";
@@ -16,8 +17,11 @@ import {
   CloseIcon,
   IconWithText,
   MyTasksIcon,
+  TaskStatusIcon,
 } from "./TaskManagerIcons";
 import { showTaskToast } from "../../../components/shared/taskToast";
+import ConfirmDialog from "../../../components/shared/ConfirmDialog";
+import { confirmAction } from "../../../components/shared/confirmAction";
 import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
 
 const statusOptions = [
@@ -38,12 +42,52 @@ const priorityOptions = [
   { value: "urgent", label: "Срочный" },
 ];
 
+const STATUS_META = {
+  created: { label: "Создана", badge: "bg-slate-500/15 text-slate-200 ring-slate-400/30" },
+  in_progress: { label: "В работе", badge: "bg-blue-500/15 text-blue-200 ring-blue-400/30" },
+  review: { label: "На проверке", badge: "bg-amber-500/15 text-amber-200 ring-amber-400/30" },
+  completed: { label: "Завершена", badge: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30" },
+  cancelled: { label: "Отменена", badge: "bg-slate-600/20 text-slate-400 ring-slate-500/30" },
+  on_hold: { label: "На паузе", badge: "bg-orange-500/15 text-orange-200 ring-orange-400/30" },
+  blocked: { label: "Заблокирована", badge: "bg-red-500/15 text-red-200 ring-red-400/30" },
+};
+
+function SectionTitle({ children, aside }) {
+  return (
+    <div className="flex items-center justify-between gap-3 mb-2.5">
+      <h3 className="text-sm font-semibold text-slate-200">{children}</h3>
+      {aside}
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <span className="text-xs font-medium text-slate-400 mb-1.5 block">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Редактируемые поля задачи в том виде, в каком их держит форма. */
+const buildEditableSnapshot = (task) => ({
+  title: task.title || "",
+  status: normalizeTaskStatus(task.status) || "created",
+  priority: task.priority || "medium",
+  due_date: toDateInputValue(task.due_date),
+  description: task.description || "",
+  executor_id: task.executor_id ?? null,
+  team_id: task.team_id ?? null,
+  checklist: Array.isArray(task.meta_data?.checklist) ? task.meta_data.checklist : [],
+});
+
 export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpdate, currentUser, overlayZIndex = 9999 }) {
   useDocumentTitle([task.title || (task.id ? `Задача #${task.id}` : "Новая задача"), "Задачи"]);
   // Локальный стейт для редактирования
   const [editedTask, setEditedTask] = useState({
     title: task.title || "",
-    status: task.status || "created",
+    status: normalizeTaskStatus(task.status) || "created",
     priority: task.priority || "medium",
     due_date: toDateInputValue(task.due_date),
     description: task.description || "",
@@ -55,7 +99,12 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
   ));
   const [teamId, setTeamId] = useState(task.team_id ?? null);
 
-  const [isDirty, setIsDirty] = useState(false);
+  // Состояние, с которым сравниваем форму, чтобы понять, есть ли несохранённые изменения.
+  const [baseline, setBaseline] = useState(() => buildEditableSnapshot(task));
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [activityTab, setActivityTab] = useState('comments');
+  const [commentCount, setCommentCount] = useState(0);
+  const [timeLogCount, setTimeLogCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [checklistItems, setChecklistItems] = useState([]);
@@ -86,6 +135,11 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
   const showTakeOnMyselfButton = isAlreadyAssignedToMe || canTakeTask;
 
   const changeLog = useMemo(() => getTaskChangeLog(task), [task.meta_data?.change_log, task.id]);
+  // Стабильная ссылка: новый [] на каждой перерисовке сбрасывал бы список вложений
+  const initialAttachments = useMemo(
+    () => task.attachments || task.meta_data?.attachments || [],
+    [task.attachments, task.meta_data?.attachments],
+  );
 
   const filteredStatusOptions = useMemo(() => {
     if (permissions.can_submit_review) {
@@ -109,13 +163,14 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
     };
   }, []);
 
-  // Закрываем модальное окно при нажатии Escape
+  // Закрываем модальное окно при нажатии Escape (с вопросом, если есть несохранённые изменения)
+  const escapeHandlerRef = useRef(null);
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        onClose?.();
+        escapeHandlerRef.current?.();
       }
     };
 
@@ -123,15 +178,13 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
     return () => {
       document.removeEventListener('keydown', handleEscape, true);
     };
-  }, [onClose]);
+  }, []);
 
   // Загружаем чек-лист из meta_data при загрузке компонента
   useEffect(() => {
-    if (task.meta_data && task.meta_data.checklist && Array.isArray(task.meta_data.checklist)) {
-      setChecklistItems(task.meta_data.checklist);
-    } else {
-      setChecklistItems([]);
-    }
+    const checklist = Array.isArray(task.meta_data?.checklist) ? task.meta_data.checklist : [];
+    setChecklistItems(checklist);
+    setBaseline((prev) => ({ ...prev, checklist }));
   }, [task.meta_data]);
 
   useEffect(() => {
@@ -162,6 +215,11 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
         ? { id: task.executor_id, name: task.executor_name || '' }
         : null,
     );
+    setBaseline((prev) => ({
+      ...prev,
+      executor_id: task.executor_id ?? null,
+      team_id: task.team_id ?? null,
+    }));
   }, [task.id, task.team_id, task.executor_id, task.executor_name]);
 
   useEffect(() => {
@@ -260,7 +318,6 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
         completed_at: completed ? new Date().toISOString() : undefined,
       };
     }));
-    setIsDirty(true);
   };
 
   // Функция для добавления нового пункта чек-листа
@@ -275,14 +332,12 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
     
     setChecklistItems(prev => [...prev, newItem]);
     setNewChecklistItem('');
-    setIsDirty(true);
   };
 
   // Функция для удаления пункта чек-листа
   const removeChecklistItem = (itemId) => {
     if (!canEdit) return;
     setChecklistItems(prev => prev.filter(item => item.id !== itemId));
-    setIsDirty(true);
   };
 
   // Функция для начала редактирования пункта
@@ -297,7 +352,6 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
       setChecklistItems(prev => prev.map(item => 
         item.id === editingItemId ? { ...item, text: editingText.trim() } : item
       ));
-      setIsDirty(true);
     }
     setEditingItemId(null);
     setEditingText('');
@@ -328,22 +382,31 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
     }
   };
 
-  // Отслеживаем изменения, чтобы понимать, изменялись ли поля
+  // Текущее состояние формы в том же виде, что и baseline
+  const currentSnapshot = useMemo(() => ({
+    ...editedTask,
+    executor_id: executor?.id ?? null,
+    team_id: teamId ?? null,
+    checklist: checklistItems,
+  }), [editedTask, executor, teamId, checklistItems]);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(currentSnapshot) !== JSON.stringify(baseline),
+    [currentSnapshot, baseline],
+  );
+  // Без права редактирования сохранить всё равно нельзя — спрашивать незачем.
+  const hasUnsavedChanges = canEdit && isDirty;
+
+  // Закрытие вкладки / перезагрузка страницы: браузер покажет свой стандартный вопрос.
   useEffect(() => {
-    const originalChecklist = task.meta_data?.checklist || [];
-    const checklistChanged = JSON.stringify(checklistItems) !== JSON.stringify(originalChecklist);
-    
-    const dirty =
-      editedTask.title !== task.title ||
-      editedTask.status !== task.status ||
-      editedTask.priority !== task.priority ||
-      editedTask.due_date !== toDateInputValue(task.due_date) ||
-      editedTask.description !== (task.description || "") ||
-      (executor?.id ?? null) !== (task.executor_id ?? null) ||
-      (teamId ?? null) !== (task.team_id ?? null) ||
-      checklistChanged;
-    setIsDirty(dirty);
-  }, [editedTask, executor, teamId, task, checklistItems]);
+    if (!hasUnsavedChanges) return undefined;
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const handleChange = (field, value) => {
     setEditedTask((prev) => ({ ...prev, [field]: value }));
@@ -364,13 +427,14 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = async () => {
+  /** Сохраняет задачу; true — если сохранение прошло успешно. */
+  const saveTask = async () => {
     if (!canEdit) {
-      return;
+      return false;
     }
 
     if (!validateForm()) {
-      return;
+      return false;
     }
 
     try {
@@ -400,6 +464,7 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
                   
       // Отправляем обновление на сервер
       const updated = await updateTask(task.id, updateData);
+      setBaseline(currentSnapshot);
       
       setExecutor(
         executor?.id
@@ -423,13 +488,20 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
           team_id: teamId ?? null,
         });
       }
-      
-      onClose();
+
+      return true;
     } catch (error) {
       console.error('Error updating task:', error);
       setErrors({ general: 'Failed to update task. Please try again.' });
+      return false;
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (await saveTask()) {
+      onClose();
     }
   };
 
@@ -447,7 +519,9 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
       setErrors({});
       const updated = await request(task.id);
       if (updated?.status) {
-        setEditedTask((prev) => ({ ...prev, status: updated.status }));
+        const nextStatus = normalizeTaskStatus(updated.status);
+        setEditedTask((prev) => ({ ...prev, status: nextStatus }));
+        setBaseline((prev) => ({ ...prev, status: nextStatus }));
       }
       if (onTaskUpdate) {
         onTaskUpdate();
@@ -496,6 +570,8 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
       
       const assigneeName = currentUser.name || currentUser.username || currentUser.login || 'Я';
       setExecutor({ id: currentUser.id, name: assigneeName });
+      setEditedTask((prev) => ({ ...prev, status: updateData.status }));
+      setBaseline((prev) => ({ ...prev, executor_id: currentUser.id, status: updateData.status }));
       
       // Вызываем callback для обновления родительского компонента
       if (onTaskUpdate) {
@@ -526,17 +602,64 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
   };
 
   /** Avoid click-through to calendar/kanban under the portal after unmount. */
-  const safeClose = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
+  const closeNow = () => {
     window.setTimeout(() => {
       onClose?.();
     }, 0);
   };
 
+  /** Закрыть окно; при несохранённых изменениях — сначала спросить. */
+  const safeClose = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (hasUnsavedChanges) {
+      setShowUnsavedDialog(true);
+      return;
+    }
+    closeNow();
+  };
+
+  const handleUnsavedCancel = () => {
+    if (isSaving) return;
+    setShowUnsavedDialog(false);
+  };
+
+  const handleUnsavedDiscard = () => {
+    if (isSaving) return;
+    setShowUnsavedDialog(false);
+    closeNow();
+  };
+
+  const handleUnsavedSave = async () => {
+    if (isSaving) return;
+    const saved = await saveTask();
+    setShowUnsavedDialog(false);
+    // При ошибке остаёмся в форме — там видно, что пошло не так.
+    if (saved) {
+      closeNow();
+    }
+  };
+
+  escapeHandlerRef.current = showUnsavedDialog ? handleUnsavedCancel : safeClose;
+
+  const statusMeta = STATUS_META[editedTask.status] || STATUS_META.created;
+  const overdue = isTaskOverdue({ due_date: editedTask.due_date, status: editedTask.status });
+  const hasWorkflowActions = Boolean(
+    permissions.can_approve_review
+    || permissions.can_reject_review
+    || permissions.can_submit_review
+    || (currentUser && showTakeOnMyselfButton)
+  );
+  const activityTabs = [
+    { id: 'comments', label: 'Комментарии', count: commentCount },
+    { id: 'time', label: 'Учёт времени', count: timeLogCount },
+    { id: 'history', label: 'История', count: changeLog.length },
+  ];
+
   return createPortal(
-    <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 pt-12 animate-fadeIn"
+    <>
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-2 sm:p-4 sm:pt-10 animate-fadeIn"
       style={{ zIndex: overlayZIndex }}
       onClick={handleOverlayClick}
       onMouseDown={(e) => {
@@ -545,238 +668,330 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
         }
       }}
     >
-      <div 
-        className="bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-2xl p-6 w-full max-w-5xl text-white relative shadow-2xl max-h-[92vh] overflow-y-auto border border-slate-700/50 backdrop-blur-xl"
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={editedTask.title || 'Задача'}
+        className="w-full max-w-6xl max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-5rem)] flex flex-col rounded-2xl border border-slate-700/60 bg-slate-900 text-white shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onClick={safeClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-all duration-200 text-xl font-bold leading-none z-10"
-          aria-label="Close details"
-        >
-          <CloseIcon size="md" />
-        </button>
-
-        {/* Шапка: название + проект */}
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-5 pr-10">
-          <div className="flex-1 min-w-0">
-            <input
-              type="text"
-              value={editedTask.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              disabled={!canEdit}
-              className={`w-full rounded-xl border px-4 py-3 text-xl font-semibold text-white bg-slate-800/40 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-500 ${
-                errors.title ? 'border-red-500/50' : 'border-slate-600/40 hover:border-slate-500/50'
-              }`}
-              placeholder="Название задачи"
-            />
-            {errors.title && <span className="text-red-400 text-sm mt-1 block">{errors.title}</span>}
-          </div>
-
-          <div className="shrink-0 w-full sm:w-56">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5 block">
-              Проект
-              {projectChanging && <span className="normal-case ml-2 text-slate-400">· сохранение…</span>}
-            </span>
-            <ProjectSearchPicker
-              projects={projects}
-              loading={projectsLoading || !projectResolved}
-              value={projectId}
-              onChange={handleProjectChange}
-              disabled={projectChanging || !canEdit}
-              variant="button"
-              buttonPlaceholder="Без проекта"
-            />
-            {errors.project && (
-              <span className="text-red-400 text-xs mt-1 block">{errors.project}</span>
+        {/* Шапка: номер, статус, проект и название */}
+        <header className="relative shrink-0 border-b border-slate-700/60 bg-slate-800/40 px-4 sm:px-6 pt-4 pb-3">
+          <div className="flex items-center gap-2 flex-wrap text-xs pr-10">
+            {task.id && (
+              <span className="font-mono text-slate-400">#{task.id}</span>
             )}
-          </div>
-        </div>
-
-        {errors.general && (
-          <div className="mb-4 p-3 bg-red-900/30 border border-red-700/50 rounded-lg text-red-200 text-sm backdrop-blur-sm">
-            {errors.general}
-          </div>
-        )}
-
-        {permissions.is_assignee_locked && editedTask.status === 'review' && (
-          <div className="mb-4 p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg text-amber-100 text-sm">
-            На проверке у начальника отдела — редактирование недоступно до возврата на доработку.
-          </div>
-        )}
-
-        {permissions.is_assignee_locked && editedTask.status === 'completed' && (
-          <div className="mb-4 p-3 bg-slate-700/40 border border-slate-600/50 rounded-lg text-slate-200 text-sm">
-            Подтверждена — редактирование недоступно.
-          </div>
-        )}
-
-        {(permissions.workflow_warning || task.meta_data?.workflow?.warning) && (
-          <div className="mb-4 p-3 bg-orange-900/30 border border-orange-700/50 rounded-lg text-orange-100 text-sm">
-            {permissions.workflow_warning || task.meta_data?.workflow?.warning}
-          </div>
-        )}
-
-        {/* Описание */}
-        <label className="block mb-5">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5 block">Описание</span>
-          <textarea
-            rows={3}
-            value={editedTask.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-            disabled={!canEdit}
-            className="w-full rounded-xl border border-slate-600/40 bg-slate-800/40 backdrop-blur-sm p-4 text-white resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all hover:border-slate-500/50 disabled:opacity-60 disabled:cursor-not-allowed"
-            placeholder="Добавьте описание задачи..."
-          />
-        </label>
-
-        {/* Чек-лист и файлы — на всю ширину */}
-        <div className="mb-5 p-4 bg-slate-800/25 backdrop-blur-sm rounded-xl border border-slate-700/40">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 uppercase tracking-wide">
-              <CheckIcon size="sm" className="text-green-400" />
-              <span>Чек-лист</span>
-            </h3>
-            {checklistProgress && (
-              <span className="text-xs text-slate-400">
-                {checklistProgress.completed}/{checklistProgress.total} ({checklistProgress.percentage}%)
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ring-1 ring-inset ${statusMeta.badge}`}>
+              <TaskStatusIcon status={editedTask.status} size="xs" />
+              {statusMeta.label}
+            </span>
+            {overdue && (
+              <span className="inline-flex items-center rounded-full px-2.5 py-1 font-medium bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/30">
+                Просрочена
+              </span>
+            )}
+            {hasUnsavedChanges && (
+              <span className="inline-flex items-center gap-1.5 text-amber-300/90">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden />
+                Есть несохранённые изменения
               </span>
             )}
           </div>
 
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={newChecklistItem}
-              onChange={(e) => setNewChecklistItem(e.target.value)}
-              onKeyPress={handleChecklistKeyPress}
-              disabled={!canEdit}
-              className="flex-1 rounded-lg border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm p-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              placeholder="Добавить пункт..."
-            />
-            <button
-              onClick={addChecklistItem}
-              disabled={!canEdit || !newChecklistItem.trim()}
-              className="px-3 py-2 rounded-lg bg-blue-600/80 hover:bg-blue-700/80 disabled:bg-slate-700/50 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-sm font-medium transition-all whitespace-nowrap"
-            >
-              Добавить
-            </button>
-          </div>
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={safeClose}
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/60 transition-colors"
+            aria-label="Close details"
+            title="Закрыть (Esc)"
+          >
+            <CloseIcon size="md" />
+          </button>
 
-          {checklistItems.length > 0 ? (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto mb-3">
-              {checklistItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
-                    item.completed
-                      ? 'bg-slate-700/20 border border-slate-600/30 opacity-70'
-                      : 'bg-slate-700/30 border border-slate-600/40'
-                  }`}
-                >
-                  <div
-                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center cursor-pointer flex-shrink-0 ${
-                      item.completed
-                        ? 'bg-green-500/20 border-green-500/50'
-                        : 'bg-slate-800/50 border-slate-500/50 hover:border-green-500/50'
-                    }`}
-                    onClick={() => toggleChecklistItem(item.id)}
-                  >
-                    {item.completed && (
-                      <svg className="w-2 h-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {editingItemId === item.id ? (
-                      <input
-                        type="text"
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        onKeyPress={handleEditKeyPress}
-                        onBlur={saveEditingItem}
-                        autoFocus
-                        className={`w-full text-sm rounded px-2 py-0.5 bg-slate-800/80 border border-blue-500/50 text-white focus:outline-none ${
-                          item.completed ? 'line-through text-slate-500' : ''
-                        }`}
-                      />
-                    ) : (
-                      <>
-                        <span
-                          className={`text-sm cursor-pointer truncate block ${
-                            item.completed ? 'text-slate-500 line-through' : 'text-slate-200'
-                          }`}
-                          onDoubleClick={() => startEditingItem(item.id, item.text)}
-                        >
-                          {item.text}
-                        </span>
-                        {item.completed && item.completed_at && (
-                          <span className="text-[11px] text-slate-500 mt-0.5 block">
-                            Выполнено: {new Date(item.completed_at).toLocaleString('ru-RU', {
-                              dateStyle: 'short',
-                              timeStyle: 'short',
-                            })}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  {editingItemId !== item.id && canEdit && (
-                    <button
-                      onClick={() => removeChecklistItem(item.id)}
-                      className="text-slate-500 hover:text-red-400 p-1 shrink-0"
-                      title="Удалить"
-                    >
-                      <CloseIcon size="xs" />
-                    </button>
-                  )}
+          <input
+            type="text"
+            value={editedTask.title}
+            onChange={(e) => handleChange("title", e.target.value)}
+            disabled={!canEdit}
+            aria-label="Название задачи"
+            className={`mt-2 w-full -mx-2 px-2 py-1 rounded-lg bg-transparent text-xl sm:text-2xl font-semibold text-white placeholder:text-slate-500 border transition-colors focus:outline-none focus:bg-slate-800/70 focus:border-blue-500/60 disabled:cursor-not-allowed ${
+              errors.title ? 'border-red-500/60' : 'border-transparent hover:border-slate-600/60'
+            }`}
+            placeholder="Название задачи"
+          />
+          {errors.title && <span className="text-red-400 text-sm mt-1 block">{errors.title}</span>}
+        </header>
+
+        {/* Прокручиваемое содержимое */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {(errors.general
+            || (permissions.is_assignee_locked && editedTask.status === 'review')
+            || (permissions.is_assignee_locked && editedTask.status === 'completed')
+            || permissions.workflow_warning
+            || task.meta_data?.workflow?.warning) && (
+            <div className="px-4 sm:px-6 pt-4 space-y-2">
+              {errors.general && (
+                <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-lg text-red-200 text-sm">
+                  {errors.general}
                 </div>
-              ))}
+              )}
+              {permissions.is_assignee_locked && editedTask.status === 'review' && (
+                <div className="p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg text-amber-100 text-sm">
+                  На проверке у начальника отдела — редактирование недоступно до возврата на доработку.
+                </div>
+              )}
+              {permissions.is_assignee_locked && editedTask.status === 'completed' && (
+                <div className="p-3 bg-slate-700/40 border border-slate-600/50 rounded-lg text-slate-200 text-sm">
+                  Подтверждена — редактирование недоступно.
+                </div>
+              )}
+              {(permissions.workflow_warning || task.meta_data?.workflow?.warning) && (
+                <div className="p-3 bg-orange-900/30 border border-orange-700/50 rounded-lg text-orange-100 text-sm">
+                  {permissions.workflow_warning || task.meta_data?.workflow?.warning}
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-slate-500 text-xs italic mb-3">Нет пунктов в чек-листе</p>
           )}
 
-          <div className="pt-3 border-t border-slate-700/40">
-            <TaskAttachments
-              taskId={task.id}
-              projectId={projectId}
-              initialAttachments={task.attachments || task.meta_data?.attachments || []}
-              currentUser={currentUser}
-              canUpload={!!currentUser}
-              canDelete={permissions.can_edit}
-              embedded
-              onAttachmentsChange={() => {
-                if (onTaskUpdate) onTaskUpdate();
-              }}
-            />
-          </div>
-        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-6 p-4 sm:p-6">
+            {/* Основное: описание, чек-лист, файлы, активность */}
+            <div className="min-w-0 space-y-6">
+              <section>
+                <SectionTitle>Описание</SectionTitle>
+                <textarea
+                  rows={5}
+                  value={editedTask.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  disabled={!canEdit}
+                  className="w-full rounded-xl border border-slate-700/60 bg-slate-800/40 p-3.5 text-sm leading-relaxed text-slate-100 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-colors hover:border-slate-600 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-500"
+                  placeholder="Опишите, что нужно сделать…"
+                />
+              </section>
 
-        {/* Две колонки: слева параметры и действия, справа учёт времени */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Левая колонка */}
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-slate-700/40 bg-slate-800/25 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5 block">Статус</span>
+              <section>
+                <SectionTitle
+                  aside={checklistProgress && (
+                    <span className="text-xs text-slate-400 tabular-nums">
+                      {checklistProgress.completed} из {checklistProgress.total}
+                    </span>
+                  )}
+                >
+                  Чек-лист
+                </SectionTitle>
+
+                {checklistProgress && (
+                  <div className="h-1.5 rounded-full bg-slate-700/60 overflow-hidden mb-3" aria-hidden>
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                      style={{ width: `${checklistProgress.percentage}%` }}
+                    />
+                  </div>
+                )}
+
+                {checklistItems.length > 0 && (
+                  <ul className="space-y-1 mb-2 max-h-64 overflow-y-auto">
+                    {checklistItems.map((item) => (
+                      <li
+                        key={item.id}
+                        className="group flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-800/60 transition-colors"
+                      >
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={Boolean(item.completed)}
+                          aria-label={item.text}
+                          onClick={() => toggleChecklistItem(item.id)}
+                          disabled={!canEdit}
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors disabled:cursor-not-allowed ${
+                            item.completed
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : 'border-slate-500 hover:border-emerald-400'
+                          }`}
+                        >
+                          {item.completed && (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          {editingItemId === item.id ? (
+                            <input
+                              type="text"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onKeyPress={handleEditKeyPress}
+                              onBlur={saveEditingItem}
+                              autoFocus
+                              className="w-full text-sm rounded-md px-2 py-1 bg-slate-800 border border-blue-500/60 text-white focus:outline-none"
+                            />
+                          ) : (
+                            <>
+                              <span
+                                className={`text-sm block truncate ${canEdit ? 'cursor-text' : ''} ${
+                                  item.completed ? 'text-slate-500 line-through' : 'text-slate-200'
+                                }`}
+                                onDoubleClick={() => canEdit && startEditingItem(item.id, item.text)}
+                                title={canEdit ? 'Дважды щёлкните, чтобы изменить' : undefined}
+                              >
+                                {item.text}
+                              </span>
+                              {item.completed && item.completed_at && (
+                                <span className="text-[11px] text-slate-500 block">
+                                  Выполнено {new Date(item.completed_at).toLocaleString('ru-RU', {
+                                    dateStyle: 'short',
+                                    timeStyle: 'short',
+                                  })}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        {editingItemId !== item.id && canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => removeChecklistItem(item.id)}
+                            className="p-1 rounded text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0"
+                            title="Удалить пункт"
+                            aria-label="Удалить пункт"
+                          >
+                            <CloseIcon size="xs" />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {canEdit ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newChecklistItem}
+                      onChange={(e) => setNewChecklistItem(e.target.value)}
+                      onKeyPress={handleChecklistKeyPress}
+                      className="flex-1 min-w-0 rounded-lg border border-dashed border-slate-600/70 bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-solid focus:border-blue-500/60 focus:bg-slate-800/50 transition-colors"
+                      placeholder="+ Добавить пункт и нажать Enter"
+                    />
+                    {newChecklistItem.trim() && (
+                      <button
+                        type="button"
+                        onClick={addChecklistItem}
+                        className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium transition-colors"
+                      >
+                        Добавить
+                      </button>
+                    )}
+                  </div>
+                ) : checklistItems.length === 0 && (
+                  <p className="text-sm text-slate-500">Пунктов нет</p>
+                )}
+              </section>
+
+              <section className="pt-6 border-t border-slate-700/50">
+                <TaskAttachments
+                  taskId={task.id}
+                  projectId={projectId}
+                  initialAttachments={initialAttachments}
+                  currentUser={currentUser}
+                  canUpload={!!currentUser}
+                  canDelete={permissions.can_edit}
+                  embedded
+                  onAttachmentsChange={() => {
+                    if (onTaskUpdate) onTaskUpdate();
+                  }}
+                />
+              </section>
+
+              {/* Активность: комментарии, учёт времени, история */}
+              <section className="pt-6 border-t border-slate-700/50">
+                <div role="tablist" aria-label="Активность" className="flex gap-1 mb-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden shadow-[inset_0_-1px_0_rgba(51,65,85,0.5)]">
+                  {activityTabs.map((tab) => {
+                    const active = activityTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setActivityTab(tab.id)}
+                        className={`shrink-0 whitespace-nowrap px-2.5 sm:px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                          active
+                            ? 'border-blue-500 text-white'
+                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {tab.label}
+                        {tab.count > 0 && (
+                          <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] tabular-nums ${
+                            active ? 'bg-blue-500/20 text-blue-200' : 'bg-slate-700/70 text-slate-300'
+                          }`}>
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Вкладки не размонтируются: таймер учёта времени и черновик комментария не теряются */}
+                <div role="tabpanel" hidden={activityTab !== 'comments'}>
+                  <TaskComments
+                    taskId={task.id}
+                    task={task}
+                    currentUser={currentUser}
+                    canModerate={canModerate}
+                    embedded
+                    onCountChange={setCommentCount}
+                  />
+                </div>
+                <div role="tabpanel" hidden={activityTab !== 'time'}>
+                  <TaskTimeLog
+                    taskId={task.id}
+                    currentUser={currentUser}
+                    canModerate={canModerate}
+                    embedded
+                    onCountChange={setTimeLogCount}
+                  />
+                </div>
+                <div role="tabpanel" hidden={activityTab !== 'history'}>
+                  {changeLog.length > 0 ? (
+                    <ol className="relative space-y-4 border-l border-slate-700/70 ml-1.5">
+                      {changeLog.map((entry) => (
+                        <li key={entry.id} className="pl-4">
+                          <span className="absolute -left-[5px] mt-1.5 w-2.5 h-2.5 rounded-full bg-slate-600 ring-4 ring-slate-900" aria-hidden />
+                          <p className="text-sm text-slate-200 leading-snug">
+                            <span className="font-medium">{entry.who}</span>
+                            <span className="text-slate-400"> · {entry.text}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">{entry.when}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="text-sm text-slate-500 py-6 text-center">Изменений пока нет</p>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            {/* Боковая панель: параметры и действия */}
+            <aside className="order-first lg:order-none space-y-4">
+              <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-4 space-y-4">
+                <Field label="Статус">
                   <CustomSelect
                     options={filteredStatusOptions}
                     value={editedTask.status}
                     onChange={(val) => handleChange("status", val)}
                     disabled={!canEdit}
                   />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5 block">Приоритет</span>
+                </Field>
+                <Field label="Приоритет">
                   <CustomSelect
                     options={priorityOptions}
                     value={editedTask.priority}
@@ -784,182 +999,197 @@ export default function TaskDetails({ task, onClose, onSave, onDelete, onTaskUpd
                     showPriorityIcons
                     disabled={!canEdit}
                   />
-                </label>
-              </div>
-
-              <label className="block">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1.5 block">Срок выполнения</span>
-                <input
-                  type="date"
-                  value={editedTask.due_date}
-                  onChange={(e) => handleChange("due_date", e.target.value)}
-                  disabled={!canEdit}
-                  className={`w-full rounded-lg border px-3 py-2.5 text-white bg-slate-800/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
-                    errors.due_date ? 'border-red-500/50' : 'border-slate-600/50'
-                  }`}
-                />
-                {errors.due_date && <span className="text-red-400 text-xs mt-1 block">{errors.due_date}</span>}
-              </label>
-
-              <TaskTeamAssigneeFields
-                variant="details"
-                teamId={teamId}
-                teamName={task.team_name}
-                executor={executor}
-                onTeamChange={setTeamId}
-                onExecutorChange={setExecutor}
-                disabled={isSaving || !canReassign}
-              />
-            </div>
-
-            {(permissions.can_approve_review || permissions.can_reject_review) && (
-              <div className="p-4 rounded-xl border border-blue-600/30 bg-blue-950/25">
-                <h3 className="text-sm font-semibold text-slate-100 mb-1">Проверка задачи</h3>
-                <p className="text-xs text-slate-400 mb-3">
-                  Исполнитель: {task.executor_name || executor?.name || 'Не назначен'}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {permissions.can_approve_review && (
-                    <button
-                      type="button"
-                      onClick={() => handleWorkflowAction('approve')}
-                      disabled={isWorkflowBusy || isSaving}
-                      className="flex-1 min-w-[120px] px-3 py-2 rounded-lg bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-medium disabled:opacity-50"
-                    >
-                      {isWorkflowBusy ? '…' : 'Подтвердить'}
-                    </button>
+                </Field>
+                <Field label="Срок выполнения">
+                  <input
+                    type="date"
+                    value={editedTask.due_date}
+                    onChange={(e) => handleChange("due_date", e.target.value)}
+                    disabled={!canEdit}
+                    className={`w-full rounded-lg border px-3 py-2.5 text-white bg-slate-800 [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                      overdue ? 'border-red-500/60' : 'border-slate-600'
+                    }`}
+                  />
+                  {overdue && <span className="text-red-400 text-xs mt-1 block">Срок прошёл</span>}
+                  {errors.due_date && <span className="text-red-400 text-xs mt-1 block">{errors.due_date}</span>}
+                </Field>
+                <Field label={projectChanging ? 'Проект · сохранение…' : 'Проект'}>
+                  <ProjectSearchPicker
+                    projects={projects}
+                    loading={projectsLoading || !projectResolved}
+                    value={projectId}
+                    onChange={handleProjectChange}
+                    disabled={projectChanging || !canEdit}
+                    variant="button"
+                    fullWidth
+                    buttonPlaceholder="Без проекта"
+                  />
+                  {errors.project && (
+                    <span className="text-red-400 text-xs mt-1 block">{errors.project}</span>
                   )}
-                  {permissions.can_reject_review && (
-                    <button
-                      type="button"
-                      onClick={() => handleWorkflowAction('reject')}
-                      disabled={isWorkflowBusy || isSaving}
-                      className="flex-1 min-w-[120px] px-3 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-sm font-medium disabled:opacity-50"
-                    >
-                      {isWorkflowBusy ? '…' : 'На доработку'}
-                    </button>
-                  )}
+                </Field>
+                <div className="pt-4 border-t border-slate-700/50">
+                  <TaskTeamAssigneeFields
+                    variant="details"
+                    teamId={teamId}
+                    teamName={task.team_name}
+                    executor={executor}
+                    onTeamChange={setTeamId}
+                    onExecutorChange={setExecutor}
+                    disabled={isSaving || !canReassign}
+                  />
                 </div>
               </div>
-            )}
 
-            {permissions.can_submit_review && (
-              <button
-                type="button"
-                onClick={() => handleWorkflowAction('submit')}
-                disabled={isWorkflowBusy || isSaving}
-                className="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-sm font-medium disabled:opacity-50"
-              >
-                {isWorkflowBusy ? 'Отправка…' : 'Отправить на проверку'}
-              </button>
-            )}
-
-            {currentUser && showTakeOnMyselfButton && (
-              <button
-                onClick={handleTakeOnMyself}
-                disabled={isSaving || isAlreadyAssignedToMe}
-                className={`w-full px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all ${
-                  isSaving || isAlreadyAssignedToMe
-                    ? 'bg-slate-700/50 cursor-not-allowed opacity-60'
-                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-                }`}
-              >
-                {isSaving ? 'Принимаю…' :
-                  isAlreadyAssignedToMe
-                    ? (
-                      <IconWithText icon={CheckIcon} gap="gap-2">
-                        Уже назначена на вас
-                      </IconWithText>
-                    )
-                    : (
-                      <IconWithText icon={MyTasksIcon} gap="gap-2">
-                        Взять на себя
-                      </IconWithText>
-                    )
-                }
-              </button>
-            )}
-
-            {task.created && (
-              <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-700/30 text-xs text-slate-500 space-y-2">
-                <div className="space-y-0.5">
-                  <p>
-                    Создано:{' '}
-                    {new Date(task.created).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
-                  </p>
-                  {task.updated && (
-                    <p>
-                      Обновлено:{' '}
-                      {new Date(task.updated).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
-                    </p>
-                  )}
-                </div>
-                {changeLog.length > 0 && (
-                  <div className="pt-2 border-t border-slate-700/40 space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      История изменений
-                    </p>
-                    {changeLog.map((entry) => (
-                      <p key={entry.id} className="text-slate-400 leading-snug">
-                        <span className="text-slate-500">{entry.when}</span>
-                        {' · '}
-                        <span className="text-slate-300">{entry.who}</span>
-                        {': '}
-                        {entry.text}
+              {hasWorkflowActions && (
+                <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-4 space-y-2">
+                  {(permissions.can_approve_review || permissions.can_reject_review) && (
+                    <>
+                      <p className="text-sm font-medium text-slate-200">Задача на проверке</p>
+                      <p className="text-xs text-slate-400 mb-1">
+                        Исполнитель: {task.executor_name || executor?.name || 'не назначен'}
                       </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      <div className="flex gap-2">
+                        {permissions.can_approve_review && (
+                          <button
+                            type="button"
+                            onClick={() => handleWorkflowAction('approve')}
+                            disabled={isWorkflowBusy || isSaving}
+                            className="flex-1 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isWorkflowBusy ? '…' : 'Подтвердить'}
+                          </button>
+                        )}
+                        {permissions.can_reject_review && (
+                          <button
+                            type="button"
+                            onClick={() => handleWorkflowAction('reject')}
+                            disabled={isWorkflowBusy || isSaving}
+                            className="flex-1 px-3 py-2 rounded-lg bg-amber-600/90 hover:bg-amber-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isWorkflowBusy ? '…' : 'На доработку'}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
 
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700/40">
+                  {permissions.can_submit_review && (
+                    <button
+                      type="button"
+                      onClick={() => handleWorkflowAction('submit')}
+                      disabled={isWorkflowBusy || isSaving}
+                      className="w-full px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {isWorkflowBusy ? 'Отправка…' : 'Отправить на проверку'}
+                    </button>
+                  )}
+
+                  {currentUser && showTakeOnMyselfButton && (
+                    isAlreadyAssignedToMe ? (
+                      <p className="flex items-center justify-center gap-2 py-1.5 text-sm text-emerald-300">
+                        <CheckIcon size="sm" />
+                        Назначена на вас
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleTakeOnMyself}
+                        disabled={isSaving}
+                        className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {isSaving ? 'Назначаю…' : (
+                          <IconWithText icon={MyTasksIcon} gap="gap-2">
+                            Взять на себя
+                          </IconWithText>
+                        )}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+
+              {task.created && (
+                <dl className="px-1 text-xs text-slate-500 space-y-1">
+                  <div className="flex justify-between gap-3">
+                    <dt>Создана</dt>
+                    <dd className="text-slate-400">
+                      {new Date(task.created).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
+                    </dd>
+                  </div>
+                  {task.updated && (
+                    <div className="flex justify-between gap-3">
+                      <dt>Обновлена</dt>
+                      <dd className="text-slate-400">
+                        {new Date(task.updated).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+            </aside>
+          </div>
+        </div>
+
+        {/* Подвал: всегда виден */}
+        <footer className="shrink-0 flex items-center gap-2 border-t border-slate-700/60 bg-slate-800/40 px-4 sm:px-6 py-3">
+          {onDelete && permissions.can_delete && (
+            <button
+              type="button"
+              onClick={async () => {
+                const confirmed = await confirmAction({
+                  title: "Удалить задачу?",
+                  message: "Задача, её комментарии и загруженные в неё файлы будут удалены. Привязанные документы останутся в 2А.",
+                  confirmLabel: "Удалить",
+                  danger: true,
+                });
+                if (confirmed) {
+                  onDelete(task);
+                  window.setTimeout(() => onClose?.(), 0);
+                }
+              }}
+              className="px-3 py-2 rounded-lg text-red-300 hover:text-red-200 hover:bg-red-900/30 text-sm font-medium transition-colors"
+            >
+              Удалить
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={safeClose}
+              className="px-4 py-2 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 text-slate-200 text-sm font-medium transition-colors"
+            >
+              Закрыть
+            </button>
+            {canEdit && (
               <button
                 type="button"
-                onClick={safeClose}
-                className="px-4 py-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 text-sm font-medium"
-              >
-                Отмена
-              </button>
-              {onDelete && permissions.can_delete && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm("Вы уверены, что хотите удалить эту задачу?")) {
-                      onDelete(task);
-                      window.setTimeout(() => onClose?.(), 0);
-                    }
-                  }}
-                  className="px-4 py-2 rounded-lg bg-red-900/50 hover:bg-red-800/60 text-red-200 text-sm font-medium"
-                >
-                  Удалить
-                </button>
-              )}
-              <button
-                disabled={!canEdit || !isDirty || isSaving}
+                disabled={!isDirty || isSaving}
                 onClick={handleSave}
-                className={`ml-auto px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  canEdit && isDirty && !isSaving
-                    ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
-                    : "bg-slate-700/50 cursor-not-allowed text-slate-400"
-                }`}
+                className="px-5 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-500 text-white disabled:bg-slate-700/50 disabled:text-slate-400 disabled:cursor-not-allowed"
               >
                 {isSaving ? 'Сохранение…' : 'Сохранить'}
               </button>
-            </div>
+            )}
           </div>
-
-          {/* Правая колонка */}
-          <div className="space-y-4">
-            <TaskTimeLog taskId={task.id} currentUser={currentUser} canModerate={canModerate} />
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <TaskComments taskId={task.id} task={task} currentUser={currentUser} canModerate={canModerate} />
-        </div>
+        </footer>
       </div>
-    </div>,
+    </div>
+
+    <ConfirmDialog
+      open={showUnsavedDialog}
+      title="Сохранить изменения?"
+      message="В задаче есть несохранённые изменения. Если закрыть без сохранения, они будут потеряны."
+      cancelLabel="Отмена"
+      altConfirmLabel="Не сохранять"
+      confirmLabel="Сохранить"
+      loading={isSaving}
+      onCancel={handleUnsavedCancel}
+      onAltConfirm={handleUnsavedDiscard}
+      onConfirm={handleUnsavedSave}
+      zIndex={overlayZIndex + 10}
+    />
+    </>,
     document.body
   );
 }
