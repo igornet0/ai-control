@@ -1,7 +1,6 @@
-/**
- * @jest-environment jsdom
- */
+// @vitest-environment jsdom
 
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { defineWidget } from '../src/sdk/defineWidget.js';
 import { createWidgetContext, resolveWidgetContext } from '../src/sdk/WidgetContext.js';
 import { createSettingsPanelApi } from '../src/sdk/createSettingsPanelApi.js';

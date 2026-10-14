@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import {
   createDataInputFieldFromColumn,
@@ -13,7 +14,13 @@ import {
   parseOptionsFormulaFieldRef,
 } from '../src/widgets/data-input/dataInputSelectOptions.js';
 import { collectFormData } from '../src/widgets/data-input/dataInputFieldRenderers.js';
+
 import { applyDataFieldToWidget } from '../../../services/dashboardFilterUtils.js';
+
+// jsdom does not implement CSS.escape.
+if (!globalThis.CSS?.escape) {
+  globalThis.CSS = { ...globalThis.CSS, escape: (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`) };
+}
 
 describe('dataInputSchema', () => {
   it('migrates defaults', () => {

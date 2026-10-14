@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { compileFormula, mergeAggSpecsInOrder, toSqliteAggregations, buildKeyToAliasMap } from '../src/formula/compile.js';
 import { normalizeLineConfig } from '../src/widgets/line-chart/lineChartConfig.js';
 import {

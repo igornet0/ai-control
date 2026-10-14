@@ -1,4 +1,5 @@
-import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
+// @vitest-environment jsdom
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
   cancelPersistDashboardFilters,
   filterPersistenceStorageKey,

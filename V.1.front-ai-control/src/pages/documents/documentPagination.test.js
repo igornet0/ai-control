@@ -36,12 +36,12 @@ describe('documentPagination multi-sheet spreadsheets', () => {
     };
     const fieldData = {
       Данные: {
-        sheet_0: Array.from({ length: 15 }, (_, i) => ({ col_0: `s1-${i}` })),
+        sheet_0: Array.from({ length: 80 }, (_, i) => ({ col_0: `s1-${i}` })),
         sheet_1: [{ col_0: 'only-one' }],
         __format: 'sheets',
       },
     };
-    const pages = buildExpandedPreviewPages([block], fieldData, { rowsPerPage: 12 });
+    const pages = buildExpandedPreviewPages([block], fieldData);
     const spreadsheetEntries = pages.flatMap((p) => p.blocks).filter((e) => e.block?.type === SPREADSHEET_BLOCK_TYPE);
     const sheetIds = spreadsheetEntries.map((e) => e.sheetId);
     expect(sheetIds).toContain('sheet_0');
