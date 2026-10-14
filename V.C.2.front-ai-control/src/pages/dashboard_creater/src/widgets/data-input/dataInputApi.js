@@ -13,9 +13,10 @@ export async function previewDataInput(widgetId, data) {
   return res.data;
 }
 
-export async function insertDataInput(widgetId, data, schemaHash) {
+export async function insertDataInput(widgetId, data, schemaHash, idempotencyKey) {
   // Insert returns after row write; smart compile runs async on the server.
   // Keep a generous timeout only as a safety net (default api client is 10s).
+  // Idempotency-Key: a retry of the same submit returns the first insert.
   const res = await api.post(
     '/api/data/insert',
     {
@@ -23,7 +24,10 @@ export async function insertDataInput(widgetId, data, schemaHash) {
       data,
       schema_hash: schemaHash || undefined,
     },
-    { timeout: 30000 },
+    {
+      timeout: 30000,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    },
   );
   return res.data;
 }

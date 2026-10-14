@@ -129,9 +129,10 @@ export function generateDataCodeFromConfig(config, options = {}) {
   if (rowLines.length === 0) {
     lines.push(`global ${tableName} = table([], [${headerNames.join(', ')}])`);
     if (options.mergeDataInputSource) {
-      lines.push(`${tableName}_source = source_table("${tableName}")`);
+      // Inline source: DataCode publishes every top-level table variable,
+      // so a `${tableName}_source` helper would leak into latest.db.
       lines.push(
-        `${tableName} = merge_tables(tables=[${tableName}, ${tableName}_source])`,
+        `${tableName} = merge_tables(tables=[${tableName}, source_table("${tableName}")])`,
       );
     }
   } else {
@@ -145,16 +146,34 @@ export function generateDataCodeFromConfig(config, options = {}) {
   return { code: lines.join('\n'), errors };
 }
 
+const LEGACY_SOURCE_MERGE_RE =
+  /^([ \t]*)([A-Za-z_][\w]*)_source[ \t]*=[ \t]*source_table[ \t]*\([ \t]*(["'])\2\3[ \t]*\)[ \t]*\r?\n[ \t]*\2[ \t]*=[ \t]*merge_tables[ \t]*\([ \t]*tables[ \t]*=[ \t]*\[[ \t]*\2[ \t]*,[ \t]*\2_source[ \t]*\][ \t]*\)/gm;
+
+/**
+ * Rewrite the legacy `{name}_source = source_table(...)` helper merge into the
+ * inline `merge_tables(tables=[name, source_table("name")])` form.
+ *
+ * @param {string} code
+ * @returns {string}
+ */
+export function normalizeLegacySourceMerge(code) {
+  return String(code || '').replace(
+    LEGACY_SOURCE_MERGE_RE,
+    (_full, indent, varName) =>
+      `${indent}${varName} = merge_tables(tables=[${varName}, source_table("${varName}")])`,
+  );
+}
+
 /**
  * Ensure interactive empty table() assignments also merge DataInput via source_table.
- * Idempotent if `{name}_source = source_table(...)` is already present.
+ * Idempotent once a merge (inline or legacy helper form) is present.
  *
  * @param {string} code
  * @param {string[]|Set<string>|null} [onlyTables]
  * @returns {{ code: string, merged: string[] }}
  */
 export function ensureInteractiveDataInputMerge(code, onlyTables = null) {
-  const text = String(code || '');
+  const text = normalizeLegacySourceMerge(code);
   if (!text.trim()) return { code: text, merged: [] };
 
   const allow = onlyTables == null
@@ -165,6 +184,10 @@ export function ensureInteractiveDataInputMerge(code, onlyTables = null) {
   const alreadyRe = /([A-Za-z_][\w]*)_source\s*=\s*source_table\s*\(/g;
   let am;
   while ((am = alreadyRe.exec(text))) {
+    already.add(am[1]);
+  }
+  const inlineRe = /([A-Za-z_][\w]*)\s*=\s*merge_tables\s*\(\s*tables\s*=\s*\[\s*\1\s*,\s*source_table\s*\(/g;
+  while ((am = inlineRe.exec(text))) {
     already.add(am[1]);
   }
 
@@ -179,8 +202,7 @@ export function ensureInteractiveDataInputMerge(code, onlyTables = null) {
     merged.push(varName);
     return (
       `${prefix}${varName} = table([], ${cols})\n` +
-      `${varName}_source = source_table("${varName}")\n` +
-      `${varName} = merge_tables(tables=[${varName}, ${varName}_source])`
+      `${varName} = merge_tables(tables=[${varName}, source_table("${varName}")])`
     );
   });
 

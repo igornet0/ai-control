@@ -1,5 +1,5 @@
 /**
- * Stable fingerprint for data-input payloads (anti-duplicate submit).
+ * Stable fingerprint for data-input payloads (reuse the Idempotency-Key on retry).
  */
 
 function normalizeValue(value) {

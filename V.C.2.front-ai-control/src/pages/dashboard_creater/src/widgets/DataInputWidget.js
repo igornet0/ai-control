@@ -27,8 +27,13 @@ import { invalidateDashboardTransportCaches } from '../../../../services/dashboa
 import { fingerprintDataInputPayload } from './data-input/dataInputPayloadFingerprint.js';
 
 const PK_CHECK_DEBOUNCE_MS = 320;
-const DUPLICATE_PAYLOAD_MESSAGE =
-  'Эти данные уже были сохранены. Измените поля, чтобы отправить снова.';
+
+function newIdempotencyKey() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
 
 function escHtml(s) {
   return String(s ?? '')
@@ -73,8 +78,12 @@ export class DataInputWidget extends WidgetBase {
     this._selectOptionsTimer = null;
     /** @type {boolean} */
     this._submitInFlight = false;
-    /** @type {string|null} fingerprint of last successful insert */
-    this._lastSubmittedFingerprint = null;
+    /**
+     * Unconfirmed submit: retrying the same payload reuses its Idempotency-Key,
+     * so a timed-out insert that did reach the server is not stored twice.
+     * @type {{ fingerprint: string, key: string }|null}
+     */
+    this._pendingSubmit = null;
   }
 
   _isInteractive() {
@@ -515,13 +524,13 @@ export class DataInputWidget extends WidgetBase {
     const raw = collectFormData(form, fields);
     this._draftValues = { ...raw };
 
+    // Fingerprint before uploads: File parts are stable across retries, upload ids are not.
     const fingerprint = fingerprintDataInputPayload(raw);
-    if (fingerprint && fingerprint === this._lastSubmittedFingerprint) {
-      this._submitSuccess = null;
-      this._submitError = DUPLICATE_PAYLOAD_MESSAGE;
-      this.render();
-      return;
-    }
+    const idempotencyKey =
+      this._pendingSubmit && this._pendingSubmit.fingerprint === fingerprint
+        ? this._pendingSubmit.key
+        : newIdempotencyKey();
+    this._pendingSubmit = { fingerprint, key: idempotencyKey };
 
     for (const field of fields) {
       const type = String(field.type || '').toLowerCase();
@@ -538,14 +547,6 @@ export class DataInputWidget extends WidgetBase {
       }
     }
 
-    const postUploadFingerprint = fingerprintDataInputPayload(raw);
-    if (postUploadFingerprint && postUploadFingerprint === this._lastSubmittedFingerprint) {
-      this._submitSuccess = null;
-      this._submitError = DUPLICATE_PAYLOAD_MESSAGE;
-      this.render();
-      return;
-    }
-
     this._submitError = null;
     this._submitSuccess = null;
     this._pkConflictFields = new Set();
@@ -553,8 +554,13 @@ export class DataInputWidget extends WidgetBase {
     this.render();
 
     try {
-      await insertDataInput(wid, raw, this.settings.schema_hash || this._formSchema?.schema_hash);
-      this._lastSubmittedFingerprint = postUploadFingerprint || fingerprint;
+      await insertDataInput(
+        wid,
+        raw,
+        this.settings.schema_hash || this._formSchema?.schema_hash,
+        idempotencyKey,
+      );
+      this._pendingSubmit = null;
       this._submitSuccess = 'Сохранено';
       this._draftValues = null;
       this._pkConflictFields = new Set();
@@ -568,9 +574,6 @@ export class DataInputWidget extends WidgetBase {
         this._submitError =
           parsed.message ||
           'Primary key уже занят. Сгенерируйте новое значение и повторите сохранение.';
-      } else if (parsed?.code === 'duplicate_payload') {
-        this._lastSubmittedFingerprint = postUploadFingerprint || fingerprint;
-        this._submitError = parsed.message || DUPLICATE_PAYLOAD_MESSAGE;
       } else {
         this._submitError = parsed?.message || String(err?.message || err);
       }
@@ -622,7 +625,7 @@ export class DataInputWidget extends WidgetBase {
     this._pkConflictFields = new Set();
     this._resolvedSelectOptions = new Map();
     this._submitInFlight = false;
-    this._lastSubmittedFingerprint = null;
+    this._pendingSubmit = null;
     this.render();
     this._scheduleSelectOptionsResolve();
   }
