@@ -34,11 +34,11 @@
     "chartjs-plugin-zoom": "^2.2.0",
     "date-fns": "^4.1.0",
     "dateformat": "^5.0.3",
-    "exceljs": "^3.4.0",
+    "exceljs": "^4.4.0",
     "heroicons": "^2.2.0",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "livekit-client": "^2.21.0",
     "mammoth": "^1.12.0",
@@ -77,5 +77,23 @@
     "typescript-eslint": "^8.35.1",
     "vite": "^7.0.3",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "exceljs": {
+      "archiver": "^7.0.1",
+      "unzipper": "^0.12.3",
+      "uuid": "^11.1.1",
+      "fast-csv": "^5.0.5",
+      "glob": "^13.0.6"
+    },
+    "minimatch@3": {
+      "brace-expansion": "^1.1.21"
+    }
+  },
+  "allowScripts": {
+    "@tailwindcss/oxide": true,
+    "esbuild": true,
+    "fsevents": true,
+    "core-js": false
   }
 }
