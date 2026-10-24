@@ -15,7 +15,9 @@ DOCKER_REPO_ROOT ?= $(CURDIR)
 DOCKER_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 
 # Пути с пробелами (напр. ".../Ai-Holding aka .../"): compose и -f make должны быть в кавычках.
-COMPOSE_DEV := docker compose -f "$(DOCKER_REPO_ROOT)/docker-compose.dev.yml"
+# AI на :8003: python (run_ai) | rust (aicontrol-ai, docker-compose.ai-rust.yml). Откат: AI_IMPL=python.
+AI_IMPL ?= python
+COMPOSE_DEV := docker compose -f "$(DOCKER_REPO_ROOT)/docker-compose.dev.yml"$(if $(filter rust,$(AI_IMPL)), -f "$(DOCKER_REPO_ROOT)/docker-compose.ai-rust.yml")
 
 SERV_BE := backend
 SERV_FE := frontend
@@ -33,7 +35,7 @@ STRESS_SCALE ?= 1
 
 .PHONY: help build up up-split up-workers up-rust-sidecars up-stack down-stack down logs logs-all logs-backend logs-frontend logs-dashboard-query logs-datacode ps restart \
 	test-backend test-backend-integration test-python-gateway test-stress-resilience stress-fullstack benchmark-nodes benchmark-fullstack test-frontend test-formulas test-dashboard-creater \
-	test-rust-dashboard-query test-rust-dashboard-query-host test-all-quick test-all-recommended \
+	test-rust-dashboard-query test-rust-dashboard-query-host test-ai-rust test-ai-acl test-all-quick test-all-recommended \
 	db-migrate db-seed-demo \
 	bench-rust-batch-host bench-rust-batch-docker \
 	audit-frontend audit-backend-pip scan-backend-bandit lint-backend-docker typecheck-backend-docker
@@ -57,7 +59,7 @@ up-rust-sidecars: ## опционально: task-reporting :8790, file-pipeline
 	$(COMPOSE_DEV) --profile rust-sidecars up -d
 
 up-stack: ## полный стек на хосте (без Docker): rust sidecars + app/api/ai + frontend
-	"$(DOCKER_REPO_ROOT)/scripts/start-stack.sh" up
+	AI_IMPL="$(AI_IMPL)" "$(DOCKER_REPO_ROOT)/scripts/start-stack.sh" up
 
 down-stack: ## остановить up-stack (host pid-файлы)
 	"$(DOCKER_REPO_ROOT)/scripts/start-stack.sh" stop
@@ -134,6 +136,15 @@ test-rust-dashboard-query: ## cargo test в контейнере dashboard-query
 
 test-rust-dashboard-query-host: ## parity dashboard-query на хосте (CARGO_TARGET_DIR=rust/dashboard-query/target-local)
 	cd "$(DOCKER_REPO_ROOT)/rust/dashboard-query" && CARGO_TARGET_DIR="$(DOCKER_REPO_ROOT)/rust/dashboard-query/target-local" SQLITE_DASHBOARD_GOLDEN_DIR="$(DOCKER_REPO_ROOT)/src/tests/fixtures/sqlite_dashboard_golden" cargo test -p dashboard-query-core -p dashboard-query-server
+
+# Rust AI-сервис (aicontrol-ai) — cargo workspace RouterAi, запуск на хосте.
+AI_RUST_MANIFEST := $(DOCKER_REPO_ROOT)/office-rust/AgentManager/crates/RouterAi/Cargo.toml
+
+test-ai-rust: ## cargo test: все тесты Rust AI-сервиса aicontrol-ai (на хосте)
+	cargo test --manifest-path "$(AI_RUST_MANIFEST)" -p aicontrol-ai
+
+test-ai-acl: ## cargo test: ACL-тесты AI-агента (права/область доступа пользователя)
+	cargo test --manifest-path "$(AI_RUST_MANIFEST)" -p aicontrol-ai --test acl
 
 test-all-quick: ## rust + формулы + pytest gateway cache (как test-all-quick в rust/dashboard-query/Makefile.test)
 	$(MAKE) -f "$(DOCKER_MAKEFILE)" test-rust-dashboard-query

@@ -1,0 +1,37 @@
+# Override: Rust AI (office-rust/.../RouterAi, crate aicontrol-ai) replaces Python run_ai
+# in the `ai` service. Same hostname/port (ai:8003) and /api/v1 contract, so backend,
+# schedule-system and nginx need no changes. Rollback = drop this -f (Python is kept).
+#
+#   docker compose -f docker-compose.dev.yml -f docker-compose.ai-rust.yml up -d --build ai
+#   make -f Makefile.docker up AI_IMPL=rust
+#
+# Needs Compose >= 2.24 for !reset / !override.
+
+services:
+  ai:
+    build:
+      context: ./office-rust/AgentManager/crates/RouterAi
+      dockerfile: ../../../../deployment/docker/Dockerfile.aicontrol-ai
+    container_name: ai-dev-rust
+    working_dir: /
+    volumes: !reset []
+    # SECURITY__SECRET_KEY (JWT + Fernet for ai_api_keys), DS__*, AI__DEFAULT_PROVIDER.
+    env_file: !override
+      - ./py-worm/config/environments/dev.env
+    environment:
+      AICONTROL_AI__BIND: 0.0.0.0:8003
+      AICONTROL_AI__AICONTROL_BASE_URL: http://backend:8000
+      # Own DB (conversations/messages/…): created + migrated on startup.
+      AICONTROL_AI__DATABASE_URL: postgresql://postgres:postgres@postgres:5432/aicontrol_ai_dev
+      # Main backend DB, read-only: admin-managed LLM keys (ai_api_keys).
+      AICONTROL_AI__KEYS_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ai_control_dev
+      AICONTROL_AI__DATA_DIR: /data
+      MESSAGING__BASE_URL: http://mail-message-manager:8792
+      MESSAGING__INTERNAL_TOKEN: dev-mmm-internal-token
+      RUST_LOG: ${RUST_LOG:-info}
+    command: ["aicontrol-ai"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8003/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

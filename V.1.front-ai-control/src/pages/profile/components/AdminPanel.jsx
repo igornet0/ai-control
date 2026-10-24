@@ -3,6 +3,7 @@ import {
   ChartBarIcon,
   CircleStackIcon,
   CpuChipIcon,
+  CreditCardIcon,
   LinkIcon,
   PresentationChartBarIcon,
   SparklesIcon,
@@ -18,6 +19,7 @@ import AdminDataBridgePanel from './AdminDataBridgePanel';
 import AdminHeroDemoPanel from './AdminHeroDemoPanel';
 import AdminAiAgentPanel from './AdminAiAgentPanel';
 import AdminAiScenariosPanel from './AdminAiScenariosPanel';
+import AdminBillingPanel from './AdminBillingPanel';
 import styles from './AdminPanel.module.css';
 
 const STAT_CARDS = [
@@ -62,6 +64,7 @@ const PERIOD_OPTIONS = [
 const SECTIONS = [
   { id: 'overview', label: 'Обзор', Icon: ChartBarIcon },
   { id: 'users', label: 'Пользователи', Icon: UsersIcon },
+  { id: 'billing', label: 'Тарифы', Icon: CreditCardIcon },
   { id: 'ai-agent', label: 'AI Агент', Icon: SparklesIcon },
   { id: 'ai-scenarios', label: 'Сценарии AI', Icon: CpuChipIcon },
   { id: 'hero-demo', label: 'Демо главной', Icon: PresentationChartBarIcon },
@@ -221,6 +224,8 @@ export default function AdminPanel({ activeTab }) {
             </button>
           </div>
         );
+      case 'billing':
+        return <AdminBillingPanel />;
       case 'ai-agent':
         return <AdminAiAgentPanel />;
       case 'ai-scenarios':

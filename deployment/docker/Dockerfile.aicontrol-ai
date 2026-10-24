@@ -1,14 +1,20 @@
-# AiControl AI microservice (Rust AgentManager drop-in)
-FROM rust:1.85-bookworm AS builder
+# AiControl AI microservice (Rust drop-in for py-worm run_ai on :8003).
+# Build context = the RouterAi workspace (office-rust/AgentManager/crates/RouterAi),
+# see its .dockerignore. Workspace MSRV is 1.88; RUST_VERSION=1 = latest stable.
+ARG RUST_VERSION=1
+FROM rust:${RUST_VERSION}-bookworm AS builder
 WORKDIR /build
-COPY rust/AgentManager/crates/RouterAi /build
-RUN cargo build -p aicontrol-ai --release
+COPY . /build
+RUN cargo build -p aicontrol-ai --release --locked --bins
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 curl \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/aicontrol-ai /usr/local/bin/aicontrol-ai
 COPY --from=builder /build/target/release/aicontrol-ai-migrate /usr/local/bin/aicontrol-ai-migrate
-ENV AICONTROL_AI__BIND=0.0.0.0:8003
+ENV AICONTROL_AI__BIND=0.0.0.0:8003 \
+    AICONTROL_AI__DATA_DIR=/data
+VOLUME ["/data"]
 EXPOSE 8003
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD curl -fsS http://127.0.0.1:8003/health || exit 1
 CMD ["aicontrol-ai"]

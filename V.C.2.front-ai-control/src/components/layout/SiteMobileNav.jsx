@@ -9,7 +9,6 @@ const NAV_ITEMS = [
   { to: '/documents', label: 'Документы' },
   { to: '/pricing', label: 'Тарифы' },
   { to: '/support', label: 'Поддержка' },
-  { to: '/datacode-docs', label: 'Документация DataCode', external: true, newTab: true },
 ];
 
 export default function SiteMobileNav({ isAuthenticated, onSignIn }) {

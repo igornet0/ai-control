@@ -42,6 +42,119 @@ import styles from './DataModelWorkspace.module.css';
 import { usePanelResize } from './usePanelResize.js';
 import DataModelAiAssistant from './DataModelAiAssistant.jsx';
 
+/** Каталог виджетов левой панели: группы → элементы с конфигом создания. */
+const WIDGET_CATALOG = [
+  {
+    id: 'sources',
+    title: 'Источники',
+    items: [
+      {
+        key: 'data-source',
+        label: 'Источник данных',
+        description: 'Файл, папка, API, БД или JSON',
+        Icon: IconDataSource,
+        tone: 'source',
+        required: true,
+        type: 'data-source',
+        config: { settings: { name: 'Новый источник', sourceType: 'file' } },
+      },
+      {
+        key: 'data-model',
+        label: 'Модель данных',
+        description: 'Таблицы другой модели',
+        Icon: IconDataModel,
+        tone: 'source',
+        type: 'data-model',
+        config: {
+          settings: {
+            name: 'Модель данных',
+            sourceModelId: null,
+            sourceModelName: '',
+            selectedTables: [],
+          },
+        },
+      },
+    ],
+  },
+  {
+    id: 'processing',
+    title: 'Обработка',
+    items: [
+      {
+        key: 'filter',
+        label: 'Фильтр',
+        description: 'Отбор строк по условиям',
+        Icon: IconFilter,
+        tone: 'process',
+        type: 'processing-block',
+        config: { settings: { name: 'Фильтр', blockType: 'filter' } },
+      },
+      {
+        key: 'transform',
+        label: 'Трансформация',
+        description: 'Переименование, типы, колонки',
+        Icon: IconTransform,
+        tone: 'process',
+        type: 'processing-block',
+        config: { settings: { name: 'Трансформация', blockType: 'transform' } },
+      },
+      {
+        key: 'join',
+        label: 'Объединение',
+        description: 'JOIN / UNION таблиц',
+        Icon: IconJoin,
+        tone: 'process',
+        type: 'processing-block',
+        config: {
+          settings: {
+            name: 'Объединение',
+            blockType: 'join',
+            joinMode: 'join',
+            joinType: 'left',
+            joinSeparateOutput: true,
+            joinSteps: [],
+          },
+        },
+      },
+      {
+        key: 'formula',
+        label: 'Формула',
+        description: 'Вычисляемые колонки',
+        Icon: IconFormula,
+        tone: 'process',
+        type: 'formula',
+        config: { settings: { name: 'Формула' } },
+      },
+      {
+        key: 'aggregate',
+        label: 'Агрегация',
+        description: 'Группировка и итоги',
+        Icon: IconAggregate,
+        tone: 'process',
+        type: 'processing-block',
+        config: { settings: { name: 'Агрегация', blockType: 'aggregate' } },
+      },
+    ],
+  },
+  {
+    id: 'relations',
+    title: 'Связи',
+    items: [
+      {
+        key: 'relationship',
+        label: 'Связь',
+        description: 'Ключи между таблицами',
+        Icon: IconRelationship,
+        tone: 'relation',
+        type: 'relationship',
+        config: { settings: { name: 'Связь', relationshipType: 'one-to-many' } },
+      },
+    ],
+  },
+];
+
+const WIDGET_CATALOG_TOTAL = WIDGET_CATALOG.reduce((n, g) => n + g.items.length, 0);
+
 const DataModelWorkspace = ({ onSave, initialData, modelName, onBack, onSaveAndExit, modelId }) => {
   const viewportRef = useRef(null);
   const workspaceRef = useRef(null);
@@ -94,6 +207,7 @@ const DataModelWorkspace = ({ onSave, initialData, modelName, onBack, onSaveAndE
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savingExit, setSavingExit] = useState(false);
   const [engineReady, setEngineReady] = useState(false);
+  const [widgetSearch, setWidgetSearch] = useState('');
 
   const {
     leftWidth,
@@ -571,6 +685,21 @@ const DataModelWorkspace = ({ onSave, initialData, modelName, onBack, onSaveAndE
     }
   };
 
+  const filteredWidgetCatalog = useMemo(() => {
+    const q = widgetSearch.trim().toLowerCase();
+    if (!q) return WIDGET_CATALOG;
+    return WIDGET_CATALOG
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (item) =>
+            item.label.toLowerCase().includes(q) ||
+            item.description.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [widgetSearch]);
+
   const handleZoomChange = (e) => {
     const newZoom = parseFloat(e.target.value);
     // Обновляем состояние сразу для немедленного отображения
@@ -609,8 +738,8 @@ const DataModelWorkspace = ({ onSave, initialData, modelName, onBack, onSaveAndE
             )}
           </div>
         )}
-        <div className={styles.toolbarSection}>
-          <label>Масштаб:</label>
+        <div className={`${styles.toolbarSection} ${styles.toolbarZoom}`}>
+          <label>Масштаб</label>
           <input 
             type="range" 
             min="0.1" 
@@ -620,7 +749,7 @@ const DataModelWorkspace = ({ onSave, initialData, modelName, onBack, onSaveAndE
             onChange={handleZoomChange}
             className={styles.zoomSlider}
           />
-          <span>{Math.round((zoom || 1) * 100)}%</span>
+          <span className={styles.zoomValue}>{Math.round((zoom || 1) * 100)}%</span>
         </div>
         <div className={`${styles.toolbarSection} ${styles.toolbarCompile}`}>
           <button
@@ -652,111 +781,67 @@ const DataModelWorkspace = ({ onSave, initialData, modelName, onBack, onSaveAndE
         {/* Widget Panel */}
         <div className={styles.leftPanelColumn} style={{ width: leftWidth }}>
           <div className={styles.widgetPanel}>
-            <h3>Виджеты</h3>
+            <div className={styles.widgetPanelHeader}>
+              <h3>Виджеты</h3>
+              <span className={styles.widgetPanelCount}>{WIDGET_CATALOG_TOTAL}</span>
+            </div>
+            <div className={styles.widgetSearch}>
+              <svg className={styles.widgetSearchIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                className={styles.widgetSearchInput}
+                placeholder="Поиск виджета…"
+                value={widgetSearch}
+                onChange={(e) => setWidgetSearch(e.target.value)}
+                aria-label="Поиск виджета"
+              />
+            </div>
             <div className={styles.widgetList}>
-            <div className={styles.widgetSectionLabel}>Обязательные</div>
-            <div 
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('data-source', {
-                settings: { name: 'Новый источник', sourceType: 'file' }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconDataSource className={styles.widgetItemIcon} />
-                <span>Источник данных</span>
-              </span>
+              {filteredWidgetCatalog.length === 0 && (
+                <div className={styles.widgetEmpty}>Ничего не найдено</div>
+              )}
+              {filteredWidgetCatalog.map((group) => (
+                <section key={group.id} className={styles.widgetGroup}>
+                  <div className={styles.widgetSectionLabel}>
+                    <span>{group.title}</span>
+                    <span className={styles.widgetSectionCount}>{group.items.length}</span>
+                  </div>
+                  {group.items.map((item) => {
+                    const { Icon } = item;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={styles.widgetItem}
+                        data-tone={item.tone}
+                        onClick={() => handleAddWidget(item.type, item.config)}
+                        title={`Добавить «${item.label}» на полотно`}
+                      >
+                        <span className={styles.widgetItemIconTile}>
+                          <Icon className={styles.widgetItemIcon} />
+                        </span>
+                        <span className={styles.widgetItemText}>
+                          <span className={styles.widgetItemTitle}>
+                            {item.label}
+                            {item.required && (
+                              <span className={styles.widgetItemBadge}>обяз.</span>
+                            )}
+                          </span>
+                          <span className={styles.widgetItemDesc}>{item.description}</span>
+                        </span>
+                        <span className={styles.widgetItemAdd} aria-hidden>+</span>
+                      </button>
+                    );
+                  })}
+                </section>
+              ))}
             </div>
-            <div className={styles.widgetSectionLabel}>Остальные</div>
-            <div
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('data-model', {
-                settings: {
-                  name: 'Модель данных',
-                  sourceModelId: null,
-                  sourceModelName: '',
-                  selectedTables: [],
-                }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconDataModel className={styles.widgetItemIcon} />
-                <span>Модель данных</span>
-              </span>
+            <div className={styles.widgetPanelHint}>
+              Нажмите на виджет, чтобы добавить его в центр полотна. Соединяйте выходы и входы, чтобы построить цепочку обработки.
             </div>
-            <div 
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('processing-block', {
-                settings: { name: 'Фильтр', blockType: 'filter' }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconFilter className={styles.widgetItemIcon} />
-                <span>Фильтр</span>
-              </span>
-            </div>
-            <div 
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('processing-block', {
-                settings: { name: 'Трансформация', blockType: 'transform' }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconTransform className={styles.widgetItemIcon} />
-                <span>Трансформация</span>
-              </span>
-            </div>
-            <div
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('processing-block', {
-                settings: {
-                  name: 'Объединение',
-                  blockType: 'join',
-                  joinMode: 'join',
-                  joinType: 'left',
-                  joinSeparateOutput: true,
-                  joinSteps: [],
-                },
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconJoin className={styles.widgetItemIcon} />
-                <span>Объединение</span>
-              </span>
-            </div>
-            <div 
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('formula', {
-                settings: { name: 'Формула' }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconFormula className={styles.widgetItemIcon} />
-                <span>Формула</span>
-              </span>
-            </div>
-            <div 
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('processing-block', {
-                settings: { name: 'Агрегация', blockType: 'aggregate' }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconAggregate className={styles.widgetItemIcon} />
-                <span>Агрегация</span>
-              </span>
-            </div>
-            <div 
-              className={styles.widgetItem}
-              onClick={() => handleAddWidget('relationship', {
-                settings: { name: 'Связь', relationshipType: 'one-to-many' }
-              })}
-            >
-              <span className={styles.widgetItemRow}>
-                <IconRelationship className={styles.widgetItemIcon} />
-                <span>Связь</span>
-              </span>
-            </div>
-          </div>
           </div>
           <div
             className={`${styles.panelResizeHandle} ${resizing === 'left' ? styles.panelResizeHandleActive : ''}`}

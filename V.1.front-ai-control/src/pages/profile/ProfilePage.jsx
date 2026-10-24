@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import ProfileSidebar from './components/ProfileSidebar';
 import Profile from './components/Profile';
 import FinanceTab from './components/FinanceTab';
+import PlanTab from './components/PlanTab';
 import AdminPanel from './components/AdminPanel';
 import EmployeesTab from './components/EmployeesTab';
 import StrategyTab from './components/StrategyTab';
@@ -23,6 +24,7 @@ import {
 const PROFILE_TAB_TITLES = {
   profile: 'Профиль',
   privacy: 'Конфиденциальность',
+  plan: 'Тариф',
   finance: 'Финансы',
   employees: 'Сотрудники',
   email: 'Почта',
@@ -36,6 +38,8 @@ const ProfilePage = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [pendingDmUserId, setPendingDmUserId] = useState(null);
   const [pendingOpenRoom, setPendingOpenRoom] = useState(null);
+  const [highlightPlan, setHighlightPlan] = useState(null);
+  const [planPeriod, setPlanPeriod] = useState(null);
 
   // Вкладка «Почта» уточняет заголовок сама (чат / почта) внутри EmailTab.
   useDocumentTitle(
@@ -56,6 +60,14 @@ const ProfilePage = ({ user, onLogout }) => {
     setPendingDmUserId(Number(dmUserId));
     window.history.replaceState({}, document.title);
   }, [location.state?.dmUserId]);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search || '');
+    if (params.get('tab') !== 'plan') return;
+    setActiveTab('plan');
+    setHighlightPlan(params.get('plan'));
+    setPlanPeriod(params.get('period'));
+  }, [location.search]);
 
   React.useEffect(() => {
     const params = new URLSearchParams(location.search || '');
@@ -126,6 +138,7 @@ const ProfilePage = ({ user, onLogout }) => {
             onLogout={onLogout}
           />
           <PrivacyTab activeTab={activeTab} user={user} />
+          <PlanTab activeTab={activeTab} highlightCode={highlightPlan} initialPeriod={planPeriod} />
           <FinanceTab activeTab={activeTab} />
           <EmployeesTab activeTab={activeTab} user={user} />
           <EmailTab

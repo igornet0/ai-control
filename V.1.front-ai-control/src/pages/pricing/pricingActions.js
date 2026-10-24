@@ -1,10 +1,10 @@
 /**
  * Pricing action abstraction.
- * Does not charge payment providers directly — ready to plug in checkout later.
+ * Checkout ведёт во вкладку «Тариф» профиля (billingService).
  */
 
 /**
- * @typedef {'free' | 'checkout' | 'contact' | 'demo'} PricingCtaAction
+ * @typedef {'free' | 'checkout' | 'contact' | 'custom' | 'demo'} PricingCtaAction
  */
 
 /**
@@ -14,6 +14,7 @@
  * @property {boolean} [isAuthenticated]
  * @property {string} [contactEmail]
  * @property {string} [demoUrl]
+ * @property {(meta?: Object) => void} [openCustomPlan] конфигуратор индивидуального плана
  */
 
 /**
@@ -35,6 +36,7 @@ export function createPricingActions(context = {}) {
     isAuthenticated = false,
     contactEmail = 'sales@ai-control.local',
     demoUrl = '/',
+    openCustomPlan,
   } = context;
 
   const ensureAuthOrRegister = () => {
@@ -50,11 +52,13 @@ export function createPricingActions(context = {}) {
     selectPlan(payload) {
       const { ctaAction, planId, planName, customerType, billingPeriod } = payload;
 
-      // Future: open checkout / create subscription / upgrade flow
-      // e.g. billingApi.createCheckoutSession({ planId, billingPeriod })
-
       if (ctaAction === 'contact') {
         this.contactSales({ planId, planName, customerType, billingPeriod });
+        return;
+      }
+
+      if (ctaAction === 'custom') {
+        this.customPlan({ planId, planName, customerType, billingPeriod });
         return;
       }
 
@@ -63,7 +67,15 @@ export function createPricingActions(context = {}) {
         return;
       }
 
-      if (ctaAction === 'free' || ctaAction === 'checkout') {
+      if (ctaAction === 'checkout') {
+        if (!ensureAuthOrRegister()) return;
+        // Оплата и подключение тарифа — во вкладке «Тариф» профиля.
+        const period = billingPeriod === 'yearly' ? 'year' : 'month';
+        if (navigate) navigate(`/profile?tab=plan&plan=${encodeURIComponent(planId)}&period=${period}`);
+        return;
+      }
+
+      if (ctaAction === 'free') {
         if (!ensureAuthOrRegister()) return;
         if (navigate) {
           navigate(isAuthenticated ? '/dashboard' : '/signin');
@@ -82,6 +94,15 @@ export function createPricingActions(context = {}) {
         return;
       }
       window.location.assign(demoUrl);
+    },
+
+    /** @param {Partial<PlanActionPayload>} [meta] */
+    customPlan(meta = {}) {
+      if (openCustomPlan) {
+        openCustomPlan(meta);
+        return;
+      }
+      this.contactSales(meta);
     },
 
     /** @param {Partial<PlanActionPayload>} [meta] */

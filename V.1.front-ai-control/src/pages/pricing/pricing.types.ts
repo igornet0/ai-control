@@ -2,7 +2,7 @@ export type CustomerType = 'individual' | 'business';
 
 export type BillingPeriod = 'monthly' | 'yearly';
 
-export type PricingCtaAction = 'free' | 'checkout' | 'contact' | 'demo';
+export type PricingCtaAction = 'free' | 'checkout' | 'contact' | 'custom' | 'demo';
 
 export type ComparisonValue = boolean | string | number;
 

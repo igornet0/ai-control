@@ -44,6 +44,16 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // 402 тарифа: detail — объект {code, key, limit, used, message}. Превращаем в строку,
+    // чтобы существующие обработчики показывали текст; исходник — в data.planError.
+    const detail = error.response?.data?.detail;
+    if (error.response?.status === 402 && detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      const usage = detail.code === 'plan_limit' && detail.limit != null
+        ? ` (${detail.used ?? 0} из ${detail.limit})`
+        : '';
+      error.response.data.planError = detail;
+      error.response.data.detail = `${detail.message || 'Недоступно на вашем тарифе'}${usage}. Сменить тариф можно в профиле.`;
+    }
     if (error.response?.status === 401) {
       const originalRequest = error.config || {};
       const requestUrl = originalRequest.url || '';

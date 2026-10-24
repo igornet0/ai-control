@@ -67,7 +67,14 @@ mkdir -p "$DIST_DIR"
 
 VOLUME_REGISTRY="${BUILD_IMAGE}-cargo-registry"
 VOLUME_GIT="${BUILD_IMAGE}-cargo-git"
-VOLUME_NPM="${BUILD_IMAGE}-node-modules"
+VERSION="${VERSION:-1}"
+VERSION="${VERSION#version=}"
+if [[ "$VERSION" == "2" ]]; then
+  FRONT_REL="V.C.2.front-ai-control"
+else
+  FRONT_REL="V.1.front-ai-control"
+fi
+VOLUME_NPM="${BUILD_IMAGE}-node-modules-v${VERSION}"
 
 # Prefer writing through the repo bind-mount to avoid nested-volume surprises
 # when DIST_DIR is the default <repo>/dist/prod.
@@ -77,7 +84,8 @@ DOCKER_ARGS=(
   -v "$ROOT:/work"
   -v "$VOLUME_REGISTRY:/usr/local/cargo/registry"
   -v "$VOLUME_GIT:/usr/local/cargo/git"
-  -v "$VOLUME_NPM:/work/front-ai-control/node_modules"
+  -v "$VOLUME_NPM:/work/$FRONT_REL/node_modules"
+  -e VERSION="$VERSION"
   -e CARGO_TARGET="$CARGO_TARGET"
   -e SKIP_NPM_CI="${SKIP_NPM_CI:-}"
   -e FORCE_PROD_ENV="${FORCE_PROD_ENV:-}"
@@ -92,7 +100,7 @@ else
   DOCKER_ARGS+=(-v "$ABS_DIST:/out" -e DIST_DIR=/out)
 fi
 
-log "Docker build: platform=$DOCKER_PLATFORM cmd=$TARGET cargo=$CARGO_TARGET"
+log "Docker build: version=$VERSION platform=$DOCKER_PLATFORM cmd=$TARGET cargo=$CARGO_TARGET"
 log "Output: $DIST_DIR"
 
 docker run "${DOCKER_ARGS[@]}" \

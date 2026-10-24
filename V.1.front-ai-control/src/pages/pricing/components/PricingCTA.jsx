@@ -38,7 +38,7 @@ const PricingCTA = ({
               <div className={styles.enterprise}>
                 <p className={styles.enterpriseNote}>{secondaryNote}</p>
                 <button type="button" className={styles.contact} onClick={onContactSales}>
-                  Связаться с нами
+                  Настроить индивидуальный план
                 </button>
               </div>
             )}

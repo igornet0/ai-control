@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Production build for AiControl (host tools, or inside Docker builder).
-# Builds: front-ai-control, Python (src), Rust sidecars → dist/prod/
+# Builds: frontend (V.1 / V.C.2), Python (py-worm), Rust sidecars → dist/prod/
 # Also stages prod.env (+ example) and run.sh for start/stop/restart.
 #
 # Usage:
 #   scripts/build-prod.sh              # all (host native arch)
 #   scripts/build-prod.sh frontend|python|rust|env|clean
+#   VERSION=2 scripts/build-prod.sh     # клиентская редакция V.C.2 (без тарифов)
 #   scripts/build-prod-docker.sh       # linux/amd64 via Docker (macOS arm64 OK)
 #
 # Env:
+#   VERSION           1 (V.1, админская, default) | 2 (V.C.2, клиентская)
 #   DIST_DIR          output root (default: <repo>/dist/prod)
 #   SKIP_NPM_CI=1     reuse node_modules
 #   CARGO_TARGET=...  optional rustc triple (docker sets x86_64-unknown-linux-gnu)
@@ -17,9 +19,20 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="${DIST_DIR:-$ROOT/dist/prod}"
-FRONT_DIR="$ROOT/front-ai-control"
-SRC_DIR="$ROOT/src"
-RUST_DIR="$ROOT/rust"
+VERSION="${VERSION:-1}"
+VERSION="${VERSION#version=}"
+case "$VERSION" in
+  1) FRONT_DIR="$ROOT/V.1.front-ai-control" ;;
+  2) FRONT_DIR="$ROOT/V.C.2.front-ai-control" ;;
+  *) echo "error: VERSION must be 1 or 2 (got: $VERSION)" >&2; exit 1 ;;
+esac
+SRC_DIR="$ROOT/py-worm"
+RUST_DIR="$ROOT/office-rust"
+# Модули только редакции 1 — в сборку V.C.2 не попадают.
+EDITION1_ONLY_PY=(
+  app/billing
+  app/routers/billing
+)
 ENV_EXAMPLE="$ROOT/deployment/env/prod.env.example"
 TARGET_FLAG=()
 if [[ -n "${CARGO_TARGET:-}" ]]; then
@@ -188,7 +201,7 @@ EOF
 
 cmd_frontend() {
   need npm
-  log "Building front-ai-control (production)"
+  log "Building $(basename "$FRONT_DIR") (production, version $VERSION)"
   mkdir -p "$DIST_DIR/frontend"
   local keep_rt=""
   if [[ -f "$DIST_DIR/frontend/runtime-config.js" ]]; then
@@ -220,7 +233,7 @@ cmd_frontend() {
 
 cmd_python() {
   need poetry
-  log "Preparing Python (src) for production"
+  log "Preparing Python (py-worm) for production, version $VERSION"
   mkdir -p "$DIST_DIR/python"
 
   (
@@ -247,6 +260,14 @@ cmd_python() {
     keep_py_env=1
   fi
 
+  local py_edition_excludes=()
+  if [[ "$VERSION" == "2" ]]; then
+    local mod
+    for mod in "${EDITION1_ONLY_PY[@]}"; do
+      py_edition_excludes+=(--exclude "/$mod/")
+    done
+  fi
+
   # Anchored excludes (/…) only skip runtime data dirs at src root.
   # A bare 'data_models' also matched app/routers/data_models and dropped the API package.
   rsync -a \
@@ -262,7 +283,17 @@ cmd_python() {
     --exclude 'htmlcov' \
     --exclude '.coverage' \
     --exclude 'data_models.zip' \
+    "${py_edition_excludes[@]}" \
+    --delete \
     "$SRC_DIR/" "$DIST_DIR/python/src/"
+
+  if [[ "$VERSION" == "2" ]]; then
+    # rsync --delete не трогает исключённые пути — убрать остатки прошлой сборки V.1.
+    for mod in "${EDITION1_ONLY_PY[@]}"; do
+      rm -rf "$DIST_DIR/python/src/$mod"
+    done
+    ok "edition 2: billing modules excluded"
+  fi
 
   if [[ -n "$keep_py_env" ]]; then
     mkdir -p "$DIST_DIR/python/src/config/environments"
@@ -344,6 +375,7 @@ write_manifest() {
     echo "host: $(uname -s) $(uname -m)"
     echo "git: $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
     echo "cargo_target: ${CARGO_TARGET:-host}"
+    echo "version: $VERSION ($(basename "$FRONT_DIR"))"
     echo ""
     echo "bin/"
     if [[ -d "$DIST_DIR/bin" ]]; then
@@ -375,7 +407,7 @@ cmd_all() {
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [all|frontend|python|rust|env|clean|manifest]
+Usage: [VERSION=1|2] $(basename "$0") [all|frontend|python|rust|env|clean|manifest]
 
   all        build frontend + python + rust + env/run.sh (default)
   frontend   npm production build → dist/prod/frontend
@@ -386,6 +418,7 @@ Usage: $(basename "$0") [all|frontend|python|rust|env|clean|manifest]
   manifest   rewrite MANIFEST.txt
 
 Environment:
+  VERSION=$VERSION
   DIST_DIR=$DIST_DIR
   SKIP_NPM_CI=0|1
   FORCE_PROD_ENV=0|1

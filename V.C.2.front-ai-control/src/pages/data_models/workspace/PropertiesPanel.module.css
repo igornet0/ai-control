@@ -12,23 +12,24 @@
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  padding-top: 10px;
-  padding-bottom: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .panelHeader {
-  padding: 1.5rem;
+  flex-shrink: 0;
+  padding: 1rem 1.25rem 0.9rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: #13151A;
+  background: #15171C;
 }
 
 .panelTitle {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #00E0FF;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 600;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -37,16 +38,114 @@
 .panelTitle::before {
   content: '';
   width: 3px;
-  height: 16px;
+  height: 14px;
   background: linear-gradient(135deg, #005DFF, #00E0FF);
   border-radius: 2px;
 }
 
+.panelHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  min-width: 0;
+}
+
 .widgetType {
+  --tone: #00E0FF;
+  --tone-bg: rgba(0, 224, 255, 0.1);
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--tone);
+  background: var(--tone-bg);
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  line-height: 1.4;
+}
+
+.widgetType[data-tone='process'] {
+  --tone: #8B9CFF;
+  --tone-bg: rgba(139, 156, 255, 0.1);
+}
+
+.widgetType[data-tone='relation'] {
+  --tone: #FFB86B;
+  --tone-bg: rgba(255, 184, 107, 0.1);
+}
+
+.widgetName {
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #F2F3F5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emptyPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  gap: 0.6rem;
+}
+
+.emptyPanelIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.4rem;
+  border-radius: 14px;
+  color: #00E0FF;
+  background: rgba(0, 224, 255, 0.06);
+  border: 1px dashed rgba(0, 224, 255, 0.3);
+}
+
+.emptyPanelTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #F2F3F5;
+}
+
+.emptyPanelText {
+  max-width: 260px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #7C828D;
+}
+
+.emptyPanelTips {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: left;
   font-size: 0.75rem;
-  color: #B0B3B8;
-  text-transform: capitalize;
+  color: #8A8F98;
+  background: #13151A;
+  border: 1px solid #22252B;
+  border-radius: 10px;
+}
+
+.emptyPanelTips kbd {
   font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  color: #E6E8EB;
+  background: #1F232A;
+  border: 1px solid #2A2E36;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 0.3rem;
 }
 
 .propertiesPanelScroll {
@@ -102,30 +201,35 @@
 }
 
 .settingsContent {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .sectionTitle {
-  font-size: 0.8125rem;
-  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #E6E8EB;
   font-weight: 600;
-  margin: 0 0 1.25rem 0;
-  padding-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .fieldGroup {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .label {
   display: block;
-  font-size: 0.75rem;
-  color: #B0B3B8;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-size: 0.6875rem;
+  color: #8A8F98;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .input,

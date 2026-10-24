@@ -1,0 +1,3 @@
+*
+!deployment/docker/v1-min/nginx.conf
+!V.1.front-ai-control/dist

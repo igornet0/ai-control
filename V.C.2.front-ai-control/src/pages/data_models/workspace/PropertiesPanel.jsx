@@ -167,6 +167,29 @@ function getSmbBrowserMode(settings) {
 /**
  * PropertiesPanel - Панель свойств для редактирования настроек выбранного виджета
  */
+const WIDGET_TYPE_META = {
+  'data-source': { label: 'Источник данных', tone: 'source' },
+  'data-model': { label: 'Модель данных', tone: 'source' },
+  formula: { label: 'Формула', tone: 'process' },
+  relationship: { label: 'Связь', tone: 'relation' },
+};
+
+const PROCESSING_BLOCK_LABELS = {
+  filter: 'Фильтр',
+  transform: 'Трансформация',
+  join: 'Объединение',
+  aggregate: 'Агрегация',
+};
+
+function getWidgetTypeMeta(widget) {
+  if (!widget) return { label: '', tone: 'source' };
+  if (widget.type === 'processing-block') {
+    const blockType = widget.settings?.blockType;
+    return { label: PROCESSING_BLOCK_LABELS[blockType] || 'Обработка', tone: 'process' };
+  }
+  return WIDGET_TYPE_META[widget.type] || { label: widget.type, tone: 'source' };
+}
+
 const PropertiesPanel = ({
   engineRef,
   modelId,
@@ -1994,9 +2017,26 @@ const PropertiesPanel = ({
   if (!selectedWidget) {
     return (
       <div className={styles.propertiesPanel}>
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>⚙️</div>
-          <div className={styles.emptyText}>Выберите виджет для редактирования</div>
+        <div className={styles.panelHeader}>
+          <h3 className={styles.panelTitle}>Свойства</h3>
+        </div>
+        <div className={styles.emptyPanel}>
+          <div className={styles.emptyPanelIcon} aria-hidden>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M10 6.5h3.5a2 2 0 0 1 2 2V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className={styles.emptyPanelTitle}>Виджет не выбран</div>
+          <div className={styles.emptyPanelText}>
+            Выберите виджет на полотне, чтобы настроить источник, обработку и сгенерированный DataCode.
+          </div>
+          <ul className={styles.emptyPanelTips}>
+            <li><kbd>Клик</kbd> — выбрать виджет</li>
+            <li><kbd>Перетаскивание</kbd> выхода на вход — соединить</li>
+            <li><kbd>2× ПКМ</kbd> — удалить виджет</li>
+          </ul>
         </div>
       </div>
     );
@@ -4216,7 +4256,19 @@ const PropertiesPanel = ({
       <div className={styles.propertiesPanel}>
         <div className={styles.panelHeader}>
           <h3 className={styles.panelTitle}>Свойства</h3>
-          <div className={styles.widgetType}>{selectedWidget.type}</div>
+          <div className={styles.panelHeaderMeta}>
+            <span
+              className={styles.widgetType}
+              data-tone={getWidgetTypeMeta(selectedWidget).tone}
+            >
+              {getWidgetTypeMeta(selectedWidget).label}
+            </span>
+            {(settings.name || selectedWidget.settings?.name) && (
+              <span className={styles.widgetName} title={settings.name || selectedWidget.settings?.name}>
+                {settings.name || selectedWidget.settings?.name}
+              </span>
+            )}
+          </div>
         </div>
         <div className={styles.propertiesPanelScroll}>
           {renderConnections()}

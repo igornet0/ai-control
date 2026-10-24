@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1.7
+# py-worm (run_app :8000 / run_api :8002) — slim runtime для V1 minimal.
+# Контекст сборки — py-worm/. data_models/uploads монтируются томами.
+FROM python:3.12-slim AS builder
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=true POETRY_NO_INTERACTION=1
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ git libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install "poetry>=2,<3"
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry install --only main --no-root
+
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    PATH=/app/.venv/bin:$PATH \
+    MALLOC_ARENA_MAX=2
+RUN apt-get update && apt-get install -y --no-install-recommends libmagic1 curl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=builder /app/.venv /app/.venv
+COPY . /app
+EXPOSE 8000 8002
+CMD ["uvicorn", "run_app:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

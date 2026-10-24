@@ -1,0 +1,6 @@
+# DataCode WebSocket runtime (бинарь из igorrw/datacode, GLIBC >= 2.39).
+FROM ubuntu:noble
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=igorrw/datacode:latest /usr/local/bin/datacode /usr/local/bin/datacode
+ENTRYPOINT ["datacode"]

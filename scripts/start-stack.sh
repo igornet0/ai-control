@@ -8,6 +8,9 @@ LOG_DIR="$ROOT/logs"
 CMD="${1:-up}"
 VERSION="${2:-1}"
 VERSION="${VERSION#version=}"  # accept both "2" and "version=2"
+# AI service on :8003: python (run_ai, default) | rust (aicontrol-ai). Same port,
+# same /api/v1 contract — switch back to python to roll back.
+AI_IMPL="${AI_IMPL:-python}"
 
 PROCS=(
   dashboard-query
@@ -22,6 +25,7 @@ PROCS=(
   run_app
   run_api
   run_ai
+  aicontrol-ai
 )
 
 kill_tree() {
@@ -218,9 +222,33 @@ fi
 
 echo
 echo "=== 3/3 Python (app / api / ai) ==="
-start_bg run_app "$ROOT/py-worm" poetry run python run_app.py --env=dev
-start_bg run_api "$ROOT/py-worm" poetry run python run_api.py --env=dev
-start_bg run_ai "$ROOT/py-worm" poetry run python run_ai.py --env=dev
+start_bg run_app "$ROOT/py-worm" env AIC_EDITION="$VERSION" poetry run python run_app.py --env=dev
+start_bg run_api "$ROOT/py-worm" env AIC_EDITION="$VERSION" poetry run python run_api.py --env=dev
+case "$AI_IMPL" in
+  python)
+    start_bg run_ai "$ROOT/py-worm" env AIC_EDITION="$VERSION" poetry run python run_ai.py --env=dev
+    ;;
+  rust)
+    # dev.env gives SECURITY__SECRET_KEY / DS__* / AI__DEFAULT_PROVIDER (same as run_ai);
+    # ai_api_keys are read from the main DB, conversations live in aicontrol_ai_dev
+    # (created and migrated by the service on startup).
+    start_bg aicontrol-ai "$ROOT/office-rust/AgentManager/crates/RouterAi" \
+      bash -c 'set -a
+        . "$0/py-worm/config/environments/dev.env"
+        set +a
+        export AICONTROL_AI__BIND=127.0.0.1:8003
+        export AICONTROL_AI__AICONTROL_BASE_URL=http://127.0.0.1:8000
+        export AICONTROL_AI__DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/aicontrol_ai_dev
+        export AICONTROL_AI__KEYS_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/ai_control_dev
+        export MESSAGING__BASE_URL="${MESSAGING__BASE_URL:-http://127.0.0.1:8792}"
+        export MESSAGING__INTERNAL_TOKEN="${MESSAGING__INTERNAL_TOKEN:-dev-mmm-internal-token}"
+        exec cargo run -p aicontrol-ai --bin aicontrol-ai' "$ROOT"
+    ;;
+  *)
+    echo "AI_IMPL must be python or rust (got: $AI_IMPL)" >&2
+    exit 1
+    ;;
+esac
 
 cat <<EOF
 
@@ -229,7 +257,7 @@ Stack is up (host only, no Docker).
   Frontend            http://127.0.0.1:3000
   App                 http://127.0.0.1:8000/health
   Developer API       http://127.0.0.1:8002/health
-  AI API              http://127.0.0.1:8003/health
+  AI API ($AI_IMPL)     http://127.0.0.1:8003/health
   DataCode            tcp://127.0.0.1:8899
   dashboard-query     http://127.0.0.1:8787/health
   realtime-sync TCP   127.0.0.1:9009

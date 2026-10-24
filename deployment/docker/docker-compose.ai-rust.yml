@@ -1,20 +1,26 @@
-# Optional override: Rust AI replaces Python run_ai on :8003
+# Optional override: Rust AI (aicontrol-ai) replaces Python run_ai on :8003.
+# Same port and /api/v1 contract; drop this -f to roll back to Python.
 # Usage:
 #   docker compose -f deployment/docker/docker-compose.dev.yml \
-#     -f deployment/docker/docker-compose.ai-rust.yml up -d ai_service
+#     -f deployment/docker/docker-compose.ai-rust.yml up -d --build ai_service
 
 services:
   ai_service:
     build:
-      context: ../..
-      dockerfile: deployment/docker/Dockerfile.aicontrol-ai
+      context: ../../office-rust/AgentManager/crates/RouterAi
+      dockerfile: ../../../../deployment/docker/Dockerfile.aicontrol-ai
     container_name: ai-control-ai-service-rust
     environment:
       AICONTROL_AI__BIND: 0.0.0.0:8003
       AICONTROL_AI__AICONTROL_BASE_URL: http://backend:8000
+      # Own DB (conversations/messages), migrated on startup.
       AICONTROL_AI__DATABASE_URL: postgresql://ai_control_user:ai_control_password@postgres:5432/aicontrol_ai
+      # Main backend DB: read-only ai_api_keys (admin-managed LLM keys).
+      AICONTROL_AI__KEYS_DATABASE_URL: postgresql://ai_control_user:ai_control_password@postgres:5432/ai_control_dev
+      # Must match the backend: JWT check + Fernet key for ai_api_keys.
       SECURITY__SECRET_KEY: ${SECURITY__SECRET_KEY:-dev-jwt-secret-key-change-in-production}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-jwt-secret-key-change-in-production}
+      AI__DEFAULT_PROVIDER: ${AI__DEFAULT_PROVIDER:-deepseek}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       MESSAGING__BASE_URL: ${MESSAGING__BASE_URL:-http://messaging:8792}

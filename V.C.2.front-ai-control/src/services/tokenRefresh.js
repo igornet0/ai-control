@@ -3,6 +3,13 @@ import { getApiBaseUrl } from './apiBaseUrl';
 
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
+// Refresh tokens rotate on every use and the cookie is shared by all tabs,
+// so refreshes must be serialized across tabs (Web Locks API).
+const REFRESH_LOCK_NAME = 'ai-control-auth-refresh';
+// A frozen background tab (or a hung request) can hold the lock forever;
+// never let that leave the current tab stuck on the loading screen.
+const LOCK_WAIT_TIMEOUT_MS = 10000;
+const REQUEST_TIMEOUT_MS = 10000;
 
 let accessToken = null;
 let csrfToken = null;
@@ -21,21 +28,28 @@ export function clearAccessToken() {
   accessToken = null;
 }
 
-export function getCsrfToken() {
-  if (csrfToken) return csrfToken;
+function readCsrfCookie() {
   if (typeof document === 'undefined') return null;
   try {
     const match = document.cookie.match(
       new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`)
     );
-    if (match) {
-      csrfToken = decodeURIComponent(match[1]);
-      return csrfToken;
-    }
+    if (match) return decodeURIComponent(match[1]);
   } catch {
     // ignore
   }
   return null;
+}
+
+export function getCsrfToken() {
+  // The cookie wins over the in-memory copy: another tab may have rotated it.
+  // Memory is the fallback for a cross-origin API where the cookie is unreadable.
+  const fromCookie = readCsrfCookie();
+  if (fromCookie) {
+    csrfToken = fromCookie;
+    return fromCookie;
+  }
+  return csrfToken;
 }
 
 export function setCsrfToken(token) {
@@ -87,6 +101,7 @@ export async function ensureCsrfToken() {
   try {
     const response = await axios.get(authUrl('/auth/csrf/'), {
       withCredentials: true,
+      timeout: REQUEST_TIMEOUT_MS,
     });
     const { csrf_token, csrf_enabled } = response.data || {};
     if (csrf_enabled === false) return null;
@@ -116,29 +131,76 @@ export async function clearAuthTokens() {
   }
 }
 
+async function withCrossTabLock(fn) {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : null;
+  if (!locks || typeof locks.request !== 'function') return fn();
+  if (typeof AbortController === 'undefined') {
+    return locks.request(REFRESH_LOCK_NAME, { mode: 'exclusive' }, fn);
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LOCK_WAIT_TIMEOUT_MS);
+  let granted = false;
+  try {
+    return await locks.request(
+      REFRESH_LOCK_NAME,
+      { mode: 'exclusive', signal: controller.signal },
+      () => {
+        granted = true;
+        clearTimeout(timer);
+        return fn();
+      }
+    );
+  } catch (error) {
+    if (granted) throw error;
+    // Lock holder is stuck: refresh without the lock rather than hang.
+    return fn();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function postRefresh() {
+  return axios.post(
+    authUrl('/auth/refresh-token/'),
+    {},
+    {
+      withCredentials: true,
+      headers: csrfHeaders(),
+      timeout: REQUEST_TIMEOUT_MS,
+    }
+  );
+}
+
+async function doRefresh() {
+  await ensureCsrfToken();
+  let response;
+  try {
+    response = await postRefresh();
+  } catch (error) {
+    // Stale CSRF token (e.g. rotated by another tab): fetch a fresh one, retry once.
+    if (error?.response?.status !== 403) throw error;
+    setCsrfToken(null);
+    await ensureCsrfToken();
+    response = await postRefresh();
+  }
+  const { access_token, csrf_token } = response.data || {};
+  if (csrf_token) setCsrfToken(csrf_token);
+  if (access_token) {
+    setAccessToken(access_token);
+    return access_token;
+  }
+  clearAccessToken();
+  return null;
+}
+
 export async function refreshAccessToken() {
   clearLegacyLocalStorageTokens();
 
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
-        await ensureCsrfToken();
-        const response = await axios.post(
-          authUrl('/auth/refresh-token/'),
-          {},
-          {
-            withCredentials: true,
-            headers: csrfHeaders(),
-          }
-        );
-        const { access_token, csrf_token } = response.data || {};
-        if (csrf_token) setCsrfToken(csrf_token);
-        if (access_token) {
-          setAccessToken(access_token);
-          return access_token;
-        }
-        clearAccessToken();
-        return null;
+        return await withCrossTabLock(doRefresh);
       } catch {
         clearAccessToken();
         return null;

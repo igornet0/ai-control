@@ -1,0 +1,17 @@
+**/target
+**/target-*
+**/node_modules
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.log
+**/logs
+**/data
+**/data_models
+**/frontend
+**/web
+**/certs
+**/.git
+**/.DS_Store
+**/tmp
+**/env.development

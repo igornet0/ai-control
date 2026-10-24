@@ -312,6 +312,24 @@
         uuid: [
             method('to_string', 'u.to_string() / str(u)', 'Строка UUID с дефисами', [], 'string'),
             method('to_bytes', 'u.to_bytes()', '16 байт UUID', [], 'bytes')
+        ],
+        columns: [
+            method('map', 'cols.map(fn(a, b, ...) => expr)', 'Построчное вычисление по нескольким колонкам (t[["a","b"]]); аргументы — значения колонок в порядке ссылки', [p('fn', 'function', 'Функция с одним параметром на колонку')], 'array')
+        ],
+        dbengine: [
+            method('connect', 'db.connect()', 'Соединение с БД (для SQLite — тот же движок)', [], 'dbengine'),
+            method('execute', 'conn.execute(sql, params?)', 'Выполнить SQL, вернуть число затронутых строк', [p('sql', 'string', 'SQL'), p('params', 'array', 'Параметры ?', true)], 'int'),
+            method('query', 'conn.query(sql, params?)', 'SELECT → Table', [p('sql', 'string', 'SQL'), p('params', 'array', 'Параметры ?', true)], 'table'),
+            method('run', 'conn.run(callable_or_instance)', 'ORM: create_all / INSERT модели / select(Model)', [p('target', 'any', 'Функция, модель или select')], 'any'),
+            method('schemas', 'conn.schemas()', 'Схемы каталога (main/public/БД/dbo…)', [], 'array'),
+            method('tables', 'conn.tables(schema?)', 'Пользовательские таблицы { name, schema, type }', [p('schema', 'string', 'Схема', true)], 'array'),
+            method('views', 'conn.views(schema?)', 'Представления { name, schema, type }', [p('schema', 'string', 'Схема', true)], 'array'),
+            method('columns', 'conn.columns(table, schema?)', 'Колонки { name, type, nullable, default, datacode_type? }', [p('table', 'string', 'Таблица'), p('schema', 'string', 'Схема', true)], 'array'),
+            method('indexes', 'conn.indexes(table, schema?)', 'Индексы { name, columns, unique, primary }', [p('table', 'string', 'Таблица'), p('schema', 'string', 'Схема', true)], 'array'),
+            method('primary_key', 'conn.primary_key(table, schema?)', 'Первичный ключ или null', [p('table', 'string', 'Таблица'), p('schema', 'string', 'Схема', true)], 'object | null'),
+            method('foreign_keys', 'conn.foreign_keys(table, schema?)', 'Внешние ключи { name, columns, referenced_table, referenced_schema, referenced_columns }', [p('table', 'string', 'Таблица'), p('schema', 'string', 'Схема', true)], 'array'),
+            method('inspect', 'conn.inspect()', 'Полное дерево каталога: schemas[].tables[] / views[]', [], 'object'),
+            method('table', 'conn.table(name, schema?)', 'SELECT * в Table', [p('name', 'string', 'Таблица'), p('schema', 'string', 'Схема', true)], 'table')
         ]
     };
 
@@ -323,6 +341,7 @@
     returnTypes.read_file = 'table';
     returnTypes.read_bin = 'bytes';
     returnTypes.read_file_bin = 'bytes';
+    returnTypes.engine = 'dbengine';
 
     var methodReturnTypes = {};
     Object.keys(typeMethods).forEach(function (typeName) {
@@ -393,6 +412,10 @@
         object: 'object',
         tuple: 'tuple',
         column: 'column',
+        columns: 'columns',
+        dbengine: 'dbengine',
+        engine: 'dbengine',
+        connection: 'dbengine',
         enumerate: 'enumerate',
         archive: 'archive',
         datasource: 'datasource',

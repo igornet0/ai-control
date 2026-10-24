@@ -1413,6 +1413,12 @@ class DataCodeEditor {
     applyParamTypes(paramList, assignType) {
         if (!paramList) return;
         paramList.split(',').forEach((part) => {
+            // *args → array, **kwargs → object
+            const variadic = part.trim().match(/^(\*\*?)\s*([A-Za-z_][A-Za-z0-9_]*)/);
+            if (variadic) {
+                assignType(variadic[2], { type: variadic[1] === '**' ? 'object' : 'array' });
+                return;
+            }
             const m = part.trim().match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_|]*)/);
             if (m) {
                 assignType(m[1], { type: this.normalizeInferredType(m[2].split('|')[0]) });
@@ -1480,6 +1486,14 @@ class DataCodeEditor {
         if (/^-?\d+\.\d+([eE][+-]?\d+)?$/.test(e)) return 'float';
         if (e.startsWith('[') && e.endsWith(']')) return 'array';
         if (e.startsWith('{') && e.endsWith('}')) return 'object';
+
+        // t[["a", "b"]] → columns, t["a"] → column (только для table-получателя)
+        const subscript = e.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*(\[[^\]]*\]|"[^"]*"|'[^']*')\s*\]\s*(\..*)?$/);
+        if (subscript && env[subscript[1]] && this.normalizeInferredType(env[subscript[1]].type) === 'table') {
+            const subType = subscript[2][0] === '[' ? 'columns' : 'column';
+            if (!subscript[3]) return subType;
+            return this.inferChainType('__sub__' + subscript[3], Object.assign(Object.create(null), env, { __sub__: { type: subType } }), lang, classes);
+        }
 
         const streamCall = e.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(.*\)\s*$/);
         if (streamCall && env[streamCall[1]] && env[streamCall[1]].type === 'function') {

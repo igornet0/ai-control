@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# Универсальный release-образ для Rust-модулей AiControl (V1 minimal / 1 GB / 1 CPU).
+# Контекст сборки — корень cargo-workspace модуля (office-rust/<module>).
+#   PKG  — cargo package (-p), BINS — список бинарей через пробел.
+# Сборка идёт вне лимита рантайма; профиль облегчён (без fat LTO), чтобы rustc
+# укладывался в память Docker VM (~2.4 GB).
+ARG RUST_VERSION=1
+FROM rust:${RUST_VERSION}-bookworm AS builder
+ARG PKG
+ARG BINS
+ENV CARGO_BUILD_JOBS=2 \
+    CARGO_PROFILE_RELEASE_LTO=false \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+    CARGO_PROFILE_RELEASE_DEBUG=0 \
+    CARGO_PROFILE_RELEASE_STRIP=symbols \
+    CARGO_INCREMENTAL=0
+WORKDIR /build
+COPY . /build
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=target-${PKG},target=/build/target \
+    set -eux; mkdir -p /out; \
+    for b in ${BINS}; do \
+      cargo build --release -p "${PKG}" --bin "$b"; \
+      cp "target/release/$b" /out/; \
+    done
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libssl3 curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /out/ /usr/local/bin/
+WORKDIR /app

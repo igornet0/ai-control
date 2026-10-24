@@ -125,8 +125,9 @@ export const pricingConfig: PricingConfig = {
       },
       {
         id: 'enterprise',
-        name: 'Enterprise',
-        description: 'Для крупных организаций с требованиями к безопасности и SLA.',
+        name: 'Индивидуальный',
+        badge: 'Конструктор',
+        description: 'Соберите план под компанию: свои лимиты, функции и период оплаты.',
         priceMonthly: null,
         priceYearly: null,
         currency: '₽',
@@ -143,8 +144,8 @@ export const pricingConfig: PricingConfig = {
           { id: 'manager', label: 'Персональный менеджер', included: true },
           { id: 'support', label: 'Корпоративная поддержка 24/7', included: true },
         ],
-        cta: 'Связаться с нами',
-        ctaAction: 'contact',
+        cta: 'Настроить план',
+        ctaAction: 'custom',
       },
     ],
   },
@@ -386,7 +387,7 @@ export const pricingConfig: PricingConfig = {
         id: 'enterprise',
         question: 'Есть ли корпоративные тарифы?',
         answer:
-          'Да. В разделе «Юридическое лицо» доступны Startup, Business и Enterprise с командными и security-возможностями.',
+          'Да. В разделе «Юридическое лицо» доступны Startup, Business и индивидуальный план с командными и security-возможностями.',
       },
     ],
     business: [
@@ -400,7 +401,7 @@ export const pricingConfig: PricingConfig = {
         id: 'change-plan',
         question: 'Можно ли изменить тариф?',
         answer:
-          'Да. Масштабируйте число пользователей и лимиты при росте команды. Переход на Enterprise оформляется через менеджера.',
+          'Да. Масштабируйте число пользователей и лимиты при росте команды. Индивидуальный план можно собрать в конструкторе: свои лимиты, функции и период оплаты.',
       },
       {
         id: 'limits',
@@ -412,7 +413,7 @@ export const pricingConfig: PricingConfig = {
         id: 'yearly',
         question: 'Можно ли оплачивать ежегодно?',
         answer:
-          'Да. Годовая оплата доступна для Startup и Business и снижает стоимость относительно помесячной схемы.',
+          'Да. Годовая оплата доступна для всех платных тарифов, включая индивидуальный план, и снижает стоимость относительно помесячной схемы.',
       },
       {
         id: 'sources',
@@ -424,19 +425,19 @@ export const pricingConfig: PricingConfig = {
         id: 'api',
         question: 'Есть ли API?',
         answer:
-          'На Business и Enterprise доступен полноценный API. На Startup — ограниченный доступ для базовых сценариев.',
+          'На Business и индивидуальном плане доступен полноценный API. На Startup — ограниченный доступ для базовых сценариев.',
       },
       {
         id: 'team',
         question: 'Поддерживается ли командная работа?',
         answer:
-          'Да. Все бизнес-тарифы включают совместные дашборды, роли и права доступа. Business и Enterprise добавляют RBAC и аудит.',
+          'Да. Все бизнес-тарифы включают совместные дашборды, роли и права доступа. Business и индивидуальный план добавляют RBAC и аудит.',
       },
       {
         id: 'enterprise',
-        question: 'Есть ли корпоративные тарифы?',
+        question: 'Можно ли собрать свой тариф?',
         answer:
-          'Да. Enterprise включает SSO, SLA, private deployment, персонального менеджера и индивидуальные лимиты.',
+          'Да. Кнопка «Настроить план» открывает конструктор: укажите лимиты и функции, отправьте заявку — администратор рассчитает стоимость и подключит план. По запросу — SSO, SLA, private deployment и персональный менеджер.',
       },
     ],
   },
@@ -458,7 +459,7 @@ export const pricingConfig: PricingConfig = {
       faqTitle: 'Частые вопросы',
       ctaTitle: 'Готовы подключить команду к данным?',
       ctaSubtitle: 'Запустите общие дашборды, настройте доступы и автоматизируйте отчёты для отдела.',
-      ctaSecondaryNote: 'Нужна корпоративная конфигурация?',
+      ctaSecondaryNote: 'Нужны свои лимиты и условия?',
     },
   },
 };

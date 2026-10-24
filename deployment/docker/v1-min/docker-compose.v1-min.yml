@@ -1,0 +1,304 @@
+# AiControl V1 — минимальная конфигурация: ВСЯ платформа в 1 GB RAM / 1 CPU.
+#
+# Модель «один VPS»: все контейнеры делят один network namespace (сервис netns),
+# поэтому адреса 127.0.0.1:* из py-worm/config/environments/dev.env работают без правок.
+# Общий бюджет ресурсов — родительский cgroup /aicontrol-v1 (cpu.max=1 CPU, memory.max=1G),
+# его выставляет scripts/v1-min.sh (шаг limits) перед запуском.
+#
+# Запуск: scripts/v1-min.sh up   (сборка → сид данных → лимиты → up → health)
+name: aicv1
+
+x-common: &common
+  network_mode: "service:netns"
+  cgroup_parent: /aicontrol-v1
+  restart: unless-stopped
+  depends_on: [netns]
+  logging:
+    driver: json-file
+    options: { max-size: "5m", max-file: "2" }
+
+x-rust-build: &rust-build
+  dockerfile: ../../deployment/docker/v1-min/Dockerfile.rust
+
+services:
+  # ── «Машина»: владеет сетью и публикует порты наружу ──────────────────────
+  netns:
+    image: debian:bookworm-slim
+    command: ["sleep", "infinity"]
+    cgroup_parent: /aicontrol-v1
+    init: true
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # nginx (frontend + reverse proxy) — точка входа
+      - "8793:8793"   # ScheduleSystem (мониторинг/бенчмарк)
+
+  postgres:
+    <<: *common
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    command:
+      - postgres
+      - -c
+      - listen_addresses=127.0.0.1
+      - -c
+      - max_connections=80
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=192MB
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - wal_buffers=2MB
+      - -c
+      - max_wal_size=256MB
+      - -c
+      - max_worker_processes=2
+      - -c
+      - max_parallel_workers=1
+      - -c
+      - max_parallel_workers_per_gather=0
+      - -c
+      - autovacuum_max_workers=1
+      - -c
+      - jit=off
+      - -c
+      - synchronous_commit=off
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./seed/initdb:/docker-entrypoint-initdb.d:ro
+      - ./seed/dumps:/seed:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 120
+    shm_size: 64m
+
+  redis:
+    <<: *common
+    image: redis:7-alpine
+    command: ["redis-server", "--bind", "127.0.0.1", "--save", "", "--appendonly", "no",
+              "--maxmemory", "32mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "127.0.0.1", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # ── Rust-сайдкары ──────────────────────────────────────────────────────────
+  dashboard-query:
+    <<: *common
+    image: aicv1/dashboard-query:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/dashboard-query
+      args: { PKG: dashboard-query-server, BINS: dashboard-query-server }
+    command: ["dashboard-query-server"]
+    environment:
+      DASHBOARD_QUERY_LISTEN: 127.0.0.1:8787
+      RUST_LOG: warn
+    volumes:
+      - data_models:/app/data_models
+
+  realtime-sync:
+    <<: *common
+    image: aicv1/realtime-sync:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/realtime-sync
+      args: { PKG: realtime-sync, BINS: server }
+    command: ["server"]
+    environment:
+      RTSYNC_CONFIG: /app/config.toml
+      RUST_LOG: warn
+    volumes:
+      - ../../../office-rust/realtime-sync/config.toml:/app/config.toml:ro
+
+  task-reporting:
+    <<: *common
+    image: aicv1/task-reporting:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/task-reporting
+      args: { PKG: task-reporting-server, BINS: task-reporting-server }
+    command: ["task-reporting-server"]
+    environment:
+      TASK_REPORTING_LISTEN: 127.0.0.1:8790
+      RUST_LOG: warn
+
+  file-pipeline:
+    <<: *common
+    image: aicv1/file-pipeline:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/file-pipeline
+      args: { PKG: file-pipeline-server, BINS: file-pipeline-server }
+    command: ["file-pipeline-server"]
+    environment:
+      FILE_PIPELINE_LISTEN: 127.0.0.1:8791
+      RUST_LOG: warn
+    volumes:
+      - uploads:/app/uploads
+      - data_models:/app/data_models
+
+  schedule-system:
+    <<: *common
+    image: aicv1/schedule-system:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/ScheduleSystem
+      args: { PKG: schedule-system-server, BINS: schedule-system-server }
+    command: ["schedule-system-server"]
+    environment:
+      SCHEDULE_SYSTEM_LISTEN: 0.0.0.0:8793
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ai_control_dev
+      API_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ai_control_api_dev
+      DATA_MODELS_DIR: /app/data_models
+      SCHEDULE_DB_PATH: /app/data/schedule.db
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_NO_EXPIRY: "true"
+      INTERNAL_TOKEN: dev-schedule-internal-token
+      AUTH_LOGIN_URL: http://127.0.0.1:8000/auth/login_user/
+      BENCH_ALLOWED_HOSTS: 127.0.0.1,localhost
+      BENCH_MAX_VU: "200"
+      # cgroup v2: метрики хоста берутся из общего бюджета /aicontrol-v1
+      HOST_CGROUP_ROOT: /host/cgroup/aicontrol-v1
+      RUST_LOG: info
+    volumes:
+      - schedule_data:/app/data
+      - data_models:/app/data_models:ro
+      - /sys/fs/cgroup:/host/cgroup:ro
+
+  mail-message-manager:
+    <<: *common
+    image: aicv1/mail-message-manager:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/MailMessageManager
+      args: { PKG: mail-message-manager-server, BINS: mail-message-manager-server }
+    command: ["mail-message-manager-server"]
+    environment:
+      MAIL_MESSAGE_MANAGER_LISTEN: 127.0.0.1:8792
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/mail_message_dev
+      REDIS_URL: redis://127.0.0.1:6379/0
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_NO_EXPIRY: "true"
+      DEV_USERS_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/ai_control_dev
+      INTERNAL_TOKEN: dev-mmm-internal-token
+      SYNC_INTERVAL_SEC: "300"
+      EXMAIL_STUB: "true"
+      MMM_UPLOAD_DIR: /app/uploads/messaging
+      RUST_LOG: warn
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  partyhome:
+    <<: *common
+    image: aicv1/partyhome:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/PartyHome
+      args: { PKG: signaling, BINS: signaling }
+    command: ["signaling"]
+    environment:
+      SIGNALING_BIND: 127.0.0.1:8989
+      SIGNALING_DEV_TOKEN: dev
+      RUST_LOG: warn
+
+  aicontrol-ai:
+    <<: *common
+    image: aicv1/aicontrol-ai:latest
+    build:
+      <<: *rust-build
+      context: ../../../office-rust/AgentManager/crates/RouterAi
+      dockerfile: ../../../../deployment/docker/v1-min/Dockerfile.rust
+      args: { PKG: aicontrol-ai, BINS: aicontrol-ai }
+    command: ["aicontrol-ai"]
+    env_file: ../../../py-worm/config/environments/dev.env
+    environment:
+      AICONTROL_AI__BIND: 127.0.0.1:8003
+      AICONTROL_AI__AICONTROL_BASE_URL: http://127.0.0.1:8000
+      AICONTROL_AI__DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aicontrol_ai_dev
+      AICONTROL_AI__KEYS_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ai_control_dev
+      AICONTROL_AI__DATA_DIR: /app/data
+      MESSAGING__BASE_URL: http://127.0.0.1:8792
+      MESSAGING__INTERNAL_TOKEN: dev-mmm-internal-token
+      RUST_LOG: warn
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # DataCode собирается из исходников (та же версия, что у локального стека, 2.4.x):
+  # образ igorrw/datacode:latest (2.3.8) не отвечает на DCP-пакеты py-worm → execute виснет.
+  # Внешний репозиторий используется только как read-only build context.
+  datacode:
+    <<: *common
+    image: aicv1/datacode:2.4.9
+    build:
+      context: ${DATACODE_SRC:-${HOME}/Desktop/DataCode REPS/Datacode-Dev}
+      dockerfile: ${V1_DIR:?run via scripts/v1-min.sh}/Dockerfile.datacode-src
+    command: ["--websocket", "--host", "127.0.0.1", "--port", "8899", "--use-ve", "--build_model"]
+    volumes:
+      - data_models:/app/data_models
+
+  # ── Python (py-worm), V1: AIC_EDITION=1, по 1 воркеру ───────────────────────
+  backend:
+    <<: *common
+    image: aicv1/py-worm:latest
+    build:
+      context: ../../../py-worm
+      dockerfile: ../deployment/docker/v1-min/Dockerfile.python
+    command: ["uvicorn", "run_app:app", "--host", "127.0.0.1", "--port", "8000",
+              "--no-access-log", "--workers", "1"]
+    env_file: ../../../py-worm/config/environments/dev.env
+    environment: &py-env
+      ENVIRONMENT: development
+      AIC_EDITION: "1"
+      DEBUG: "False"
+      LOGGING__LEVEL: WARNING
+      DATA_MODELS_DIR: /app/data_models
+      UPLOADS_ROOT: /app/uploads
+      FILE_STORAGE_PATH: /app/uploads
+      # Бенчмарк гоняет DataCode от одного пользователя: дефолт 20/мин даёт 429 уже на 5 VU.
+      # Переопределяемо: V1_PLAYGROUND_RPM=20 scripts/v1-min.sh up — прод-поведение.
+      CES__PLAYGROUND_RATE_LIMIT_PER_MIN: ${V1_PLAYGROUND_RPM:-600}
+    volumes: &py-vols
+      - data_models:/app/data_models
+      - uploads:/app/uploads
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  api:
+    <<: *common
+    image: aicv1/py-worm:latest
+    command: ["uvicorn", "run_api:app", "--host", "127.0.0.1", "--port", "8002",
+              "--no-access-log", "--workers", "1"]
+    env_file: ../../../py-worm/config/environments/dev.env
+    environment: *py-env
+    volumes: *py-vols
+    depends_on:
+      postgres: { condition: service_healthy }
+      backend: { condition: service_started }
+
+  # ── Frontend V1 (собран на хосте) + reverse-proxy ──────────────────────────
+  frontend:
+    <<: *common
+    image: aicv1/frontend:latest
+    build:
+      context: ../../..
+      dockerfile: deployment/docker/v1-min/Dockerfile.frontend
+
+volumes:
+  pgdata:
+  data_models:
+  uploads:
+  schedule_data:

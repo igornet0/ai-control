@@ -1,0 +1,5 @@
+# syntax=docker/dockerfile:1.7
+# V1 frontend: статическая сборка (dist/, собирается на хосте `npm run build`) + nginx.
+FROM nginx:1.27-alpine
+COPY deployment/docker/v1-min/nginx.conf /etc/nginx/nginx.conf
+COPY V.1.front-ai-control/dist /usr/share/nginx/html

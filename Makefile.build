@@ -2,6 +2,7 @@
 #
 # From repository root:
 #   make -f Makefile.build all              — host native (macOS arm64 → Mach-O)
+#   make -f Makefile.build all version=2    — клиентская редакция V.C.2 (без тарифов)
 #   make -f Makefile.build linux-amd64      — linux/amd64 via Docker (macOS arm64 OK)
 #   make -f Makefile.build up|stop|restart|status
 #
@@ -14,6 +15,11 @@ DIST_DIR ?= $(ROOT)/dist/prod
 BUILD_SCRIPT := $(ROOT)/scripts/build-prod.sh
 BUILD_DOCKER_SCRIPT := $(ROOT)/scripts/build-prod-docker.sh
 RUN_SCRIPT := $(ROOT)/scripts/run-prod.sh
+
+# Редакция: 1 — V.1 (админская, с тарифами), 2 — V.C.2 (клиентская).
+version ?= 1
+VERSION ?= $(version)
+export VERSION
 
 # Docker linux/amd64 cross-build (defaults before export — empty env must not win)
 WHAT ?= all
@@ -66,15 +72,16 @@ help:
 	@echo "  cd dist/prod && ./install.sh -y     — postgres, redis, python venv, DataCode"
 	@echo "  cd dist/prod && ./init_env.sh"
 	@echo ""
-	@echo "Env: DIST_DIR=$(DIST_DIR)  FORCE_PROD_ENV=1  SKIP_NPM_CI=1  DOCKER_PLATFORM=linux/amd64"
+	@echo "Env: version=1|2 (default 1)  DIST_DIR=$(DIST_DIR)  FORCE_PROD_ENV=1  SKIP_NPM_CI=1  DOCKER_PLATFORM=linux/amd64"
 
 check-root:
 	@test -f "$(ROOT)/scripts/build-prod.sh" || { \
 	  echo "error: run make from AiControl repo root"; \
 	  exit 1; \
 	}
-	@test -d "$(ROOT)/front-ai-control" && test -d "$(ROOT)/src" && test -d "$(ROOT)/rust" || { \
-	  echo "error: expected front-ai-control/, src/, rust/ under $(ROOT)"; \
+	@test -d "$(ROOT)/V.1.front-ai-control" && test -d "$(ROOT)/V.C.2.front-ai-control" \
+	  && test -d "$(ROOT)/py-worm" && test -d "$(ROOT)/office-rust" || { \
+	  echo "error: expected V.1.front-ai-control/, V.C.2.front-ai-control/, py-worm/, office-rust/ under $(ROOT)"; \
 	  exit 1; \
 	}
 

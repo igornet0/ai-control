@@ -215,6 +215,17 @@ print("${n:.2f}")      # "42.23"
 print("${n=:.0f}")     # "n=42"
 print("Литерал: \${expr}")</code></pre>
                         </div>
+                        <p>Спецификатор после <code>:</code> — <code>[[fill]align][sign][#][0][width][grouping][.precision][type]</code>: выравнивание <code>&lt; &gt; ^ =</code>, знак <code>+ - пробел</code>, группировка <code>, _</code>, типы <code>f F e E d % s</code>. Ширина — минимум, значение не обрезается; числа по умолчанию выравниваются вправо, остальное — влево.</p>
+                        <div class="code-block">
+                            <div class="code-header"><span>DataCode</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                            <pre><code>x = 3.14159
+s = "ab"
+print("[${x:9.2f}]")       # "[     3.14]"
+print("[${s:&gt;6}]")        # "[    ab]"
+print("[${s:*^6}]")        # "[**ab**]"
+print("${1234567.891:+08,.1f}")   # "+1,234,567.9"
+print("${0.256:.1%}")      # "25.6%"</code></pre>
+                        </div>
 
                         <h3 id="syn-arrays">03. Массивы, срезы, comprehension</h3>
                         <div class="code-block">
@@ -280,6 +291,37 @@ fn process(value: null | str | int = null) -&gt; str {
 double = fn(x) =&gt; x * 2
 print(map([1, 2, 3], double))</code></pre>
                         </div>
+                        <p><strong>Переменное число аргументов.</strong> <code>*name</code> собирает лишние позиционные аргументы в массив, <code>**name</code> — неиспользованные именованные в объект. Порядок параметров: обычные → со значением по умолчанию → <code>*args</code> → <code>**kwargs</code>; каждый не более одного раза и без значения по умолчанию. Работает в методах и конструкторах классов, допускается аннотация <code>*nums: int</code>.</p>
+                        <div class="code-block">
+                            <div class="code-header"><span>DataCode</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                            <pre><code>fn total(*nums) {
+    s = 0
+    for n in nums { s = s + n }
+    return s
+}
+print(total(1, 2, 3))          # 6
+
+fn connect(host, **opts) {
+    port = opts.get("port", 5432)
+    return "${host}:${port}"
+}
+print(connect("db", port=6432))
+
+fn log(level, prefix = "&gt;", *parts, **meta) {
+    print(level, prefix, parts, meta)
+}
+
+fn point(x, y = 0, z = 0) { return [x, y, z] }
+coords = [2, 3]
+point(0, *coords)              # распаковка массива
+point(*[1], *[2, 3])
+point(1, **{"y": 20, "z": 30}) # распаковка объекта
+
+fn wrapper(*args, **kwargs) {
+    return point(*args, **kwargs)
+}</code></pre>
+                        </div>
+                        <p>В месте вызова порядок такой: позиционные → <code>*arr</code> → именованные и <code>**obj</code>.</p>
 
                         <h3 id="syn-stream">08. Потоковые функции</h3>
                         <div class="code-block">
@@ -330,6 +372,18 @@ from M import *
 from core.config import Settings</code></pre>
                         </div>
                         <p>Локальный модуль: <code>name.dc</code> или пакет <code>name/__lib__.dc</code>. <code>fn __main__()</code> выполняется только если файл — точка входа, не при <code>import</code>.</p>
+                        <p>Параметры <code>__main__</code> заполняются аргументами командной строки (2.4.7+): именованные <code>--name=value</code>, <code>--name value</code>, флаги <code>--flag</code> / <code>--no-flag</code> для <code>bool</code>, <code>_</code> в имени можно писать как <code>-</code>. Именованные имеют приоритет, позиционные заполняют оставшиеся параметры по порядку, значения приводятся к аннотированным типам, недостающие берутся из значений по умолчанию. Лишние позиционные доступны через <code>argv</code>.</p>
+                        <div class="code-block">
+                            <div class="code-header"><span>DataCode</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                            <pre><code># report.dc
+fn __main__(name, n: int, verbose: bool = false) {
+    for i in range(n) { print("Привет, ${name}") }
+    if verbose { print("готово") }
+}
+
+# datacode report.dc Ann --n 3 --verbose
+# datacode report.dc --name=Ann 2 --no-verbose</code></pre>
+                        </div>
 
                         <h3 id="syn-try">12. Ошибки</h3>
                         <div class="code-block">
@@ -343,7 +397,18 @@ from core.config import Settings</code></pre>
 }
 
 throw "отрицательное значение"
-try { risky() } catch TypeError e { print(e) }</code></pre>
+
+# Эквивалентные формы
+try { risky() } catch (e) { print(e) }
+try { risky() } catch e { print(e) }
+try { risky() } catch as e { print(e) }
+
+# Типизированный перехват
+try { risky() } catch (ValueError e) { print(e) }
+try { risky() } catch TypeError e { print(e) }
+
+# Без переменной
+try { risky() } catch { print("ошибка") }</code></pre>
                         </div>
                     </div>
                 </section>
@@ -391,6 +456,13 @@ adults = t["age" &gt; 21]
 col = t["age"]
 print(sum(col), col.map(fn(x) =&gt; x + 1))</code></pre>
                         </div>
+                        <p><strong>Ссылка на несколько колонок</strong> <code>t[["a", "b"]]</code> (минимум 2 имени, <code>typeof</code> → <code>"columns"</code>) нужна для построчных вычислений: <code>.map(fn(a, b) =&gt; …)</code> получает значения колонок в порядке ссылки и возвращает массив. Это не подтаблица: для проекции используйте <code>t.select([...])</code>, индекс <code>cols[0]</code> не поддерживается. Меньше двух имён — <code>TypeError</code>, неизвестная колонка — <code>KeyError</code>.</p>
+                        <div class="code-block">
+                            <div class="code-header"><span>DataCode</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                            <pre><code>orders = table([[1200.0, 3], [450.0, 1]], ["total", "quantity"])
+orders!["avg_check"] = orders[["total", "quantity"]].map(fn(v, q) =&gt; v / q)
+print(typeof(orders[["total", "quantity"]]))   # columns</code></pre>
+                        </div>
 
                         <h3 id="type-date">Date и duration</h3>
                         <p>Поля date (скобки необязательны): <code>year month day quarter hour minute second weekday utc / to_utc</code>. Метод <code>d.format("%Y-%m-%d")</code>.</p>
@@ -436,7 +508,7 @@ print(sum(col), col.map(fn(x) =&gt; x + 1))</code></pre>
                             <div class="feature-card"><h4>uuid</h4><p><code>v4 / random</code>, <code>v7 / new</code>, <code>parse to_bytes from_bytes v3 v5</code>.</p></div>
                             <div class="feature-card"><h4>settings_env</h4><p><code>load_env</code>, <code>Settings</code>, <code>Field(...)</code> — .env и конфиг.</p></div>
                             <div class="feature-card"><h4>system</h4><p><code>env runtime hardware time permissions log net process fs</code>.</p></div>
-                            <div class="feature-card"><h4>database_engine</h4><p><code>engine(url)</code>, <code>connect execute query</code>, <code>DatabaseCluster</code>.</p></div>
+                            <div class="feature-card"><h4>database_engine</h4><p><code>engine(url)</code>, <code>connect execute query run</code>, интроспекция <code>schemas tables views columns indexes primary_key foreign_keys inspect table</code>, <code>DatabaseCluster</code>.</p></div>
                             <div class="feature-card"><h4>crypto</h4><p>Пароли: <code>Argon2.hash/verify</code>, <code>bcrypt</code>, <code>secure_compare</code>. Не путать с глобалами <code>sha256</code>.</p></div>
                             <div class="feature-card"><h4>heapq</h4><p><code>heappush heappop heapify heappeek heapreplace</code>.</p></div>
                             <div class="feature-card"><h4>pathfind / grid</h4><p>A* на сетке: <code>astar_grid</code>, <code>grid.alloc_i32</code>, <code>grid.astar</code>.</p></div>
@@ -453,6 +525,27 @@ from uuid import v4
 
 id = v4()
 plot.line([1, 2, 3], [1, 4, 9], true, color="blue")</code></pre>
+                        </div>
+
+                        <h3 id="mod-db">Интроспекция БД</h3>
+                        <p>Методы каталога одинаковы для SQLite, PostgreSQL, MySQL и MSSQL. Без <code>schema</code> берётся схема по умолчанию (<code>main</code>, <code>public</code>, текущая БД, <code>dbo</code>). Системные таблицы <code>sqlite_*</code> и <code>_datacode_*</code> не попадают в <code>tables()</code>.</p>
+                        <div class="code-block">
+                            <div class="code-header"><span>DataCode</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                            <pre><code>from database_engine import engine
+
+conn = engine("sqlite:///:memory:").connect()
+conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)", [])
+
+for t in conn.tables() {           # { name, schema, type }
+    print(t.schema + "." + t.name)
+}
+for c in conn.columns("users") {   # { name, type, nullable, default, datacode_type? }
+    print(c.name, c["type"], c.nullable)
+}
+print(conn.primary_key("users"))   # объект или null
+print(conn.foreign_keys("users"))  # { name, columns, referenced_table, … }
+users = conn.table("users")        # SELECT * → Table
+info = conn.inspect()              # schemas[].tables[] / views[]</code></pre>
                         </div>
 
                         <h3 id="mod-ml">DPM: пакет ml</h3>
@@ -643,6 +736,21 @@ fn ping(req) {
 }</code></pre>
                         </div>
 
+                        <h3 id="ws-sandbox">Sandbox сессии</h3>
+                        <ul>
+                            <li>Пути в сессии относительные (<code>./…</code>) и разрешаются в VFS пакета.</li>
+                            <li>Запись запрещена при любом <code>execute_policy</code>: <code>save*</code>, <code>response.save*</code>, <code>extract</code> архива, <code>system.fs.write</code>, файловые <code>sqlite:</code>-подключения. <code>sqlite::memory:</code> разрешён.</li>
+                            <li>Данные хоста скрыты: <code>get_home_dir</code> / <code>get_temp_dir</code> → <code>"./"</code>; имя пользователя, hostname, <code>env.get</code>, <code>get_ip</code> → <code>null</code>; <code>get_interfaces()</code> → <code>[]</code>.</li>
+                            <li><code>execute_policy</code> по умолчанию <code>"restricted"</code>: запрещены <code>system.fs.read</code>, <code>process.exec</code>, <code>env.set_env</code>, <code>web.http</code>, <code>web.browser</code>. Снять ограничения — <code>"allow_all"</code>.</li>
+                            <li>DCP-сессии не импортируют модули из каталога <code>ws_app</code>; <code>sqlite_db</code> экспортирует только глобальные таблицы.</li>
+                        </ul>
+                        <p>Запись можно разрешить отдельной папкой на соединение: она создаётся при первой записи и удаляется при отключении клиента. Пути только относительные, абсолютные и <code>..</code> отклоняются, квота по умолчанию 50 МБ.</p>
+                        <div class="code-block">
+                            <div class="code-header"><span>DataCode</span><button class="copy-btn" onclick="copyCode(this)">Копировать</button></div>
+                            <pre><code>configure({"allow_write": true, "write_quota_mb": 50})</code></pre>
+                        </div>
+                        <p>Arrow Utf8: колонка становится числовой или датой, только если все непустые значения записаны канонично. Ведущие нули, знак <code>+</code> или целые больше 2<sup>53</sup> оставляют колонку текстовой.</p>
+
                         <h3 id="ws-proto">Протокол DCP</h3>
                         <p>Запрос — <strong>binary</strong> кадр с байтами <code>.dcp</code> (magic <code>DCPK</code>). Ответ — JSON:</p>
                         <div class="code-block">
@@ -670,6 +778,7 @@ fn ping(req) {
                                 <tbody>
                                     <tr><td><code>datacode</code></td><td>Интерактивный REPL</td></tr>
                                     <tr><td><code>datacode file.dc</code></td><td>Выполнить файл</td></tr>
+                                    <tr><td><code>datacode file.dc a --n 3 --flag</code></td><td>Аргументы для <code>fn __main__(…)</code>: <code>--name=value</code>, <code>--name value</code>, <code>--flag</code> / <code>--no-flag</code>, позиционные по порядку</td></tr>
                                     <tr><td><code>datacode file.dc --debug</code></td><td>С отладочной информацией</td></tr>
                                     <tr><td><code>datacode file.dc --build_model</code></td><td>Экспорт глобальных таблиц в SQLite</td></tr>
                                     <tr><td><code>datacode file.dc --build_model out.db</code></td><td>Указать файл БД</td></tr>
@@ -716,7 +825,7 @@ fn ping(req) {
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>DataCode</h4>
-                    <p>Язык для обработки данных: 117 builtins, методы типов, таблицы и модули</p>
+                    <p>DataCode 2.4.9 · язык для обработки данных: 117 builtins, методы типов, таблицы и модули</p>
                 </div>
                 <div class="footer-section">
                     <h4>Ссылки</h4>

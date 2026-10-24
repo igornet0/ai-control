@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.7
+# DataCode из исходников (контекст — репозиторий Datacode-Dev, задаётся DATACODE_SRC).
+# Нужен, т.к. igorrw/datacode:latest (v2.3.8) не понимает бинарный DCP-кадр,
+# который шлёт py-worm → /api/datacode/execute висит до таймаута.
+FROM rust:1-bookworm AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      clang libclang-dev pkg-config libssl-dev cmake \
+    && rm -rf /var/lib/apt/lists/*
+ARG CARGO_JOBS=1
+ENV CARGO_BUILD_JOBS=${CARGO_JOBS} \
+    CARGO_PROFILE_RELEASE_LTO=false \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+    CARGO_PROFILE_RELEASE_DEBUG=0 \
+    CARGO_PROFILE_RELEASE_STRIP=symbols \
+    CARGO_INCREMENTAL=0
+WORKDIR /build
+COPY . /build
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=target-datacode,target=/build/target \
+    cargo build --release -p data-code --bin datacode \
+    && cp target/release/datacode /datacode
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /datacode /usr/local/bin/datacode
+ENTRYPOINT ["datacode"]
