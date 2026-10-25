@@ -106,999 +106,18 @@ PALETTE_SUNSET = ["#f97316", "#fb923c", "#fbbf24", "#ef4444", "#ec4899", "#a855f
 PALETTE_FOREST = ["#10b981", "#34d399", "#059669", "#84cc16", "#14b8a6", "#0d9488"]
 
 
-def overview_widgets(model_id: int, sheet_ids: dict[str, int] | None = None) -> list[dict[str, Any]]:
-    """Sheet 1: hero, KPIs, gauges, filter, html, navigation."""
-    sheets = sheet_ids or {}
-    nav_qa = str(sheets.get("qa", ""))
-    nav_sales = str(sheets.get("sales", ""))
-    nav_ops = str(sheets.get("operations", ""))
-    nav_catalog = str(sheets.get("catalog", ""))
-    nav_events = str(sheets.get("events", ""))
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-    return [
-        {
-            "name": "Title",
-            "widget_type": "text",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "mode": "static",
-                    "text": "Commerce Command Center",
-                    "fontSize": 28,
-                    "color": "#F8FAFC",
-                    "fontWeight": "700",
-                },
-                "styles": {"typography": {"fontFamily": "Space Grotesk", "color": "#F8FAFC"}},
-            },
-            "position_x": 40,
-            "position_y": 20,
-            "width": 640,
-            "height": 64,
-            "order_index": 0,
-        },
-        {
-            "name": "Subtitle",
-            "widget_type": "html",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "html": (
-                        "<div style='padding:10px 14px;color:#cbd5e1;font:500 13px/1.45 \"IBM Plex Sans\",sans-serif'>"
-                        "Demo dashboard · orders · payments · catalog · events<br/>"
-                        "<span style='color:#67e8f9'>Bound to compiled model_data · вкладка QA Expected — фильтры и эталонные KPI</span>"
-                        "</div>"
-                    ),
-                },
-                "styles": {},
-            },
-            "position_x": 700,
-            "position_y": 20,
-            "width": 520,
-            "height": 64,
-            "order_index": 1,
-        },
-        {
-            "name": "Sum amount",
-            "widget_type": "kpi",
-            "data_source": {"modelId": model_id, "table": "orders", "field": "amount"},
-            "data_config": {
-                "settings": {
-                    "title": "Revenue (SUM)",
-                    "showTitle": True,
-                    "titleSize": 12,
-                    "titleColor": "#94A3B8",
-                    "kpiMode": "simple",
-                    "aggregation": "sum",
-                    "format": "number",
-                    "decimals": 0,
-                    "valueSuffix": " ₽",
-                },
-                "styles": {"typography": {"color": "#38BDF8", "fontWeight": "700"}},
-            },
-            "position_x": 40,
-            "position_y": 110,
-            "width": 260,
-            "height": 140,
-            "order_index": 2,
-        },
-        {
-            "name": "Orders count",
-            "widget_type": "kpi",
-            "data_source": {"modelId": model_id, "table": "orders", "field": "id"},
-            "data_config": {
-                "settings": {
-                    "title": "Orders (COUNT)",
-                    "showTitle": True,
-                    "titleSize": 12,
-                    "kpiMode": "simple",
-                    "aggregation": "count",
-                    "format": "number",
-                    "decimals": 0,
-                },
-                "styles": {"typography": {"color": "#A78BFA"}},
-            },
-            "position_x": 320,
-            "position_y": 110,
-            "width": 260,
-            "height": 140,
-            "order_index": 3,
-        },
-        {
-            "name": "Avg check",
-            "widget_type": "kpi",
-            "data_source": {"modelId": model_id, "table": "orders", "field": "amount"},
-            "data_config": {
-                "settings": {
-                    "title": "Avg check",
-                    "showTitle": True,
-                    "titleSize": 12,
-                    "kpiMode": "simple",
-                    "aggregation": "avg",
-                    "format": "number",
-                    "decimals": 1,
-                },
-                "styles": {"typography": {"color": "#34D399"}},
-            },
-            "position_x": 600,
-            "position_y": 110,
-            "width": 260,
-            "height": 140,
-            "order_index": 4,
-        },
-        {
-            "name": "Payments sum",
-            "widget_type": "kpi",
-            "data_source": {"modelId": model_id, "table": "payments", "field": "amount"},
-            "data_config": {
-                "settings": {
-                    "title": "Payments (SUM)",
-                    "showTitle": True,
-                    "titleSize": 12,
-                    "kpiMode": "simple",
-                    "aggregation": "sum",
-                    "format": "number",
-                    "decimals": 0,
-                },
-                "styles": {"typography": {"color": "#FBBF24"}},
-            },
-            "position_x": 880,
-            "position_y": 110,
-            "width": 260,
-            "height": 140,
-            "order_index": 5,
-        },
-        {
-            "name": "Avg amount gauge",
-            "widget_type": "gauge",
-            "data_source": {"modelId": model_id, "table": "orders", "field": "amount"},
-            "data_config": {
-                "settings": {
-                    "title": "Avg order",
-                    "showTitle": True,
-                    "valueSource": "aggregated_value",
-                    "aggregation": "avg",
-                    "min": 0,
-                    "max": 800,
-                    "valueFormat": "number",
-                    "valueSuffix": "",
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 270,
-            "width": 280,
-            "height": 220,
-            "order_index": 6,
-        },
-        {
-            "name": "Qty gauge",
-            "widget_type": "gauge",
-            "data_source": {"modelId": model_id, "table": "orders", "field": "qty"},
-            "data_config": {
-                "settings": {
-                    "title": "Avg qty / order",
-                    "showTitle": True,
-                    "valueSource": "aggregated_value",
-                    "aggregation": "avg",
-                    "min": 0,
-                    "max": 8,
-                    "valueFormat": "number",
-                    "valueSuffix": " pcs",
-                },
-                "styles": {},
-            },
-            "position_x": 340,
-            "position_y": 270,
-            "width": 280,
-            "height": 220,
-            "order_index": 7,
-        },
-        {
-            "name": "Status filter",
-            "widget_type": "filter",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Filters",
-                    "showTitle": True,
-                    "filters": [
-                        {
-                            "id": "f_status",
-                            "modelId": model_id,
-                            "table": "orders",
-                            "field": "order_status",
-                            "op": "in",
-                            "selectedValues": [],
-                            "excludedValues": [],
-                            "pattern": "",
-                        },
-                        {
-                            "id": "f_region",
-                            "modelId": model_id,
-                            "table": "orders",
-                            "field": "region_id",
-                            "op": "in",
-                            "selectedValues": [],
-                            "excludedValues": [],
-                            "pattern": "",
-                        },
-                        {
-                            "id": "f_channel",
-                            "modelId": model_id,
-                            "table": "orders",
-                            "field": "channel",
-                            "op": "in",
-                            "selectedValues": [],
-                            "excludedValues": [],
-                            "pattern": "",
-                        },
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 640,
-            "position_y": 270,
-            "width": 300,
-            "height": 320,
-            "order_index": 8,
-        },
-        {
-            "name": "Nav buttons",
-            "widget_type": "button-widget",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "layout": {"direction": "row", "wrap": True, "gap": 10},
-                    "buttons": [
-                        {
-                            "id": "btn_qa",
-                            "label": "QA Expected",
-                            "icon": "arrow",
-                            "action": {"type": "navigate", "target": nav_qa, "payload": {}},
-                        },
-                        {
-                            "id": "btn_sales",
-                            "label": "Sales",
-                            "icon": "arrow",
-                            "action": {"type": "navigate", "target": nav_sales, "payload": {}},
-                        },
-                        {
-                            "id": "btn_ops",
-                            "label": "Operations",
-                            "icon": "arrow",
-                            "action": {"type": "navigate", "target": nav_ops, "payload": {}},
-                        },
-                        {
-                            "id": "btn_catalog",
-                            "label": "Catalog",
-                            "icon": "arrow",
-                            "action": {"type": "navigate", "target": nav_catalog, "payload": {}},
-                        },
-                        {
-                            "id": "btn_events",
-                            "label": "Events",
-                            "icon": "arrow",
-                            "action": {"type": "navigate", "target": nav_events, "payload": {}},
-                        },
-                        {
-                            "id": "btn_refresh",
-                            "label": "Refresh",
-                            "icon": "refresh",
-                            "action": {"type": "refresh", "target": "", "payload": {}},
-                        },
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 960,
-            "position_y": 270,
-            "width": 280,
-            "height": 220,
-            "order_index": 9,
-        },
-        {
-            "name": "HTML note",
-            "widget_type": "html",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "html": (
-                        "<div style='padding:14px;color:#e2e8f0;font-family:\"IBM Plex Sans\",sans-serif'>"
-                        "<b style='color:#67e8f9'>Platform demo</b>"
-                        "<ul style='margin:8px 0 0 18px;line-height:1.5;color:#94a3b8'>"
-                        "<li>Compiled columns: orders.order_status, amount_vat; customers.email_address</li>"
-                        "<li>QA Expected — tables + KPI + filters with expected values</li>"
-                        "<li>Use sheet buttons to explore QA / Sales / Ops / Catalog / Events</li>"
-                        "</ul></div>"
-                    ),
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 520,
-            "width": 580,
-            "height": 140,
-            "order_index": 10,
-        },
-    ]
+from demo_sheets import (  # noqa: E402
+    catalog_widgets,
+    events_widgets,
+    operations_widgets,
+    overview_widgets,
+    sales_widgets,
+)
 
-
-def sales_widgets(model_id: int) -> list[dict[str, Any]]:
-    """Sheet 2: diverse chart designs on commerce facts."""
-    dim_status = _field_ref(model_id, "orders", "order_status")
-    dim_channel = _field_ref(model_id, "orders", "channel")
-    dim_region = _field_ref(model_id, "orders", "region_id")
-    dim_customer = _field_ref(model_id, "orders", "customer_id")
-    meas_amount = _measure_ref(model_id, "orders", "amount", agg="SUM")
-    meas_qty = _measure_ref(model_id, "orders", "qty", agg="SUM")
-    dim_category = _field_ref(model_id, "products", "category")
-    meas_price = _measure_ref(model_id, "products", "price", agg="AVG")
-
-    return [
-        {
-            "name": "Amount by status",
-            "widget_type": "bar-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Revenue by order_status",
-                    "showTitle": True,
-                    "titleColor": "#67E8F9",
-                    "bindingDimension": dim_status,
-                    "bindingMeasure": meas_amount,
-                    "barColorMode": "palette",
-                    "barPalette": PALETTE_OCEAN,
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 40,
-            "width": 520,
-            "height": 320,
-            "order_index": 0,
-        },
-        {
-            "name": "Amount by channel",
-            "widget_type": "bar-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Revenue by channel (solid)",
-                    "showTitle": True,
-                    "bindingDimension": dim_channel,
-                    "bindingMeasure": meas_amount,
-                    "barColorMode": "solid",
-                    "barSolidColor": "#F97316",
-                },
-                "styles": {},
-            },
-            "position_x": 580,
-            "position_y": 40,
-            "width": 520,
-            "height": 320,
-            "order_index": 1,
-        },
-        {
-            "name": "Qty by region",
-            "widget_type": "bar-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Qty by region (gradient)",
-                    "showTitle": True,
-                    "bindingDimension": dim_region,
-                    "bindingMeasure": meas_qty,
-                    "barColorMode": "gradient",
-                    "barPalette": PALETTE_SUNSET,
-                },
-                "styles": {},
-            },
-            "position_x": 1120,
-            "position_y": 40,
-            "width": 420,
-            "height": 320,
-            "order_index": 2,
-        },
-        {
-            "name": "Amount by customer",
-            "widget_type": "line-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Amount by customer (area + gradient)",
-                    "showTitle": True,
-                    "bindingDimension": dim_customer,
-                    "bindingMeasure": meas_amount,
-                    "chartType": "area",
-                    "line": {
-                        "color": "#4DA3FF",
-                        "width": 2,
-                        "smooth": True,
-                        "gradient": {"enabled": True, "from": "#005DFF", "to": "#00E0FF", "mode": "x"},
-                    },
-                    "points": {"enabled": False},
-                    "legend": {"enabled": True},
-                    "grid": {"enabled": True, "opacity": 0.12},
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 380,
-            "width": 760,
-            "height": 320,
-            "order_index": 3,
-        },
-        {
-            "name": "Avg price by category",
-            "widget_type": "line-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Avg product price by category (spline)",
-                    "showTitle": True,
-                    "bindingDimension": dim_category,
-                    "bindingMeasure": meas_price,
-                    "chartType": "spline",
-                    "line": {
-                        "color": "#A78BFA",
-                        "width": 3,
-                        "smooth": True,
-                        "gradient": {"enabled": False},
-                    },
-                    "points": {"enabled": True, "radius": 4, "color": "#C4B5FD"},
-                    "legend": {"enabled": False},
-                },
-                "styles": {},
-            },
-            "position_x": 820,
-            "position_y": 380,
-            "width": 720,
-            "height": 320,
-            "order_index": 4,
-        },
-        {
-            "name": "Status share",
-            "widget_type": "pie-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Orders by order_status",
-                    "showTitle": True,
-                    "bindingDimension": dim_status,
-                    "bindingMeasure": _count_ref(model_id, "orders", "id"),
-                    "donut": False,
-                    "colorMode": "auto",
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 720,
-            "width": 420,
-            "height": 300,
-            "order_index": 5,
-        },
-        {
-            "name": "Channel share donut",
-            "widget_type": "pie-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Orders by channel (donut)",
-                    "showTitle": True,
-                    "bindingDimension": dim_channel,
-                    "bindingMeasure": _count_ref(model_id, "orders", "id"),
-                    "donut": True,
-                    "innerRadius": 0.62,
-                    "colorMode": "auto",
-                },
-                "styles": {},
-            },
-            "position_x": 480,
-            "position_y": 720,
-            "width": 420,
-            "height": 300,
-            "order_index": 6,
-        },
-        {
-            "name": "Category count",
-            "widget_type": "pie-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Products by category",
-                    "showTitle": True,
-                    "bindingDimension": dim_category,
-                    "bindingMeasure": _count_ref(model_id, "products", "id"),
-                    "donut": True,
-                    "innerRadius": 0.5,
-                },
-                "styles": {},
-            },
-            "position_x": 920,
-            "position_y": 720,
-            "width": 420,
-            "height": 300,
-            "order_index": 7,
-        },
-    ]
-
-
-def operations_widgets(model_id: int) -> list[dict[str, Any]]:
-    """Sheet 3: time-ish ops, warehouses, payments."""
-    dim_created = _field_ref(model_id, "orders", "created_at", ftype="datetime")
-    meas_amount = _measure_ref(model_id, "orders", "amount", agg="SUM")
-    dim_wh = _field_ref(model_id, "warehouses", "name")
-    meas_cap = _measure_ref(model_id, "warehouses", "capacity", agg="SUM")
-    dim_method = _field_ref(model_id, "payments", "method")
-    dim_pay_status = _field_ref(model_id, "payments", "status")
-    meas_pay = _measure_ref(model_id, "payments", "amount", agg="SUM")
-
-    return [
-        {
-            "name": "Revenue over time",
-            "widget_type": "line-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Order amount over created_at",
-                    "showTitle": True,
-                    "bindingDimension": dim_created,
-                    "bindingMeasure": meas_amount,
-                    "chartType": "line",
-                    "line": {
-                        "color": "#22D3EE",
-                        "width": 2,
-                        "smooth": False,
-                        "style": "solid",
-                        "gradient": {"enabled": True, "from": "#0891B2", "to": "#67E8F9", "mode": "y"},
-                    },
-                    "points": {"enabled": False},
-                    "zoom": {"enabled": True, "x": True, "y": False},
-                    "crosshair": {"enabled": True},
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 40,
-            "width": 900,
-            "height": 340,
-            "order_index": 0,
-        },
-        {
-            "name": "Payments KPI",
-            "widget_type": "kpi",
-            "data_source": {"modelId": model_id, "table": "payments", "field": "id"},
-            "data_config": {
-                "settings": {
-                    "title": "Payment rows",
-                    "showTitle": True,
-                    "kpiMode": "simple",
-                    "aggregation": "count",
-                    "format": "number",
-                    "decimals": 0,
-                },
-                "styles": {"typography": {"color": "#F472B6"}},
-            },
-            "position_x": 960,
-            "position_y": 40,
-            "width": 280,
-            "height": 150,
-            "order_index": 1,
-        },
-        {
-            "name": "Paid amount KPI",
-            "widget_type": "kpi",
-            "data_source": {"modelId": model_id, "table": "payments", "field": "amount"},
-            "data_config": {
-                "settings": {
-                    "title": "Paid volume (SUM)",
-                    "showTitle": True,
-                    "kpiMode": "simple",
-                    "aggregation": "sum",
-                    "format": "number",
-                    "decimals": 0,
-                },
-                "styles": {"typography": {"color": "#4ADE80"}},
-            },
-            "position_x": 1260,
-            "position_y": 40,
-            "width": 280,
-            "height": 150,
-            "order_index": 2,
-        },
-        {
-            "name": "Warehouse capacity",
-            "widget_type": "bar-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Warehouse capacity",
-                    "showTitle": True,
-                    "bindingDimension": dim_wh,
-                    "bindingMeasure": meas_cap,
-                    "barColorMode": "palette",
-                    "barPalette": PALETTE_FOREST,
-                },
-                "styles": {},
-            },
-            "position_x": 960,
-            "position_y": 210,
-            "width": 580,
-            "height": 170,
-            "order_index": 3,
-        },
-        {
-            "name": "Payments by method",
-            "widget_type": "bar-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Payments by method",
-                    "showTitle": True,
-                    "bindingDimension": dim_method,
-                    "bindingMeasure": meas_pay,
-                    "barColorMode": "palette",
-                    "barPalette": PALETTE_SUNSET,
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 400,
-            "width": 520,
-            "height": 300,
-            "order_index": 4,
-        },
-        {
-            "name": "Payment status pie",
-            "widget_type": "pie-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Payment status",
-                    "showTitle": True,
-                    "bindingDimension": dim_pay_status,
-                    "bindingMeasure": _count_ref(model_id, "payments", "id"),
-                    "donut": True,
-                    "innerRadius": 0.55,
-                },
-                "styles": {},
-            },
-            "position_x": 580,
-            "position_y": 400,
-            "width": 380,
-            "height": 300,
-            "order_index": 5,
-        },
-        {
-            "name": "Payments table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "payments"},
-            "data_config": {
-                "settings": {
-                    "title": "Payments",
-                    "showTitle": True,
-                    "maxRows": 100,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "payments", "field": "id"},
-                        {"modelId": model_id, "table": "payments", "field": "order_id"},
-                        {"modelId": model_id, "table": "payments", "field": "method"},
-                        {"modelId": model_id, "table": "payments", "field": "amount"},
-                        {"modelId": model_id, "table": "payments", "field": "status"},
-                        {"modelId": model_id, "table": "payments", "field": "paid_at"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 980,
-            "position_y": 400,
-            "width": 560,
-            "height": 300,
-            "order_index": 6,
-        },
-    ]
-
-
-def catalog_widgets(model_id: int) -> list[dict[str, Any]]:
-    """Sheet 4: products, order_items, data input, container."""
-    return [
-        {
-            "name": "Products table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "products"},
-            "data_config": {
-                "settings": {
-                    "title": "Products",
-                    "showTitle": True,
-                    "maxRows": 200,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "products", "field": "id"},
-                        {"modelId": model_id, "table": "products", "field": "name"},
-                        {"modelId": model_id, "table": "products", "field": "category"},
-                        {"modelId": model_id, "table": "products", "field": "price"},
-                        {"modelId": model_id, "table": "products", "field": "cost"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 40,
-            "width": 700,
-            "height": 360,
-            "order_index": 0,
-        },
-        {
-            "name": "Order items table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "order_items"},
-            "data_config": {
-                "settings": {
-                    "title": "Order lines",
-                    "showTitle": True,
-                    "maxRows": 150,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "order_items", "field": "id"},
-                        {"modelId": model_id, "table": "order_items", "field": "order_id"},
-                        {"modelId": model_id, "table": "order_items", "field": "product_id"},
-                        {"modelId": model_id, "table": "order_items", "field": "qty"},
-                        {"modelId": model_id, "table": "order_items", "field": "line_total"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 760,
-            "position_y": 40,
-            "width": 700,
-            "height": 360,
-            "order_index": 1,
-        },
-        {
-            "name": "Orders table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "orders"},
-            "data_config": {
-                "settings": {
-                    "title": "Orders",
-                    "showTitle": True,
-                    "maxRows": 100,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "orders", "field": "id"},
-                        {"modelId": model_id, "table": "orders", "field": "customer_id"},
-                        {"modelId": model_id, "table": "orders", "field": "product_id"},
-                        {"modelId": model_id, "table": "orders", "field": "amount"},
-                        {"modelId": model_id, "table": "orders", "field": "order_status"},
-                        {"modelId": model_id, "table": "orders", "field": "amount_vat"},
-                        {"modelId": model_id, "table": "orders", "field": "channel"},
-                        {"modelId": model_id, "table": "orders", "field": "region_id"},
-                        {"modelId": model_id, "table": "orders", "field": "created_at"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 420,
-            "width": 900,
-            "height": 320,
-            "order_index": 2,
-        },
-        {
-            "name": "Add order",
-            "widget_type": "data_input",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Add order",
-                    "showTitle": True,
-                    "table": "orders",
-                    "modelId": model_id,
-                    "submitLabel": "Save",
-                    "permissions": {"insert_roles": ["CEO", "Manager"]},
-                    "fields": [
-                        {"name": "id", "type": "text", "label": "id", "required": True},
-                        {"name": "customer_id", "type": "text", "label": "customer_id", "required": True},
-                        {"name": "product_id", "type": "text", "label": "product_id", "required": True},
-                        {"name": "qty", "type": "int", "label": "qty", "required": True},
-                        {"name": "amount", "type": "float", "label": "amount", "required": True},
-                        {"name": "status", "type": "text", "label": "status", "required": False},
-                        {"name": "region_id", "type": "text", "label": "region_id", "required": False},
-                        {"name": "channel", "type": "text", "label": "channel", "required": False},
-                        {"name": "created_at", "type": "text", "label": "created_at", "required": False},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 960,
-            "position_y": 420,
-            "width": 360,
-            "height": 420,
-            "order_index": 3,
-        },
-        {
-            "name": "Layout container",
-            "widget_type": "container",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Catalog notes",
-                    "showTitle": True,
-                    "containerTabGroups": [],
-                },
-                "styles": {},
-                "containedWidgets": [],
-                "containedWidgetNumericIds": [],
-            },
-            "position_x": 1340,
-            "position_y": 420,
-            "width": 280,
-            "height": 280,
-            "order_index": 4,
-        },
-        {
-            "name": "Customers table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "customers"},
-            "data_config": {
-                "settings": {
-                    "title": "Customers",
-                    "showTitle": True,
-                    "maxRows": 80,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "customers", "field": "id"},
-                        {"modelId": model_id, "table": "customers", "field": "name"},
-                        {"modelId": model_id, "table": "customers", "field": "segment"},
-                        {"modelId": model_id, "table": "customers", "field": "region"},
-                        {"modelId": model_id, "table": "customers", "field": "email_address"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 760,
-            "width": 900,
-            "height": 280,
-            "order_index": 5,
-        },
-    ]
-
-
-def events_widgets(model_id: int) -> list[dict[str, Any]]:
-    """Sheet 5: event stream visuals."""
-    dim_type = _field_ref(model_id, "events", "event_type")
-    dim_channel = _field_ref(model_id, "events", "channel")
-
-    return [
-        {
-            "name": "Events title",
-            "widget_type": "text",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "mode": "static",
-                    "text": "Event stream",
-                    "fontSize": 24,
-                    "color": "#E2E8F0",
-                    "fontWeight": "600",
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 24,
-            "width": 400,
-            "height": 56,
-            "order_index": 0,
-        },
-        {
-            "name": "Events legend",
-            "widget_type": "html",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "html": (
-                        "<div style='padding:12px;color:#94a3b8;font:13px/1.5 IBM Plex Sans,sans-serif'>"
-                        "Append-mode <code>events</code> table — types include "
-                        "order_created, payment_ok/fail, stock_low, shipment, heartbeat."
-                        "</div>"
-                    ),
-                },
-                "styles": {},
-            },
-            "position_x": 460,
-            "position_y": 24,
-            "width": 700,
-            "height": 56,
-            "order_index": 1,
-        },
-        {
-            "name": "Event types pie",
-            "widget_type": "pie-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Events by type",
-                    "showTitle": True,
-                    "bindingDimension": dim_type,
-                    "bindingMeasure": _count_ref(model_id, "events", "entity_id"),
-                    "donut": True,
-                    "innerRadius": 0.58,
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 100,
-            "width": 440,
-            "height": 320,
-            "order_index": 2,
-        },
-        {
-            "name": "Events by channel",
-            "widget_type": "bar-chart",
-            "data_source": None,
-            "data_config": {
-                "settings": {
-                    "title": "Events by channel",
-                    "showTitle": True,
-                    "bindingDimension": dim_channel,
-                    "bindingMeasure": _count_ref(model_id, "events", "entity_id"),
-                    "barColorMode": "palette",
-                    "barPalette": PALETTE_OCEAN,
-                },
-                "styles": {},
-            },
-            "position_x": 500,
-            "position_y": 100,
-            "width": 520,
-            "height": 320,
-            "order_index": 3,
-        },
-        {
-            "name": "Events table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "events"},
-            "data_config": {
-                "settings": {
-                    "title": "Recent events",
-                    "showTitle": True,
-                    "maxRows": 120,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "events", "field": "event_type"},
-                        {"modelId": model_id, "table": "events", "field": "entity_id"},
-                        {"modelId": model_id, "table": "events", "field": "payload"},
-                        {"modelId": model_id, "table": "events", "field": "ts"},
-                        {"modelId": model_id, "table": "events", "field": "channel"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 40,
-            "position_y": 440,
-            "width": 980,
-            "height": 360,
-            "order_index": 4,
-        },
-        {
-            "name": "Regions table",
-            "widget_type": "table",
-            "data_source": {"modelId": model_id, "table": "regions"},
-            "data_config": {
-                "settings": {
-                    "title": "Regions",
-                    "showTitle": True,
-                    "maxRows": 50,
-                    "bindingFields": [
-                        {"modelId": model_id, "table": "regions", "field": "id"},
-                        {"modelId": model_id, "table": "regions", "field": "name"},
-                        {"modelId": model_id, "table": "regions", "field": "manager"},
-                    ],
-                },
-                "styles": {},
-            },
-            "position_x": 1040,
-            "position_y": 100,
-            "width": 400,
-            "height": 320,
-            "order_index": 5,
-        },
-    ]
-
+DASHBOARD_THEME = {"preset": "ocean", "overrides": {}}
 
 def qa_widgets(model_id: int) -> list[dict[str, Any]]:
     """Sheet: tables + KPIs + filters + expected values after compile."""
@@ -1123,7 +142,7 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 40,
+            "position_x": 24,
             "position_y": 16,
             "width": 520,
             "height": 52,
@@ -1137,10 +156,10 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 "settings": {"html": _qa_guide_html(snap)},
                 "styles": {},
             },
-            "position_x": 40,
+            "position_x": 24,
             "position_y": 76,
             "width": 1520,
-            "height": 250,
+            "height": 340,
             "order_index": 1,
         },
         {
@@ -1186,10 +205,10 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 40,
-            "position_y": 340,
+            "position_x": 24,
+            "position_y": 430,
             "width": 320,
-            "height": 300,
+            "height": 350,
             "order_index": 2,
         },
         {
@@ -1208,8 +227,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {"typography": {"color": "#A78BFA"}},
             },
-            "position_x": 380,
-            "position_y": 340,
+            "position_x": 364,
+            "position_y": 430,
             "width": 280,
             "height": 140,
             "order_index": 3,
@@ -1230,8 +249,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {"typography": {"color": "#38BDF8"}},
             },
-            "position_x": 680,
-            "position_y": 340,
+            "position_x": 664,
+            "position_y": 430,
             "width": 280,
             "height": 140,
             "order_index": 4,
@@ -1252,8 +271,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {"typography": {"color": "#34D399"}},
             },
-            "position_x": 980,
-            "position_y": 340,
+            "position_x": 964,
+            "position_y": 430,
             "width": 280,
             "height": 140,
             "order_index": 5,
@@ -1274,8 +293,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {"typography": {"color": "#FBBF24"}},
             },
-            "position_x": 1280,
-            "position_y": 340,
+            "position_x": 1264,
+            "position_y": 430,
             "width": 280,
             "height": 140,
             "order_index": 6,
@@ -1305,10 +324,10 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 380,
-            "position_y": 500,
+            "position_x": 364,
+            "position_y": 590,
             "width": 1180,
-            "height": 140,
+            "height": 212,
             "order_index": 7,
         },
         {
@@ -1332,8 +351,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 40,
-            "position_y": 660,
+            "position_x": 24,
+            "position_y": 822,
             "width": 760,
             "height": 340,
             "order_index": 8,
@@ -1355,8 +374,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 820,
-            "position_y": 660,
+            "position_x": 804,
+            "position_y": 822,
             "width": 360,
             "height": 340,
             "order_index": 9,
@@ -1378,8 +397,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 1200,
-            "position_y": 660,
+            "position_x": 1184,
+            "position_y": 822,
             "width": 360,
             "height": 340,
             "order_index": 10,
@@ -1403,8 +422,8 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 40,
-            "position_y": 1020,
+            "position_x": 24,
+            "position_y": 1182,
             "width": 760,
             "height": 280,
             "order_index": 11,
@@ -1427,11 +446,356 @@ def qa_widgets(model_id: int) -> list[dict[str, Any]]:
                 },
                 "styles": {},
             },
-            "position_x": 820,
-            "position_y": 1020,
+            "position_x": 804,
+            "position_y": 1182,
             "width": 740,
             "height": 280,
             "order_index": 12,
+        },
+    ]
+
+
+# Dashboard-level variables (layout_config.dashboard_variables); override model vars with the same name.
+DASHBOARD_VARIABLES = [
+    {
+        "name": "target_margin",
+        "type": "Number",
+        "value": 15,
+        "description": "Target margin, % (dashboard variable)",
+    },
+    {
+        "name": "revenue_target",
+        "type": "Number",
+        "value": 220000,
+        "description": "Overrides model variable revenue_target=250000",
+    },
+]
+
+
+def _formula_kpi(
+    model_id: int,
+    *,
+    name: str,
+    title: str,
+    formula: str,
+    color: str,
+    x: int,
+    y: int,
+    order: int,
+    decimals: int = 0,
+    suffix: str = " ₽",
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    settings: dict[str, Any] = {
+        "title": title,
+        "showTitle": True,
+        "titleSize": 12,
+        "titleColor": "#94A3B8",
+        "kpiMode": "formula",
+        "valueFormula": formula,
+        "format": "number",
+        "decimals": decimals,
+        "valueSuffix": suffix,
+    }
+    if extra:
+        settings.update(extra)
+    return {
+        "name": name,
+        "widget_type": "kpi",
+        "data_source": {"modelId": model_id, "table": "orders", "field": "amount"},
+        "data_config": {
+            "settings": settings,
+            "styles": {"typography": {"color": color, "fontWeight": "700"}},
+        },
+        "position_x": x,
+        "position_y": y,
+        "width": 290,
+        "height": 140,
+        "order_index": order,
+    }
+
+
+def bi_features_widgets(model_id: int) -> list[dict[str, Any]]:
+    """Sheet: formula language, model/dashboard variables, conditional colors, gauge targets."""
+    dim_region = _field_ref(model_id, "orders", "region_id")
+    dim_channel = _field_ref(model_id, "orders", "channel")
+    meas_vat = {
+        **_measure_ref(model_id, "orders", "amount_vat", agg="SUM"),
+        "formula": "SUM([orders.amount_vat])",
+    }
+    # Bar-chart series accept only a single aggregate; composite formulas
+    # (SUM(a) * @var, SUM(a) / SUM($[a])) are for KPI / Gauge / Reference.
+    meas_orders = _measure_ref(model_id, "orders", "id", agg="COUNT")
+    explainer = (
+        "<div style='padding:12px 16px;color:#e2e8f0;font:13px/1.55 \"IBM Plex Sans\",sans-serif'>"
+        "<b style='color:#FBBF24'>Как это устроено</b>"
+        "<ul style='margin:6px 0 0 18px;color:#cbd5e1'>"
+        "<li><code>[orders.amount]</code> — поле модели; <code>SUM/AVG/COUNT</code> — агрегаты</li>"
+        "<li><code>@vat_rate</code> — переменная модели; "
+        "<code>@target_margin</code> — переменная дашборда</li>"
+        "<li><code>@revenue_target</code> задан в модели (250 000) и переопределён дашбордом (220 000)</li>"
+        "<li><code>SUM($[orders.amount])</code> — поле в <code>$[...]</code> считается без учёта фильтров</li>"
+        "<li><code>SUM(x WHERE a = 'v' AND c = 'w')</code>, <code>IF(cond, a, b)</code>; "
+        "в WHERE — только литералы (число или строка в кавычках)</li>"
+        "<li>Серия bar/line — одно поле или один агрегат; составные формулы — в KPI / Gauge</li>"
+        "<li>Фон KPI «vs target» — правила по формуле; на gauge — цель из переменной</li>"
+        "</ul>"
+        "<div style='margin-top:6px;color:#64748b;font-size:12px'>"
+        "Выберите регион/канал в фильтре: обычные KPI меняются, «Share of total» — тоже, "
+        "а «Total (ignore filters)» остаётся неизменным.</div></div>"
+    )
+
+    return [
+        {
+            "name": "BI title",
+            "widget_type": "text",
+            "data_source": None,
+            "data_config": {
+                "settings": {
+                    "mode": "static",
+                    "text": "BI Features: formulas & variables",
+                    "fontSize": 26,
+                    "color": "#F8FAFC",
+                    "fontWeight": "700",
+                },
+                "styles": {"typography": {"fontFamily": "Space Grotesk", "color": "#F8FAFC"}},
+            },
+            "position_x": 24,
+            "position_y": 20,
+            "width": 620,
+            "height": 60,
+            "order_index": 0,
+        },
+        _formula_kpi(
+            model_id,
+            name="Revenue incl. VAT (formula)",
+            title="SUM(amount) * @vat_rate",
+            formula="SUM([orders.amount]) * @vat_rate",
+            color="#38BDF8",
+            x=40,
+            y=100,
+            order=1,
+        ),
+        _formula_kpi(
+            model_id,
+            name="Focus region revenue",
+            title="SUM(amount WHERE region = 'r_nw')",
+            formula="SUM([orders.amount] WHERE [orders.region_id] = 'r_nw')",
+            color="#A78BFA",
+            x=350,
+            y=100,
+            order=2,
+        ),
+        _formula_kpi(
+            model_id,
+            name="Share of total",
+            title="Share of total, % (SUM / SUM($[amount]))",
+            formula="SUM([orders.amount]) / SUM($[orders.amount]) * 100",
+            color="#34D399",
+            x=660,
+            y=100,
+            order=3,
+            decimals=1,
+            suffix=" %",
+        ),
+        _formula_kpi(
+            model_id,
+            name="Total ignore filters",
+            title="Total (ignore filters)",
+            formula="SUM($[orders.amount])",
+            color="#F8FAFC",
+            x=970,
+            y=100,
+            order=4,
+        ),
+        _formula_kpi(
+            model_id,
+            name="Margin (dashboard var)",
+            title="Margin = SUM * @target_margin / 100",
+            formula="SUM([orders.amount]) * @target_margin / 100",
+            color="#FBBF24",
+            x=40,
+            y=260,
+            order=5,
+        ),
+        _formula_kpi(
+            model_id,
+            name="Revenue vs target",
+            title="Revenue vs @revenue_target (rules)",
+            formula="SUM([orders.amount])",
+            color="#FFFFFF",
+            x=350,
+            y=260,
+            order=6,
+            extra={
+                "kpiBackgroundMode": "rules",
+                "kpiBackgroundDefaultColor": "#334155",
+                "kpiBackgroundRules": [
+                    {"op": "gte", "valueFormula": "@revenue_target", "color": "#15803d"},
+                    {"op": "lt", "valueFormula": "@revenue_target", "color": "#b91c1c"},
+                ],
+            },
+        ),
+        _formula_kpi(
+            model_id,
+            name="Target attainment",
+            title="IF(SUM >= target, 100, SUM / target * 100)",
+            formula=(
+                "IF(SUM([orders.amount]) >= @revenue_target, 100, "
+                "SUM([orders.amount]) / @revenue_target * 100)"
+            ),
+            color="#F472B6",
+            x=660,
+            y=260,
+            order=7,
+            decimals=1,
+            suffix=" %",
+        ),
+        _formula_kpi(
+            model_id,
+            name="Web + focus region",
+            title="COUNT(id WHERE channel = 'web' AND region = 'r_nw')",
+            formula=(
+                "COUNT([orders.id] WHERE [orders.channel] = 'web' "
+                "AND [orders.region_id] = 'r_nw')"
+            ),
+            color="#22D3EE",
+            x=970,
+            y=260,
+            order=8,
+            suffix="",
+        ),
+        {
+            "name": "Revenue vs target gauge",
+            "widget_type": "gauge",
+            "data_source": {"modelId": model_id, "table": "orders", "field": "amount"},
+            "data_config": {
+                "settings": {
+                    "title": "Revenue vs target (@revenue_target)",
+                    "showTitle": True,
+                    "valueSource": "formula_value",
+                    "valueFormula": "SUM([orders.amount])",
+                    "min": 0,
+                    "max": 400000,
+                    "valueFormat": "number",
+                    "valueSuffix": " ₽",
+                    "targets": [
+                        {
+                            "id": "t_target",
+                            "label": "Target",
+                            "value": 0,
+                            "formula": "@revenue_target",
+                            "color": "#F59E0B",
+                        },
+                        {
+                            "id": "t_vat",
+                            "label": "Target × VAT",
+                            "value": 0,
+                            "formula": "@revenue_target * @vat_rate",
+                            "color": "#EF4444",
+                        },
+                    ],
+                },
+                "styles": {},
+            },
+            "position_x": 24,
+            "position_y": 420,
+            "width": 320,
+            "height": 260,
+            "order_index": 9,
+        },
+        {
+            "name": "Revenue incl. VAT by region",
+            "widget_type": "bar-chart",
+            "data_source": None,
+            "data_config": {
+                "settings": {
+                    "title": "SUM(amount_vat) by region",
+                    "showTitle": True,
+                    "titleColor": "#67E8F9",
+                    "bindingDimension": dim_region,
+                    "bindingMeasure": meas_vat,
+                    "barColorMode": "palette",
+                    "barPalette": PALETTE_FOREST,
+                },
+                "styles": {},
+            },
+            "position_x": 364,
+            "position_y": 420,
+            "width": 440,
+            "height": 260,
+            "order_index": 10,
+        },
+        {
+            "name": "Orders by channel",
+            "widget_type": "bar-chart",
+            "data_source": None,
+            "data_config": {
+                "settings": {
+                    "title": "Orders by channel (COUNT)",
+                    "showTitle": True,
+                    "bindingDimension": dim_channel,
+                    "bindingMeasure": meas_orders,
+                    "barColorMode": "gradient",
+                    "barPalette": PALETTE_SUNSET,
+                },
+                "styles": {},
+            },
+            "position_x": 824,
+            "position_y": 420,
+            "width": 720,
+            "height": 260,
+            "order_index": 11,
+        },
+        {
+            "name": "BI filters",
+            "widget_type": "filter",
+            "data_source": None,
+            "data_config": {
+                "settings": {
+                    "title": "Filters (try region / channel)",
+                    "showTitle": True,
+                    "filters": [
+                        {
+                            "id": "bi_region",
+                            "modelId": model_id,
+                            "table": "orders",
+                            "field": "region_id",
+                            "op": "in",
+                            "selectedValues": [],
+                            "excludedValues": [],
+                            "pattern": "",
+                        },
+                        {
+                            "id": "bi_channel",
+                            "modelId": model_id,
+                            "table": "orders",
+                            "field": "channel",
+                            "op": "in",
+                            "selectedValues": [],
+                            "excludedValues": [],
+                            "pattern": "",
+                        },
+                    ],
+                },
+                "styles": {},
+            },
+            "position_x": 1264,
+            "position_y": 100,
+            "width": 300,
+            "height": 300,
+            "order_index": 12,
+        },
+        {
+            "name": "BI explainer",
+            "widget_type": "html",
+            "data_source": None,
+            "data_config": {"settings": {"html": explainer}, "styles": {}},
+            "position_x": 24,
+            "position_y": 704,
+            "width": 1520,
+            "height": 270,
+            "order_index": 13,
         },
     ]
 
@@ -1463,14 +827,16 @@ def expected_widget_types() -> set[str]:
         "table",
         "data_input",
         "container",
+        "image",
     }
 
 
 SHEET_SPECS = (
-    {"key": "overview", "name": "Overview", "description": "KPI, gauges, filters, navigation"},
+    {"key": "overview", "name": "Overview", "description": "Hero KPIs, formula targets on gauges, glass filter, revenue trend"},
     {"key": "qa", "name": "QA Expected", "description": "Tables, KPIs, filters and expected values after compile"},
-    {"key": "sales", "name": "Sales", "description": "Bar / line / pie charts with varied styles"},
-    {"key": "operations", "name": "Operations", "description": "Time series, warehouses, payments"},
-    {"key": "catalog", "name": "Catalog", "description": "Products, orders, data input"},
-    {"key": "events", "name": "Events", "description": "Event stream and regions"},
+    {"key": "sales", "name": "Sales", "description": "Palette / solid / gradient bars, area + spline lines, pie and donut"},
+    {"key": "operations", "name": "Operations", "description": "Zoomable time series, regions, warehouses, payments table"},
+    {"key": "catalog", "name": "Catalog", "description": "Products table, data input form, tabbed container"},
+    {"key": "events", "name": "Events", "description": "Event stream over time, sources and regions"},
+    {"key": "bi_features", "name": "BI Features", "description": "Formulas, model/dashboard variables, rules, targets"},
 )

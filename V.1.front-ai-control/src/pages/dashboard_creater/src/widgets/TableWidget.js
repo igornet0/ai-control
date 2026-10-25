@@ -22,6 +22,7 @@ import {
 } from './common/widgetFormulaSchema.js';
 import { pickTableRowConditionalStyle } from './common/tableConditionalStyle.js';
 import { loadProfileTableSort, saveProfileTableSort } from '../../../../services/profileTableSortStorage.js';
+import { defaultTextColor, defaultFontFamily } from '../theme/themeRuntime.js';
 
 /** Совпадает с MAX_ROWS в sqlite_dashboard_query.py */
 const TABLE_MAX_ROWS_CAP = 5000;
@@ -252,8 +253,8 @@ export class TableWidget extends WidgetBase {
     if (!content) return;
 
     const typography = this.styles?.typography || {};
-    const fontFamily = typography.fontFamily || 'Inter';
-    const emptyMsgColor = typography.color || '#E4E6EB';
+    const fontFamily = typography.fontFamily || defaultFontFamily();
+    const emptyMsgColor = typography.color || defaultTextColor();
 
     if (!hasDataBinding(this)) {
       content.innerHTML = renderWidgetDataPlaceholder(this, typography);
@@ -307,7 +308,7 @@ export class TableWidget extends WidgetBase {
 
     const adaptiveFontSize =
       typography.fontSize || Math.max(8, Math.min(this.width, this.height) / 30);
-    const textColor = typography.color || '#E4E6EB';
+    const textColor = typography.color || defaultTextColor();
     const headerBgColor =
       this.resolvedColor(
         'columnHeaderBackgroundColor',

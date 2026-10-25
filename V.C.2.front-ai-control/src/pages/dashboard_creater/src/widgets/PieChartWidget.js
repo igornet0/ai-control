@@ -19,6 +19,7 @@ import { runNamedFormulaBundle } from '../formula/widgetFormulaRuntime.js';
 import { tryCompileColorFormula } from '../formula/colorExpr.js';
 import { normalizePieFormulaFields } from './common/widgetFormulaSchema.js';
 import { resolveChartDimension, resolveChartMeasure, mergeChartMeasureFilters, chartMeasureAggColumn, chartMeasureForMatchesDimension } from './common/chartBindingFormula.js';
+import { defaultTextColor, defaultFontFamily } from '../theme/themeRuntime.js';
 
 /**
  * Круговая диаграмма: SVG-рендер, модульная легенда и интерактив.
@@ -249,8 +250,8 @@ export class PieChartWidget extends WidgetBase {
         }
 
         const typography = this.styles?.typography || {};
-        const fontFamily = typography.fontFamily || 'Inter';
-        const textColor = typography.color || '#E4E6EB';
+        const fontFamily = typography.fontFamily || defaultFontFamily();
+        const textColor = typography.color || defaultTextColor();
         const paintSettings = this._pieSettingsWithResolvedColors();
 
         if (!hasDataBinding(this)) {

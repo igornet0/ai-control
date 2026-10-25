@@ -4,6 +4,7 @@ import { formatApiError } from '../../../../utils/formatApiError';
 import EmployeeHoverTrigger from './EmployeeHoverTrigger';
 import InviteToolbar from './InviteToolbar';
 import { hasPermission } from './employeePermissions';
+import tabStyles from '../ProfileTabs.module.css';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -107,7 +108,7 @@ export default function ExecutiveOrgEmployeesSection({ context }) {
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-slate-400">Загрузка...</p>
+        <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка...</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--color-border-muted)' }}>
           <table className="w-full text-sm">

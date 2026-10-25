@@ -1,3 +1,4 @@
+import { defaultTextColor } from '../../theme/themeRuntime.js';
 function formatValue(v) {
     if (Math.abs(v) >= 1e6) return v.toExponential(2);
     if (Number.isInteger(v)) return String(v);
@@ -68,7 +69,7 @@ export function createPieLegendElement(params) {
 
     const fontSize = leg.fontSize ?? Math.max(11, Math.round((typography.fontSize || 14) * 0.85));
     const fontWeight = leg.fontWeight ?? typography.fontWeight ?? '500';
-    const color = leg.color ?? typography.color ?? '#E4E6EB';
+    const color = leg.color ?? typography.color ?? defaultTextColor();
 
     const grandTotal = model.total;
 

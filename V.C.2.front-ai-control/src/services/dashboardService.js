@@ -1,4 +1,10 @@
 import api from './api';
+import { dedupeGet, invalidateDedupe } from './requestDedupe';
+
+function invalidateDashboardMeta(id) {
+  invalidateDedupe(`dashboard:${id}`);
+  invalidateDedupe(`dashboard-models:${id}`);
+}
 
 export const dashboardService = {
   async getDashboards() {
@@ -12,8 +18,10 @@ export const dashboardService = {
 
   async getDashboard(id) {
     try {
-      const response = await api.get(`/api/dashboards/${id}`);
-      return response.data;
+      return await dedupeGet(`dashboard:${id}`, async () => {
+        const response = await api.get(`/api/dashboards/${id}`);
+        return response.data;
+      });
     } catch (error) {
       throw error;
     }
@@ -36,6 +44,7 @@ export const dashboardService = {
   async updateDashboard(id, dashboardData) {
     try {
       const response = await api.put(`/api/dashboards/${id}`, dashboardData);
+      invalidateDashboardMeta(id);
       return response.data;
     } catch (error) {
       throw error;
@@ -53,6 +62,7 @@ export const dashboardService = {
   async deleteDashboard(id) {
     try {
       await api.delete(`/api/dashboards/simple-delete/${id}`);
+      invalidateDashboardMeta(id);
     } catch (error) {
       throw error;
     }
@@ -78,8 +88,10 @@ export const dashboardService = {
 
   async getDashboardDataModels(dashboardId) {
     try {
-      const response = await api.get(`/api/dashboards/${dashboardId}/data-models`);
-      return response.data;
+      return await dedupeGet(`dashboard-models:${dashboardId}`, async () => {
+        const response = await api.get(`/api/dashboards/${dashboardId}/data-models`);
+        return response.data;
+      });
     } catch (error) {
       throw error;
     }
@@ -88,6 +100,7 @@ export const dashboardService = {
   async addDataModelToDashboard(dashboardId, modelId) {
     try {
       await api.post(`/api/dashboards/${dashboardId}/data-models/${modelId}`);
+      invalidateDashboardMeta(dashboardId);
     } catch (error) {
       throw error;
     }
@@ -96,6 +109,7 @@ export const dashboardService = {
   async removeDataModelFromDashboard(dashboardId, modelId) {
     try {
       await api.delete(`/api/dashboards/${dashboardId}/data-models/${modelId}`);
+      invalidateDashboardMeta(dashboardId);
     } catch (error) {
       throw error;
     }

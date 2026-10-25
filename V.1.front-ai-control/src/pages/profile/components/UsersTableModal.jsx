@@ -2,16 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TrashIcon, KeyIcon } from '@heroicons/react/24/outline';
 import { adminService } from '../../../services/adminService';
+import { TEAM_ROLES } from '../../../services/employeeService';
 import { buildPasswordResetInviteUrl } from '../../../services/inviteService';
 import { formatApiError } from '../../../utils/formatApiError';
 import { AdminIcon } from './AdminIcons';
 import styles from './UsersTableModal.module.css';
 
-const ROLE_LABEL = {
-  user: 'Пользователь',
-  admin: 'Админ',
-  moderator: 'Модератор',
-};
+// Системная роль admin (root) назначается только из CLI / при инициализации платформы — здесь только TeamRole.
+const isSystemAdmin = (user) => user?.role === 'admin' || user?.is_superuser;
 
 export default function UsersTableModal({ isOpen, onClose, currentUser }) {
   const [users, setUsers] = useState([]);
@@ -67,7 +65,7 @@ export default function UsersTableModal({ isOpen, onClose, currentUser }) {
       if (statusFilter === 'active' && !user.is_active) return false;
       if (statusFilter === 'blocked' && user.is_active) return false;
       if (!q) return true;
-      const hay = `${user.id} ${user.login || ''} ${user.name || ''} ${user.email || ''} ${user.role || ''}`.toLowerCase();
+      const hay = `${user.id} ${user.login || ''} ${user.name || ''} ${user.email || ''} ${user.team_role || ''} ${isSystemAdmin(user) ? 'admin' : ''}`.toLowerCase();
       return hay.includes(q);
     });
   }, [users, query, statusFilter]);
@@ -134,7 +132,7 @@ export default function UsersTableModal({ isOpen, onClose, currentUser }) {
 
   const handleRestrict = async (userId, newRole) => {
     const user = users.find((u) => u.id === userId);
-    if (!user || user.role === newRole) return;
+    if (!user || (user.team_role || 'Guest') === newRole) return;
 
     if (currentUser && currentUser.id === userId) {
       alert('Вы не можете изменить свою собственную роль');
@@ -142,14 +140,14 @@ export default function UsersTableModal({ isOpen, onClose, currentUser }) {
       return;
     }
 
-    if (!window.confirm(`Изменить роль «${user.name || user.login}» на «${ROLE_LABEL[newRole] || newRole}»?`)) {
+    if (!window.confirm(`Изменить роль «${user.name || user.login}» на «${newRole}»?`)) {
       await loadUsers();
       return;
     }
 
     setActionLoading(userId);
     try {
-      await adminService.restrictUser(userId, { role: newRole });
+      await adminService.restrictUser(userId, { team_role: newRole });
       await loadUsers();
     } catch (err) {
       console.error('Error restricting user:', err);
@@ -310,17 +308,26 @@ export default function UsersTableModal({ isOpen, onClose, currentUser }) {
                             {user.email}
                           </td>
                           <td>
-                            <select
-                              className={styles.roleSelect}
-                              value={user.role}
-                              onChange={(e) => handleRestrict(user.id, e.target.value)}
-                              disabled={busy || isSelf}
-                              title={isSelf ? 'Нельзя менять свою роль' : ''}
-                            >
-                              <option value="user">Пользователь</option>
-                              <option value="admin">Админ</option>
-                              <option value="moderator">Модератор</option>
-                            </select>
+                            <div className={styles.roleCell}>
+                              <select
+                                className={styles.roleSelect}
+                                value={user.team_role || 'Guest'}
+                                onChange={(e) => handleRestrict(user.id, e.target.value)}
+                                disabled={busy || isSelf}
+                                title={isSelf ? 'Нельзя менять свою роль' : ''}
+                              >
+                                {TEAM_ROLES.map((role) => (
+                                  <option key={role} value={role}>
+                                    {role}
+                                  </option>
+                                ))}
+                              </select>
+                              {isSystemAdmin(user) ? (
+                                <span className={`${styles.badge} ${styles.badgeAdmin}`} title="Root-доступ (назначается только из CLI)">
+                                  Админ
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
                           <td>
                             <span className={`${styles.badge} ${user.is_active ? styles.badgeOn : styles.badgeOff}`}>

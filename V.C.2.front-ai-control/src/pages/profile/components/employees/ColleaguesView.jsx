@@ -4,6 +4,7 @@ import { teamService } from '../../../../services/teamService';
 import EmployeeCard from './EmployeeCard';
 import InviteToolbar from './InviteToolbar';
 import { isLeadershipRole } from './employeePermissions';
+import styles from '../ProfileTabs.module.css';
 
 export default function ColleaguesView({ context }) {
   const [employees, setEmployees] = useState([]);
@@ -33,7 +34,7 @@ export default function ColleaguesView({ context }) {
   const leadership = employees.filter((e) => isLeadershipRole(context, e.team_role));
   const colleagues = employees.filter((e) => !isLeadershipRole(context, e.team_role));
 
-  if (loading) return <p className="text-slate-400">Загрузка...</p>;
+  if (loading) return <div className={styles.loader}><span className={styles.spinner} />Загрузка...</div>;
 
   return (
     <div className="space-y-8">

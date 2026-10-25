@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { employeeService } from '../../../../services/employeeService';
 import EmployeeHoverTrigger from './EmployeeHoverTrigger';
+import tabStyles from '../ProfileTabs.module.css';
 
 function TreeNode({ node, depth = 0, onSelect }) {
   const [expanded, setExpanded] = useState(depth < 1);
@@ -67,7 +68,7 @@ export default function OrgTreeView() {
     }
   };
 
-  if (loading) return <p className="text-slate-400">Загрузка оргструктуры...</p>;
+  if (loading) return <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка оргструктуры...</div>;
   if (error) return <p className="text-red-400">{error}</p>;
 
   return (

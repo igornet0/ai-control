@@ -1,3 +1,4 @@
+import { defaultTextColor } from '../../theme/themeRuntime.js';
 /**
  * Нормализация конфигурации круговой диаграммы (JSON + обратная совместимость).
  */
@@ -208,7 +209,7 @@ export function normalizePieConfig(settings = {}, typography = {}, appearance = 
     if (raw.showLegend === false) merged.legend.enabled = false;
     if (raw.showLegend === true && raw.legend == null) merged.legend.enabled = true;
 
-    const textCol = typography.color || '#E4E6EB';
+    const textCol = typography.color || defaultTextColor();
     const bgCol = appearance.backgroundColor || '#1a1d24';
     if (merged.colorMode === 'auto') {
         merged._resolvedDark = luminance(textCol) > 0.55 ? false : true;

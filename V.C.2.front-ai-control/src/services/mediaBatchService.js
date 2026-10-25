@@ -31,17 +31,31 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+const _variantBlobs = new Map();
+
+/** Blob неизменяем — одновременные/повторные запросы одного URL делят результат. */
 export async function fetchMediaVariantBlob(ref, options = {}) {
   const url = buildVariantUrl(ref, options);
   if (!url) return null;
-  const response = await fetch(url, {
+  if (_variantBlobs.has(url)) return _variantBlobs.get(url);
+  const promise = fetch(url, {
     headers: authHeaders(),
     cache: 'force-cache',
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error(`variant HTTP ${response.status}`);
+    }
+    return response.blob();
   });
-  if (!response.ok) {
-    throw new Error(`variant HTTP ${response.status}`);
-  }
-  return response.blob();
+  _variantBlobs.set(url, promise);
+  if (_variantBlobs.size > 200) _variantBlobs.delete(_variantBlobs.keys().next().value);
+  promise.then(
+    () => setTimeout(() => {
+      if (_variantBlobs.get(url) === promise) _variantBlobs.delete(url);
+    }, 60_000),
+    () => _variantBlobs.delete(url),
+  );
+  return promise;
 }
 
 export async function fetchMediaBatch(items) {

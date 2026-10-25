@@ -291,5 +291,38 @@ describe('DashboardDataModelClient', () => {
     expect(client._aggBatcher.enqueue).toHaveBeenCalled();
   });
 
-});
+  it('does not cache a response that started before invalidate', async () => {
+    const client = new DashboardDataModelClient(makeEngine());
+    const intent = { kind: 'select', modelId: '7', body: { base_table: 't' } };
+    let release;
+    const first = client._cached(intent, () => new Promise((r) => { release = r; }));
+    await Promise.resolve();
+    client.invalidate(['7']);
+    // in-flight по модели снят — новый вызов идёт заново, а не ждёт старый ответ
+    const runner = vi.fn(async () => 'fresh');
+    const second = client._cached(intent, runner);
+    release('stale');
+    expect(await first).toBe('stale');
+    expect(await second).toBe('fresh');
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(await client._cached(intent, async () => 'other')).toBe('fresh');
+  });
 
+  it('stale in-flight does not drop the newer in-flight entry', async () => {
+    const client = new DashboardDataModelClient(makeEngine());
+    const intent = { kind: 'select', modelId: '7', body: { base_table: 't' } };
+    let releaseOld;
+    const old = client._cached(intent, () => new Promise((r) => { releaseOld = r; }));
+    await Promise.resolve();
+    client.invalidate(['7']);
+    let releaseNew;
+    const fresh = client._cached(intent, () => new Promise((r) => { releaseNew = r; }));
+    await Promise.resolve();
+    releaseOld('old');
+    await old;
+    expect(client._inflight.size).toBe(1);
+    releaseNew('new');
+    expect(await fresh).toBe('new');
+    expect(client._inflight.size).toBe(0);
+  });
+});

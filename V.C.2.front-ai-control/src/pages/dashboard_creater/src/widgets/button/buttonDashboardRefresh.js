@@ -1,5 +1,6 @@
 import { dataModelService } from '../../../../../services/dataModelService.js';
 import { dashboardService } from '../../../../../services/dashboardService.js';
+import { invalidateDedupe } from '../../../../../services/requestDedupe.js';
 import {
   getDashboardFilterSnapshot,
   invalidateDashboardTransportCaches,
@@ -75,6 +76,7 @@ async function resolveModelIds(engine, action = {}) {
 export async function reloadDashboardDataFromButton(engine, context = {}) {
   if (!engine) return { ok: false, error: 'engine_missing' };
   try {
+    invalidateDedupe();
     invalidateDashboardTransportCaches({
       filtersChanged: false,
       dataChanged: true,

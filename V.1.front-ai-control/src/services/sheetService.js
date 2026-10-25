@@ -1,5 +1,6 @@
 import axios from 'axios';
 import apiClient from './apiClient';
+import { dedupeGet, invalidateDedupe } from './requestDedupe';
 import { getDashboardShareContext } from './shareLinkContext';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { getAccessToken } from './tokenRefresh';
@@ -33,11 +34,15 @@ class SheetService {
   async getDashboardSheets(dashboardId) {
     const s = getDashboardShareContext();
     if (s?.token) {
-      const response = await shareHttp(s.token).get('/sheets');
-      return response.data;
+      return dedupeGet(`sheets:share:${s.token}`, async () => {
+        const response = await shareHttp(s.token).get('/sheets');
+        return response.data;
+      });
     }
-    const response = await apiClient.get(`/dashboards/${dashboardId}/sheets`);
-    return response.data;
+    return dedupeGet(`sheets:${dashboardId}`, async () => {
+      const response = await apiClient.get(`/dashboards/${dashboardId}/sheets`);
+      return response.data;
+    });
   }
 
   async getSheet(sheetId) {
@@ -52,16 +57,19 @@ class SheetService {
 
   async createSheet(dashboardId, sheetData) {
     const response = await apiClient.post(`/dashboards/${dashboardId}/sheets`, sheetData);
+    invalidateDedupe('sheets:');
     return response.data;
   }
 
   async updateSheet(sheetId, sheetData) {
     const response = await apiClient.put(`/dashboards/sheets/${sheetId}`, sheetData);
+    invalidateDedupe('sheets:');
     return response.data;
   }
 
   async deleteSheet(sheetId) {
     const response = await apiClient.delete(`/dashboards/sheets/${sheetId}`);
+    invalidateDedupe('sheets:');
     return response.data;
   }
 

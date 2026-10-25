@@ -1,5 +1,9 @@
 import { eventBus } from './EventBus.js';
 import { resolveColorSettingMap } from '../widgets/common/resolveColorSetting.js';
+import { colorToRgba } from '../widgets/common/colorToRgba.js';
+
+export const WIDGET_VARIANTS = ['glass', 'solid', 'outline', 'minimal', 'elevated', 'accent'];
+export const WIDGET_DENSITIES = ['compact', 'normal', 'spacious'];
 
 /**
  * WidgetBase - Базовый класс для всех виджетов
@@ -68,10 +72,7 @@ export class WidgetBase {
         this.element.style.boxSizing = 'border-box';
         this.element.style.overflow = 'visible';
 
-        // Базовые футуристичные стили по умолчанию
-        this.element.style.background = 'rgba(40,40,50,0.35)';
-        this.element.style.backdropFilter = 'blur(14px) saturate(150%)';
-        this.element.style.borderRadius = '18px';
+        // Фон, рамка и скругление по умолчанию — из CSS-варианта (.widget--variant-*), см. applyStyles.
         
         // Контейнер для содержимого виджета
         const content = document.createElement('div');
@@ -341,47 +342,45 @@ export class WidgetBase {
             // Позиция и размер уже обрабатываются в updatePosition
         }
         
-        // Appearance
-        if (styles.appearance) {
-            const app = styles.appearance;
-            
-            // Background
-            if (app.backgroundType === 'solid') {
-                el.style.background = this._rc('backgroundColor', app.backgroundColor || '#ffffff');
-                el.style.backdropFilter = '';
-            } else if (app.backgroundType === 'gradient') {
-                el.style.backdropFilter = '';
-                const grad = app.gradient || {};
-                const type = grad.type === 'radial' ? 'radial' : 'linear';
-                const color1 = this._rc('gradientColor1', grad.color1 || '#005DFF');
-                const color2 = this._rc('gradientColor2', grad.color2 || '#00E0FF');
-                if (type === 'radial') {
-                    el.style.background = `radial-gradient(circle, ${color1}, ${color2})`;
-                } else {
-                    el.style.background = `linear-gradient(${grad.angle ?? 135}deg, ${color1}, ${color2})`;
-                }
-            } else if (app.backgroundType === 'glass') {
-                const glassColor = this._rc('glassColor', app.glassColor || '#ffffff');
-                const glassOpacity = app.glassOpacity !== undefined ? app.glassOpacity : 0.1;
-                // Convert hex to rgba
-                const r = parseInt(glassColor.slice(1, 3), 16);
-                const g = parseInt(glassColor.slice(3, 5), 16);
-                const b = parseInt(glassColor.slice(5, 7), 16);
-                el.style.background = `rgba(${r}, ${g}, ${b}, ${glassOpacity})`;
-                el.style.backdropFilter = `blur(${app.glassBlur || 8}px)`;
+        // Appearance: вариант карточки и плотность — классами (CSS-токены в main.css),
+        // явный фон — inline поверх варианта. Всё, что не задано, сбрасывается,
+        // иначе значения предыдущих настроек «залипают» на элементе.
+        const app = styles.appearance || {};
+        const variant = WIDGET_VARIANTS.includes(app.variant) ? app.variant : 'glass';
+        const density = WIDGET_DENSITIES.includes(app.density) ? app.density : 'normal';
+        WIDGET_VARIANTS.forEach((v) => el.classList.toggle(`widget--variant-${v}`, v === variant));
+        WIDGET_DENSITIES.forEach((d) => el.classList.toggle(`widget--density-${d}`, d === density));
+
+        if (app.backgroundType === 'solid') {
+            el.style.background = this._rc('backgroundColor', app.backgroundColor || '#1A1D22');
+            el.style.backdropFilter = 'none';
+        } else if (app.backgroundType === 'gradient') {
+            el.style.backdropFilter = 'none';
+            const grad = app.gradient || {};
+            const type = grad.type === 'radial' ? 'radial' : 'linear';
+            const color1 = this._rc('gradientColor1', grad.color1 || '#6366F1');
+            const color2 = this._rc('gradientColor2', grad.color2 || '#8B5CF6');
+            if (type === 'radial') {
+                el.style.background = `radial-gradient(circle, ${color1}, ${color2})`;
+            } else {
+                el.style.background = `linear-gradient(${grad.angle ?? 135}deg, ${color1}, ${color2})`;
             }
-            
-            // Opacity
-            if (app.opacity !== undefined) {
-                el.style.opacity = app.opacity;
-            }
-            
-            // Blend mode
-            if (app.blendMode) {
-                el.style.mixBlendMode = app.blendMode;
-            }
+        } else if (app.backgroundType === 'glass') {
+            const glassColor = this._rc('glassColor', app.glassColor || '#ffffff');
+            const glassOpacity = app.glassOpacity !== undefined ? app.glassOpacity : 0.1;
+            el.style.background = colorToRgba(glassColor, glassOpacity);
+            const blur = Number(app.glassBlur);
+            el.style.backdropFilter = `blur(${Number.isFinite(blur) ? blur : 8}px) saturate(150%)`;
+        } else {
+            el.style.background = '';
+            el.style.backdropFilter = '';
         }
-        
+
+        const opacity = Number(app.opacity);
+        el.style.opacity = app.opacity !== undefined && app.opacity !== null && app.opacity !== ''
+            && Number.isFinite(opacity) ? String(Math.min(1, Math.max(0, opacity))) : '';
+        el.style.mixBlendMode = app.blendMode && app.blendMode !== 'normal' ? app.blendMode : '';
+
         // Typography (применяется к content и внутренним элементам)
         if (styles.typography && content) {
             const typo = styles.typography;
@@ -419,12 +418,13 @@ export class WidgetBase {
         // Borders & Corners
         if (styles.borders) {
             const borders = styles.borders;
-            if (borders.width !== undefined) el.style.borderWidth = `${borders.width}px`;
-            if (borders.style) el.style.borderStyle = borders.style;
-            if (borders.color || this._rc('borderColor', '')) {
-                el.style.borderColor = this._rc('borderColor', borders.color);
-            }
-            if (borders.radius !== undefined) el.style.borderRadius = `${borders.radius}px`;
+            el.style.borderWidth = Number.isFinite(Number(borders.width)) && borders.width !== '' && borders.width !== null
+                ? `${borders.width}px` : '';
+            el.style.borderStyle = borders.style || '';
+            el.style.borderColor = borders.color || this._rc('borderColor', '')
+                ? this._rc('borderColor', borders.color) : '';
+            el.style.borderRadius = Number.isFinite(Number(borders.radius)) && borders.radius !== '' && borders.radius !== null
+                ? `${borders.radius}px` : '';
             
             // Neon glow (adds to box-shadow)
             if (borders.neonGlow && borders.neonGlow.enabled) {

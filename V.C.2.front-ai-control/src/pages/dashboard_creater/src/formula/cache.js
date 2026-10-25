@@ -14,6 +14,15 @@ const astCache = new Map();
 /** @type {Map<string, string>} trimmed source -> canonical hash (v3 fast path) */
 const sourceToCanonical = new Map();
 const MAX_SOURCE_TO_CANON = 384;
+const MAX_AST_CACHE = 512;
+
+function trimAstCache() {
+  while (astCache.size > MAX_AST_CACHE) {
+    const k = astCache.keys().next();
+    if (k.done) break;
+    astCache.delete(k.value);
+  }
+}
 
 function trimSourceToCanon() {
   while (sourceToCanonical.size > MAX_SOURCE_TO_CANON) {
@@ -39,6 +48,7 @@ export function getCompiledFormula(formula) {
     if (!hit) {
       hit = compileFormula(trimmed);
       astCache.set(rawKey, hit);
+      trimAstCache();
     }
     return {
       ast: cloneAst(hit.ast),
@@ -72,12 +82,18 @@ export function getCompiledFormula(formula) {
       aggs: probe.aggs.map((a) => cloneAggSpec(a)),
     };
     astCache.set(canKey, hit);
+    trimAstCache();
   }
   return {
     ast: cloneAst(hit.ast),
     aggs: hit.aggs.map((a) => cloneAggSpec(a)),
     canonicalHash: ch,
   };
+}
+
+/** Размер кэша AST (для тестов). */
+export function formulaAstCacheSize() {
+  return astCache.size;
 }
 
 /** Сброс кэша AST (например, в тестах). */

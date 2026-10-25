@@ -8,6 +8,7 @@ import TeamManageModal from './TeamManageModal';
 import AdminProjectsSection from './AdminProjectsSection';
 import { canCreateTeams, canEditDepartment, isLeadershipRole } from './employeePermissions';
 import { teamTasksPath } from './taskDeepLinks';
+import tabStyles from '../ProfileTabs.module.css';
 
 export default function DepartmentTeamsView({ context, compact = false }) {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ export default function DepartmentTeamsView({ context, compact = false }) {
     }
   };
 
-  if (loading) return <p className="text-slate-400">Загрузка...</p>;
+  if (loading) return <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка...</div>;
 
   return (
     <div className="space-y-8">

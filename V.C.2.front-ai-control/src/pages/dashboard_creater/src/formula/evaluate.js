@@ -118,6 +118,17 @@ function compareValues(a, b, op) {
     if (op === '>=') return a >= b;
     if (op === '<=') return a <= b;
   }
+  // Число против числовой строки (TEXT/REAL из SQLite: 5 vs "5.0") — сравниваем как числа.
+  if ((op === '=' || op === '!=') && (typeof a === 'number' || typeof b === 'number')) {
+    const other = typeof a === 'number' ? b : a;
+    if (typeof other === 'string' && other.trim() !== '') {
+      const na0 = Number(a);
+      const nb0 = Number(b);
+      if (Number.isFinite(na0) && Number.isFinite(nb0)) {
+        return op === '=' ? na0 === nb0 : na0 !== nb0;
+      }
+    }
+  }
   const sa = a == null ? '' : String(a);
   const sb = b == null ? '' : String(b);
   if (op === '=') return sa === sb;

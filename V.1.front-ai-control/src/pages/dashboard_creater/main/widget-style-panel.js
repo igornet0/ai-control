@@ -3,6 +3,7 @@
  */
 
 import { eventBus } from '../src/core/EventBus.js';
+import { WIDGET_VARIANTS, WIDGET_DENSITIES } from '../src/core/WidgetBase.js';
 import {
     getStylePanelDataBindingHintText,
     widgetNeedsStylePanelDataHint,
@@ -102,6 +103,7 @@ import {
     DEFAULT_FILTER_BUTTON_STYLE,
     normalizeFilterButtonStyle,
 } from '../src/widgets/filter/filterButtonStyle.js';
+import { normalizeFilterStyle } from '../src/widgets/filter/filterStyle.js';
 import {
     FILTER_APPEARANCE_OPTIONS,
     FILTER_SELECTION_OPTIONS,
@@ -581,8 +583,28 @@ export class WidgetStylePanel {
                             <div id="filter-appearance-fields"></div>
                         </div>
                         <div class="style-control-group">
+                            <label class="style-label">Стиль карточки</label>
+                            <select class="style-select" id="style-variant">
+                                <option value="glass">Стекло</option>
+                                <option value="solid">Сплошной</option>
+                                <option value="outline">Контур</option>
+                                <option value="minimal">Минимал (без рамки и фона)</option>
+                                <option value="elevated">Приподнятый</option>
+                                <option value="accent">Акцент (полоса слева)</option>
+                            </select>
+                        </div>
+                        <div class="style-control-group">
+                            <label class="style-label">Плотность</label>
+                            <select class="style-select" id="style-density">
+                                <option value="compact">Компактно</option>
+                                <option value="normal" selected>Обычно</option>
+                                <option value="spacious">Просторно</option>
+                            </select>
+                        </div>
+                        <div class="style-control-group">
                             <label class="style-label">Тип фона</label>
                             <select class="style-select" id="style-bg-type">
+                                <option value="">По умолчанию (из стиля карточки)</option>
                                 <option value="solid">Сплошной цвет</option>
                                 <option value="gradient">Градиент</option>
                                 <option value="glass">Стеклянный режим</option>
@@ -592,9 +614,9 @@ export class WidgetStylePanel {
                             <label class="style-label">Цвет фона</label>
                             <div class="color-picker-wrapper">
                                 <div class="color-picker">
-                                    <input type="color" id="style-bg-color" value="#ffffff">
+                                    <input type="color" id="style-bg-color" value="#1a1d22">
                                 </div>
-                                <input type="text" class="style-input" id="style-bg-color-text" value="#ffffff" style="flex: 1;">
+                                <input type="text" class="style-input" id="style-bg-color-text" value="#1a1d22" style="flex: 1;">
                             </div>
                         </div>
                         <div class="style-control-group" id="bg-gradient-controls" style="display: none;">
@@ -3705,6 +3727,61 @@ export class WidgetStylePanel {
                                 <input type="text" class="style-input" id="filter-title-color-text" value="#8B5CF6" style="flex: 1;">
                             </div>
                         </div>
+                        <div class="filter-widget-btn-style" id="filter-style-block">
+                            <div class="button-widget-shared-style__title">Оформление фильтра</div>
+                            <div class="button-widget-field-hint">Акцент и скругление по умолчанию берутся из темы дашборда.</div>
+                            <div class="style-control-group" style="margin-top:0.45rem;">
+                                <label class="style-label" for="filter-style-variant">Вариант полей</label>
+                                <select class="style-select" id="filter-style-variant" data-filter-style="variant">
+                                    <option value="soft">Мягкий</option>
+                                    <option value="outline">Контур</option>
+                                    <option value="filled">Заливка</option>
+                                    <option value="underline">Подчёркивание</option>
+                                    <option value="pill">Таблетки</option>
+                                    <option value="glass">Стекло</option>
+                                </select>
+                            </div>
+                            <div class="style-input-group">
+                                <div class="style-control-group">
+                                    <label class="style-label" for="filter-style-size">Размер</label>
+                                    <select class="style-select" id="filter-style-size" data-filter-style="size">
+                                        <option value="sm">S</option>
+                                        <option value="md">M</option>
+                                        <option value="lg">L</option>
+                                    </select>
+                                </div>
+                                <div class="style-control-group">
+                                    <label class="style-label" for="filter-style-layout">Раскладка</label>
+                                    <select class="style-select" id="filter-style-layout" data-filter-style="layout">
+                                        <option value="auto">Авто</option>
+                                        <option value="row">В строку</option>
+                                        <option value="column">Столбиком</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="style-control-group">
+                                <label class="style-label" for="filter-style-radius">Скругление: <span id="filter-style-radius-val">как в теме</span></label>
+                                <input type="range" class="style-slider" id="filter-style-radius" data-filter-style="radius" min="-1" max="24" step="1" value="-1">
+                            </div>
+                            <div class="style-control-group">
+                                <label class="style-label" for="filter-style-gap">Отступ между полями: <span id="filter-style-gap-val">8px</span></label>
+                                <input type="range" class="style-slider" id="filter-style-gap" data-filter-style="gap" min="0" max="24" step="1" value="8">
+                            </div>
+                            <div class="style-control-group">
+                                <div class="flex-between">
+                                    <label class="style-label" for="filter-style-accent-theme">Акцент как в теме</label>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="filter-style-accent-theme" data-filter-style="accentTheme" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="color-picker-wrapper" id="filter-style-accent-row" style="margin-top:0.35rem;">
+                                    <div class="color-picker">
+                                        <input type="color" id="filter-style-accent" data-filter-style="accent" value="#8B5CF6">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="filter-widget-btn-style" id="filter-btn-style-block">
                             <div class="button-widget-shared-style__title">Стиль кнопок полей</div>
                             <div class="button-widget-field-hint">Один стиль для всех кнопок фильтра внутри виджета.</div>
@@ -4411,6 +4488,14 @@ export class WidgetStylePanel {
                 }
             });
         }
+
+        ['#style-variant', '#style-density'].forEach((sel) => {
+            this.panel.querySelector(sel)?.addEventListener('change', () => {
+                if (!this._isLoadingWidgetStyles) {
+                    this.updateWidget();
+                }
+            });
+        });
 
         // Setup all event listeners
         this.setupEventListeners();
@@ -7025,6 +7110,46 @@ export class WidgetStylePanel {
         };
         this._writeFilterButtonStyleToPanel = writeButtonStyleToPanel;
 
+        const q = (id) => this.panel.querySelector(id);
+        const syncFilterStyleLabels = () => {
+            const r = parseInt(q('#filter-style-radius')?.value ?? '-1', 10);
+            const radiusVal = q('#filter-style-radius-val');
+            if (radiusVal) radiusVal.textContent = r < 0 ? 'как в теме' : `${r}px`;
+            const gapVal = q('#filter-style-gap-val');
+            if (gapVal) gapVal.textContent = `${q('#filter-style-gap')?.value ?? 8}px`;
+            const themeAccent = !!q('#filter-style-accent-theme')?.checked;
+            const accentRow = q('#filter-style-accent-row');
+            if (accentRow) accentRow.style.display = themeAccent ? 'none' : '';
+        };
+
+        const readFilterStyleFromPanel = () =>
+            normalizeFilterStyle({
+                variant: q('#filter-style-variant')?.value,
+                size: q('#filter-style-size')?.value,
+                layout: q('#filter-style-layout')?.value,
+                radius: q('#filter-style-radius')?.value,
+                gap: q('#filter-style-gap')?.value,
+                accent: q('#filter-style-accent-theme')?.checked ? '' : q('#filter-style-accent')?.value,
+            });
+
+        const writeFilterStyleToPanel = (style) => {
+            const s = normalizeFilterStyle(style);
+            const setVal = (id, value) => {
+                const el = q(id);
+                if (el) el.value = String(value);
+            };
+            setVal('#filter-style-variant', s.variant);
+            setVal('#filter-style-size', s.size);
+            setVal('#filter-style-layout', s.layout);
+            setVal('#filter-style-radius', s.radius);
+            setVal('#filter-style-gap', s.gap);
+            const themeCb = q('#filter-style-accent-theme');
+            if (themeCb) themeCb.checked = !s.accent;
+            if (s.accent) setVal('#filter-style-accent', s.accent);
+            syncFilterStyleLabels();
+        };
+        this._writeFilterStyleToPanel = writeFilterStyleToPanel;
+
         const apply = (opts = {}) => {
             const w = this.currentWidget;
             if (!w || w.type !== 'filter' || !w.settings) return;
@@ -7044,6 +7169,10 @@ export class WidgetStylePanel {
             } else if (opts.touchButtonStyle || w.settings.buttonStyle) {
                 w.settings.buttonStyle = readButtonStyleFromPanel();
             }
+            if (opts.touchFilterStyle) {
+                w.settings.filterStyle = readFilterStyleFromPanel();
+                syncFilterStyleLabels();
+            }
 
             syncTitleRow();
             w.update();
@@ -7053,12 +7182,16 @@ export class WidgetStylePanel {
         section.addEventListener('change', (e) => {
             if (!e.target.closest('.filter-widget-settings-section')) return;
             const touchButtonStyle = !!e.target.closest('[data-filter-btn-style]');
-            apply({ touchButtonStyle });
+            const touchFilterStyle = !!e.target.closest('[data-filter-style]');
+            apply({ touchButtonStyle, touchFilterStyle });
         });
         section.addEventListener('input', (e) => {
             if (!e.target) return;
             const touchButtonStyle = !!e.target.closest('[data-filter-btn-style]');
-            if (
+            const touchFilterStyle = !!e.target.closest('[data-filter-style]');
+            if (touchFilterStyle) {
+                apply({ touchFilterStyle });
+            } else if (
                 touchButtonStyle ||
                 e.target.id === 'filter-widget-title' ||
                 e.target.id === 'filter-title-color' ||
@@ -11649,49 +11782,71 @@ export class WidgetStylePanel {
         }
 
         // Appearance
+        // Все поля сбрасываются к умолчаниям, чтобы значения не «перетекали» между виджетами.
         const appearance = styles.appearance || {};
+        const variantSelect = this.panel.querySelector('#style-variant');
+        if (variantSelect) {
+            variantSelect.value = WIDGET_VARIANTS.includes(appearance.variant) ? appearance.variant : 'glass';
+        }
+        const densitySelect = this.panel.querySelector('#style-density');
+        if (densitySelect) {
+            densitySelect.value = WIDGET_DENSITIES.includes(appearance.density) ? appearance.density : 'normal';
+        }
         const bgType = this.panel.querySelector('#style-bg-type');
         if (bgType) {
-            bgType.value = appearance.backgroundType || 'solid';
+            bgType.value = ['solid', 'gradient', 'glass'].includes(appearance.backgroundType)
+                ? appearance.backgroundType
+                : '';
             bgType.dispatchEvent(new Event('change'));
         }
         
         const bgColor = this.panel.querySelector('#style-bg-color');
         const bgColorText = this.panel.querySelector('#style-bg-color-text');
-        if (bgColor && bgColorText && appearance.backgroundColor) {
-            bgColor.value = appearance.backgroundColor;
-            bgColorText.value = appearance.backgroundColor;
+        if (bgColor && bgColorText) {
+            const bg = appearance.backgroundColor || '#1a1d22';
+            bgColor.value = /^#[0-9a-f]{6}$/i.test(bg) ? bg : '#1a1d22';
+            bgColorText.value = bg;
         }
         
         const opacity = this.panel.querySelector('#style-opacity');
         const opacityValue = this.panel.querySelector('#opacity-value');
-        if (opacity && opacityValue && appearance.opacity !== undefined) {
-            opacity.value = appearance.opacity;
-            opacityValue.textContent = Math.round(appearance.opacity * 100) + '%';
+        if (opacity && opacityValue) {
+            const op = Number.isFinite(Number(appearance.opacity)) && appearance.opacity !== null && appearance.opacity !== ''
+                ? Math.min(1, Math.max(0, Number(appearance.opacity)))
+                : 1;
+            opacity.value = op;
+            opacityValue.textContent = Math.round(op * 100) + '%';
         }
         
         const blendMode = this.panel.querySelector('#style-blend-mode');
-        if (blendMode && appearance.blendMode) {
-            blendMode.value = appearance.blendMode;
+        if (blendMode) {
+            blendMode.value = appearance.blendMode || 'normal';
         }
         
         // Glass mode
-        if (appearance.backgroundType === 'glass') {
+        {
+            const isGlass = appearance.backgroundType === 'glass';
             const glassEnabled = this.panel.querySelector('#style-glass-enabled');
-            if (glassEnabled) {
-                glassEnabled.checked = true;
-                glassEnabled.dispatchEvent(new Event('change'));
+            if (glassEnabled) glassEnabled.checked = isGlass;
+            const glassColor = this.panel.querySelector('#style-glass-color');
+            if (glassColor) {
+                const gc = appearance.glassColor || '#ffffff';
+                glassColor.value = /^#[0-9a-f]{6}$/i.test(gc) ? gc : '#ffffff';
             }
-            if (appearance.glassColor) {
-                const glassColor = this.panel.querySelector('#style-glass-color');
-                if (glassColor) glassColor.value = appearance.glassColor;
-            }
-            if (appearance.glassBlur !== undefined) {
-                const glassBlur = this.panel.querySelector('#style-glass-blur');
-                const glassBlurValue = this.panel.querySelector('#glass-blur-value');
-                if (glassBlur) glassBlur.value = appearance.glassBlur;
-                if (glassBlurValue) glassBlurValue.textContent = appearance.glassBlur + 'px';
-            }
+            const glassBlur = this.panel.querySelector('#style-glass-blur');
+            const glassBlurValue = this.panel.querySelector('#glass-blur-value');
+            const blur = Number.isFinite(Number(appearance.glassBlur)) && appearance.glassBlur !== null && appearance.glassBlur !== ''
+                ? Number(appearance.glassBlur)
+                : 8;
+            if (glassBlur) glassBlur.value = blur;
+            if (glassBlurValue) glassBlurValue.textContent = blur + 'px';
+            const glassOpacity = this.panel.querySelector('#style-glass-opacity');
+            const glassOpacityValue = this.panel.querySelector('#glass-opacity-value');
+            const gop = Number.isFinite(Number(appearance.glassOpacity)) && appearance.glassOpacity !== null && appearance.glassOpacity !== ''
+                ? Number(appearance.glassOpacity)
+                : 0.1;
+            if (glassOpacity) glassOpacity.value = gop;
+            if (glassOpacityValue) glassOpacityValue.textContent = gop.toFixed(1);
         }
         
         // Gradient
@@ -11734,8 +11889,8 @@ export class WidgetStylePanel {
         }
         
         const textShadow = this.panel.querySelector('#style-text-shadow');
-        if (textShadow && typography.textShadow) {
-            textShadow.value = typography.textShadow;
+        if (textShadow) {
+            textShadow.value = typography.textShadow || '';
         }
         
         this.updateTypographyPreview();
@@ -11750,15 +11905,16 @@ export class WidgetStylePanel {
         }
         
         const borderStyle = this.panel.querySelector('#style-border-style');
-        if (borderStyle && borders.style) {
-            borderStyle.value = borders.style;
+        if (borderStyle) {
+            borderStyle.value = borders.style || 'solid';
         }
         
         const borderColor = this.panel.querySelector('#style-border-color');
         const borderColorText = this.panel.querySelector('#style-border-color-text');
-        if (borderColor && borderColorText && borders.color) {
-            borderColor.value = borders.color;
-            borderColorText.value = borders.color;
+        if (borderColor && borderColorText) {
+            const bc = borders.color || '#00e0ff';
+            borderColor.value = /^#[0-9a-f]{6}$/i.test(bc) ? bc : '#00e0ff';
+            borderColorText.value = borders.color || '';
         }
         
         const borderRadius = this.panel.querySelector('#style-border-radius');
@@ -12521,6 +12677,9 @@ export class WidgetStylePanel {
             this.writeTitleColorToPanel('filter', widget.settings.titleColor, '#8B5CF6');
             if (titleRow) titleRow.classList.toggle('filter-widget-title-row--hidden', !show);
             if (colorRow) colorRow.classList.toggle('widget-panel-title-sub--hidden', !show);
+            if (typeof this._writeFilterStyleToPanel === 'function') {
+                this._writeFilterStyleToPanel(widget.settings.filterStyle);
+            }
             if (typeof this._writeFilterButtonStyleToPanel === 'function') {
                 this._writeFilterButtonStyleToPanel(widget.settings.buttonStyle);
             } else {
@@ -12949,12 +13108,15 @@ export class WidgetStylePanel {
         }
 
         // Appearance
-        const bgType = this.panel.querySelector('#style-bg-type')?.value || 'solid';
+        const bgType = this.panel.querySelector('#style-bg-type')?.value || '';
+        const opacityRaw = parseFloat(this.panel.querySelector('#style-opacity')?.value);
         styles.appearance = {
+            variant: this.panel.querySelector('#style-variant')?.value || 'glass',
+            density: this.panel.querySelector('#style-density')?.value || 'normal',
             backgroundType: bgType,
-            backgroundColor: this.panel.querySelector('#style-bg-color')?.value || '#ffffff',
+            backgroundColor: this.panel.querySelector('#style-bg-color')?.value || '#1a1d22',
             backgroundColorFormula: this.readColorFormulaFromPanel('style-bg-color-formula'),
-            opacity: parseFloat(this.panel.querySelector('#style-opacity')?.value) || 1,
+            opacity: Number.isFinite(opacityRaw) ? Math.min(1, Math.max(0, opacityRaw)) : 1,
             blendMode: this.panel.querySelector('#style-blend-mode')?.value || 'normal'
         };
         
@@ -12974,13 +13136,12 @@ export class WidgetStylePanel {
         
         // Glass mode
         if (bgType === 'glass') {
-            const glassEnabled = this.panel.querySelector('#style-glass-enabled')?.checked || false;
-            if (glassEnabled) {
-                styles.appearance.glassColor = this.panel.querySelector('#style-glass-color')?.value || '#ffffff';
-                styles.appearance.glassColorFormula = this.readColorFormulaFromPanel('style-glass-color-formula');
-                styles.appearance.glassBlur = parseInt(this.panel.querySelector('#style-glass-blur')?.value) || 8;
-                styles.appearance.glassOpacity = parseFloat(this.panel.querySelector('#style-glass-opacity')?.value) || 0.1;
-            }
+            const blurRaw = parseInt(this.panel.querySelector('#style-glass-blur')?.value, 10);
+            const glassOpacityRaw = parseFloat(this.panel.querySelector('#style-glass-opacity')?.value);
+            styles.appearance.glassColor = this.panel.querySelector('#style-glass-color')?.value || '#ffffff';
+            styles.appearance.glassColorFormula = this.readColorFormulaFromPanel('style-glass-color-formula');
+            styles.appearance.glassBlur = Number.isFinite(blurRaw) ? blurRaw : 8;
+            styles.appearance.glassOpacity = Number.isFinite(glassOpacityRaw) ? glassOpacityRaw : 0.1;
         }
 
         // Typography

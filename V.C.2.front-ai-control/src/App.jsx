@@ -39,7 +39,6 @@ const ShareDashboardSheetPage = lazy(() => import('./pages/share/ShareDashboardP
 const ShareDashboardEntryPage = lazy(() =>
   import('./pages/share/ShareDashboardPages.jsx').then((m) => ({ default: m.ShareDashboardEntryPage }))
 );
-const PricingPage = lazy(() => import('./pages/pricing/Pricing'));
 const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 const CookieConsentBanner = lazy(() => import('./pages/privacy/CookieConsentBanner'));
 
@@ -303,9 +302,6 @@ const AppContent = ({ user, isAuthenticated, authLoading, login, logout }) => {
               <Route path="/datacode-docs/" element={<DataCodeDocsPage />} />
               {/* Static file is served by Vite/nginx; do not SPA-redirect index.html */}
               <Route path="/developer-api-docs" element={<DeveloperApiDocsPage />} />
-
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/pricing/" element={<PricingPage />} />
 
               <Route path="/legal" element={<Navigate to="/legal/privacy" replace />} />
               <Route path="/legal/" element={<Navigate to="/legal/privacy" replace />} />

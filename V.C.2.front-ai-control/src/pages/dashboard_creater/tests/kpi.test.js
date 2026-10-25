@@ -415,6 +415,34 @@ describe('kpiCompute', () => {
     expect(calls).toBe(4);
   });
 
+  it('WHERE and $[...] aggregates run as separate queries with their own filters', async () => {
+    const bodies = [];
+    const runQuery = async (_e, _m, body) => {
+      bodies.push(body);
+      const alias = body.aggregations[0].as;
+      const local = (body.filters || []).some((f) => f.column === 'region' && f.value === 'nw');
+      const global = (body.filters || []).some((f) => f.column === 'channel');
+      return { rows: [{ [alias]: local ? 25 : global ? 80 : 200 }] };
+    };
+    const snap = await computeKpiSnapshot(
+      {
+        engine: {},
+        modelId: 1,
+        table: 'orders',
+        formula: "SUM([orders.amount] WHERE [orders.region] = 'nw') / SUM($[orders.amount])",
+        globalFilters: [{ table: 'orders', column: 'channel', op: 'eq', value: 'web' }],
+      },
+      { runQuery },
+    );
+    expect(snap.error).toBe('');
+    expect(bodies).toHaveLength(2);
+    const ignored = bodies.find((b) => !(b.filters || []).some((f) => f.column === 'region'));
+    expect(ignored.filters || []).toEqual([]);
+    const local = bodies.find((b) => (b.filters || []).some((f) => f.column === 'region'));
+    expect(local.filters.some((f) => f.column === 'channel')).toBe(true);
+    expect(snap.current).toBeCloseTo(25 / 200);
+  });
+
   it('delta and trend positive', async () => {
     const runQuery = async (_e, _m, body) => {
       const fs = body.filters || [];

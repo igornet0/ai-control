@@ -240,6 +240,16 @@ describe('compile + evaluate', () => {
     expect(() => evaluateAst(ast, {})).toThrow(FormulaError);
   });
 
+  it('compares number with numeric string as numbers', () => {
+    const { ast } = compileFormula('IF([t.qty] = 5, 1, 0)', { allowFieldRef: true });
+    const run = (v) => evaluateAst(ast, {}, null, { getField: () => v });
+    expect(run('5.0')).toBe(1);
+    expect(run('5')).toBe(1);
+    expect(run('6')).toBe(0);
+    expect(run('abc')).toBe(0);
+    expect(run('')).toBe(0);
+  });
+
   it('evaluates @variable from fieldCtx', () => {
     const { ast } = compileFormula('@sum_amount_sum + 1');
     const n = evaluateAst(ast, {}, null, {
@@ -479,5 +489,15 @@ describe('IF / RGB / MATCH color expressions', () => {
     expect(() =>
       compileFormula('IF([payments.status]="paid", RGB(1,2,3), None)'),
     ).toThrow(FormulaError);
+  });
+});
+
+describe('formula AST cache bound', () => {
+  it('keeps astCache size bounded', async () => {
+    const { formulaAstCacheSize } = await import('../src/formula/cache.js');
+    clearFormulaAstCache();
+    for (let i = 0; i < 700; i += 1) getCompiledFormula(`SUM([t.v]) + ${i}`);
+    expect(formulaAstCacheSize()).toBeLessThanOrEqual(512);
+    expect(getCompiledFormula('SUM([t.v]) + 699')).toBeTruthy();
   });
 });

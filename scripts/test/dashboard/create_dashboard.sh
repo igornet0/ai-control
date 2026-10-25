@@ -14,7 +14,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-SRC_DIR="${REPO_ROOT}/src"
+SRC_DIR="${REPO_ROOT}/py-worm"
 
 ENV="dev"
 MODEL_CREDENTIALS="${SCRIPT_DIR}/../model_data/output/credentials.json"
@@ -41,7 +41,7 @@ Options:
   -h, --help                  Справка
 
 Предусловие:
-  cd src && poetry run python ../scripts/test/model_data/create_model.py --env dev
+  cd py-worm && poetry run python ../scripts/test/model_data/create_model.py --env dev
   ./scripts/test/model_data/compile_and_stream.sh --env dev
 EOF
 }
@@ -94,7 +94,7 @@ done
 
 if [[ ! -f "${MODEL_CREDENTIALS}" ]]; then
   echo "create_dashboard.sh: model credentials not found: ${MODEL_CREDENTIALS}" >&2
-  echo "Run: cd src && poetry run python ../scripts/test/model_data/create_model.py --env ${ENV}" >&2
+  echo "Run: cd py-worm && poetry run python ../scripts/test/model_data/create_model.py --env ${ENV}" >&2
   exit 1
 fi
 

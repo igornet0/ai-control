@@ -6,6 +6,7 @@ import { formatApiError } from '../../../../utils/formatApiError';
 import { canManageAllTeams, canCreateTeams } from './employeePermissions';
 import TeamManageModal from './TeamManageModal';
 import { teamTasksPath } from './taskDeepLinks';
+import tabStyles from '../ProfileTabs.module.css';
 
 export { TeamManageModal };
 
@@ -71,7 +72,7 @@ export default function AdminTeamsSection({ context }) {
     setShowCreate(true);
   };
 
-  if (loading) return <p className="text-slate-400">Загрузка команд...</p>;
+  if (loading) return <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка команд...</div>;
 
   return (
     <div>

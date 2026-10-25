@@ -5,6 +5,7 @@
 import { formulaHasQualifiedTableRefs } from '../formula/formulaInference.js';
 import { normalizeGaugeSettings } from '../widgets/gauge/gaugeSettingsSchema.js';
 import { chartDimMeasBindingsOk } from '../widgets/common/chartBindingFormula.js';
+import { defaultTextColor, defaultFontFamily } from '../theme/themeRuntime.js';
 
 const TYPES_NEEDING_DATA = new Set([
   'table',
@@ -116,8 +117,8 @@ function esc(s) {
  * @param {'data'|'text'|'html'|'unavailable'} [variant]
  */
 export function renderWidgetEmptyInnerHtml(typography = {}, variant = 'data') {
-  const fontFamily = typography.fontFamily || 'Inter';
-  const color = typography.color || '#E4E6EB';
+  const fontFamily = typography.fontFamily || defaultFontFamily();
+  const color = typography.color || defaultTextColor();
   const ff = esc(fontFamily).replace(/'/g, '&#39;');
 
   let title;

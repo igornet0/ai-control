@@ -14,7 +14,7 @@
 Результат сохраняется в scripts/test/model_data/output/credentials.json
 
 Пример:
-  cd src && poetry run python ../scripts/test/model_data/create_model.py --env dev
+  cd py-worm && poetry run python ../scripts/test/model_data/create_model.py --env dev
 """
 
 from __future__ import annotations
@@ -42,6 +42,7 @@ from fixtures import (  # noqa: E402
     AGGREGATE_DATACODE,
     FILTER_DATACODE,
     FORMULA_DATACODE,
+    MODEL_VARIABLES,
     RELATIONSHIP_DATACODE,
     RELATIONSHIP_ORDER_ITEMS_DATACODE,
     RELATIONSHIP_PAYMENTS_DATACODE,
@@ -59,6 +60,8 @@ from fixtures import (  # noqa: E402
     filter_widget,
     formula_widget,
     ingest_config_for_table,
+    model_variable_datacode,
+    model_variable_widget,
     relationship_order_items_widget,
     relationship_payments_widget,
     relationship_products_widget,
@@ -253,6 +256,15 @@ def create_test_model(args: argparse.Namespace) -> dict:
         cp.save_widget_code(model_id, relationship_regions["id"], RELATIONSHIP_REGIONS_DATACODE)
         order += 1
 
+        for idx, var in enumerate(MODEL_VARIABLES):
+            created = cp.create_widget(
+                model_id,
+                model_variable_widget(var, x=pipeline_x0 + 1220, y=pipeline_y + idx * 140, order_index=order),
+            )
+            widget_ids[f"var_{var['name']}"] = created["id"]
+            cp.save_widget_code(model_id, created["id"], model_variable_datacode(var))
+            order += 1
+
         relationships = build_relationships(widget_ids)
         cp.update_relationships(model_id, relationships)
 
@@ -272,6 +284,7 @@ def create_test_model(args: argparse.Namespace) -> dict:
         "relationship_profiles",
         "relationship_order_items",
         "relationship_regions",
+        *[f"var_{var['name']}" for var in MODEL_VARIABLES],
     ]
 
     result = {

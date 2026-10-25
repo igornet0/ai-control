@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { formatUnreadCount } from '../../../services/browserNotifications';
 import { useCollapsibleSidebar } from '../../../hooks/useCollapsibleSidebar.js';
 import MobileSidebarChrome from '../../../components/layout/MobileSidebarChrome.jsx';
 import styles from './ProfileSidebar.module.css';
 import { isPlatformAdmin } from '../../../utils/isPlatformAdmin';
+import { accountingService } from '../../../services/accountingService';
 
 const iconClass = 'w-4 h-4 shrink-0';
 
@@ -50,6 +51,11 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v3.75M15.75 9l-3-3m0 0l-3 3m3-3h8.25M8.25 21h8.25A2.25 2.25 0 0018.75 18.75V15M8.25 21H5.25A2.25 2.25 0 013 18.75V15m0-2.25V5.25" />
     </svg>
   ),
+  accounting: (
+    <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
+    </svg>
+  ),
   privacy: (
     <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -59,13 +65,13 @@ const icons = {
 
 const navItems = [
   { key: 'profile', label: 'Профиль' },
-  { key: 'privacy', label: 'Privacy' },
   { key: 'plan', label: 'Тариф' },
   { key: 'finance', label: 'Финансы' },
   { key: 'employees', label: 'Сотрудники' },
   { key: 'email', label: 'Почта' },
   { key: 'strategys', label: 'Стратегия' },
 ];
+const privacyItem = { key: 'privacy', label: 'Конфиденциальность' };
 
 const ProfileSidebar = ({
   activeTab,
@@ -77,9 +83,25 @@ const ProfileSidebar = ({
   const { collapsed, toggle, mobileOpen, closeMobile, openMobile } = useCollapsibleSidebar(
     'profile-sidebar-collapsed',
   );
-  const allNavItems = isPlatformAdmin(user)
-    ? [...navItems, { key: 'admin', label: 'Админ панель' }]
-    : navItems;
+  const isAdmin = isPlatformAdmin(user);
+  const [canAccounting, setCanAccounting] = useState(false);
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    accountingService
+      .getAccess()
+      .then((r) => !cancelled && setCanAccounting(Boolean(r?.can_access)))
+      .catch(() => !cancelled && setCanAccounting(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+  const allNavItems = [
+    ...navItems,
+    ...(isAdmin ? [{ key: 'admin', label: 'Админ панель' }] : []),
+    ...(isAdmin || canAccounting ? [{ key: 'accounting', label: 'Бухгалтерия' }] : []),
+    privacyItem,
+  ];
 
   const selectTab = (key) => {
     setActiveTab(key);

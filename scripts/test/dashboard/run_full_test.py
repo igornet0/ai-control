@@ -3,8 +3,8 @@
 Полный прогон: (опционально) model_data → create_dashboard → verify_dashboard.
 
 Пример:
-  cd src && poetry run python ../scripts/test/dashboard/run_full_test.py --env dev
-  cd src && poetry run python ../scripts/test/dashboard/run_full_test.py --env dev --with-model
+  cd py-worm && poetry run python ../scripts/test/dashboard/run_full_test.py --env dev
+  cd py-worm && poetry run python ../scripts/test/dashboard/run_full_test.py --env dev --with-model
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
 MODEL_DATA_DIR = SCRIPT_DIR.parent / "model_data"
-SRC_DIR = REPO_ROOT / "src"
+SRC_DIR = REPO_ROOT / "py-worm"
 
 
 def parse_args() -> argparse.Namespace:

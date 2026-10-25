@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Панель управления' },
   { to: '/tasks', label: 'Задачи' },
   { to: '/documents', label: 'Документы' },
-  { to: '/pricing', label: 'Тарифы' },
   { to: '/support', label: 'Поддержка' },
 ];
 

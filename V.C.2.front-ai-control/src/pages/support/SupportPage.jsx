@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from '@heroicons/react/24/outline';
 import MobileSidebarChrome from '../../components/layout/MobileSidebarChrome.jsx';
 import { useAuth } from '../../context/AuthContext';
 import { useCollapsibleSidebar } from '../../hooks/useCollapsibleSidebar.js';
@@ -133,7 +137,11 @@ export default function SupportPage() {
               aria-label={sidebarCollapsed ? 'Развернуть меню' : 'Свернуть меню'}
               title={sidebarCollapsed ? 'Развернуть меню' : 'Свернуть меню'}
             >
-              {sidebarCollapsed ? '»' : '«'}
+              {sidebarCollapsed ? (
+                <ChevronRightIcon style={{ width: '1rem', height: '1rem' }} />
+              ) : (
+                <ChevronLeftIcon style={{ width: '1rem', height: '1rem' }} />
+              )}
             </button>
           </div>
 

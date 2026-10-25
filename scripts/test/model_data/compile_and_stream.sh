@@ -16,7 +16,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-SRC_DIR="${REPO_ROOT}/src"
+SRC_DIR="${REPO_ROOT}/py-worm"
 
 ENV="dev"
 CREDENTIALS="${SCRIPT_DIR}/output/credentials.json"
@@ -81,7 +81,7 @@ done
 
 if [[ ! -f "${CREDENTIALS}" ]]; then
   echo "compile_and_stream: credentials not found: ${CREDENTIALS}" >&2
-  echo "Run: cd src && poetry run python ../scripts/test/model_data/create_model.py --env ${ENV}" >&2
+  echo "Run: cd py-worm && poetry run python ../scripts/test/model_data/create_model.py --env ${ENV}" >&2
   exit 1
 fi
 

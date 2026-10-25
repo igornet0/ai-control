@@ -7,7 +7,8 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import ProfileSidebar from './components/ProfileSidebar';
 import Profile from './components/Profile';
 import FinanceTab from './components/FinanceTab';
-import AdminPanel from './components/AdminPanel';
+import AdminPanel from './components/AdminPanel'
+import AccountingTab from './components/AccountingTab';
 import EmployeesTab from './components/EmployeesTab';
 import StrategyTab from './components/StrategyTab';
 import EmailTab from './components/EmailTab';
@@ -28,6 +29,7 @@ const PROFILE_TAB_TITLES = {
   email: 'Почта',
   strategys: 'Стратегия',
   admin: 'Админ панель',
+  accounting: 'Бухгалтерия',
 };
 
 const ProfilePage = ({ user, onLogout }) => {
@@ -137,6 +139,7 @@ const ProfilePage = ({ user, onLogout }) => {
             onPendingOpenRoomHandled={() => setPendingOpenRoom(null)}
           />
           <AdminPanel activeTab={activeTab} />
+          <AccountingTab activeTab={activeTab} />
           <StrategyTab activeTab={activeTab} user={user} />
         </div>
       </main>

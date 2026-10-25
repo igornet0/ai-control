@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { financeService } from '../../../services/financeService';
 import Notification from '../../../components/Notification';
+import FinanceOverview from './FinanceOverview';
+import styles from './ProfileTabs.module.css';
 
 const DOCUMENT_TYPES = [
   { value: 'receipt', label: 'Чек' },
@@ -27,7 +29,7 @@ const initialForm = {
   comment: '',
 };
 
-export default function FinanceTab({ activeTab }) {
+export default function FinanceTab({ activeTab, onOpenPlan }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +40,7 @@ export default function FinanceTab({ activeTab }) {
   const [supplierHighlightedIndex, setSupplierHighlightedIndex] = useState(-1);
   const [formExpanded, setFormExpanded] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const supplierDropdownRef = useRef(null);
 
   const loadEntries = async () => {
@@ -184,8 +187,9 @@ export default function FinanceTab({ activeTab }) {
     setEditingId(entry.id);
   };
 
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Удалить запись?')) return;
+    setConfirmDeleteId(null);
     try {
       await financeService.deleteEntry(id);
       await loadEntries();
@@ -198,8 +202,10 @@ export default function FinanceTab({ activeTab }) {
 
   if (activeTab !== 'finance') return null;
 
+  const totalAmount = entries.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className={styles.page}>
       {notification && (
         <Notification
           message={notification.message}
@@ -207,252 +213,260 @@ export default function FinanceTab({ activeTab }) {
           onClose={() => setNotification(null)}
         />
       )}
-      <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-        Учёт доходов
-      </h2>
 
-      <div className="card animate-slideInLeft">
+      <header className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>Финансы</span>
+          <h2 className={styles.title}>Учёт доходов</h2>
+          <p className={styles.subtitle}>Фиксируйте поступления, поставщиков и подтверждающие документы.</p>
+        </div>
+        {entries.length > 0 && (
+          <div className={`${styles.badge} ${styles.badgeInfo}`}>
+            Итого: {totalAmount.toLocaleString('ru-RU')} ₽
+          </div>
+        )}
+      </header>
+
+      <FinanceOverview onOpenPlan={onOpenPlan} />
+
+      <section className={styles.card}>
         {!formExpanded ? (
           <button
             type="button"
             onClick={() => setFormExpanded(true)}
-            className="w-full py-3 px-4 rounded-lg font-medium border border-dashed border-slate-500 text-slate-300 hover:bg-slate-700/40 hover:border-indigo-500/50 transition-colors flex items-center justify-center gap-2"
+            className={`${styles.btn} ${styles.btnGhost} ${styles.addCta}`}
           >
             <span>+</span>
             <span>Новая запись о доходе</span>
           </button>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>
                 {editingId ? 'Редактировать запись' : 'Новая запись о доходе'}
               </h3>
               <button
                 type="button"
                 onClick={() => { setFormExpanded(false); if (editingId) resetForm(); }}
-                className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
               >
                 Свернуть
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/20 text-red-300 text-sm">
-              {error}
-            </div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                Дата оплаты
-              </label>
-              <input
-                type="date"
-                name="payment_date"
-                value={form.payment_date}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-600 text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                Сумма
-              </label>
-              <input
-                type="number"
-                name="amount"
-                value={form.amount}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-600 text-white"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                Категория
-              </label>
-              <select
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-600 text-white"
-              >
-                <option value="">Выберите категорию</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div ref={supplierDropdownRef} className="relative">
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                Поставщик
-              </label>
-              <input
-                type="text"
-                name="supplier"
-                value={form.supplier}
-                onChange={handleChange}
-                onFocus={() => setSupplierDropdownOpen(true)}
-                onBlur={handleSupplierBlur}
-                onKeyDown={handleSupplierKeyDown}
-                required
-                placeholder="Организация или ФИО"
-                autoComplete="off"
-                className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-600 text-white"
-              />
-              {supplierDropdownOpen && supplierSuggestions.length > 0 && (
-                <ul
-                  className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto overflow-x-hidden rounded-lg border border-slate-600 bg-slate-800/95 shadow-xl backdrop-blur-sm flex flex-col"
-                  style={{ borderColor: 'var(--color-border-muted)' }}
+            <form onSubmit={handleSubmit}>
+              {error && <div className={styles.errorBox} style={{ marginBottom: 'var(--spacing-4)' }}>{error}</div>}
+              <div className={styles.formGrid}>
+                <label className={styles.field}>
+                  <span className={styles.label}>Дата оплаты<span className={styles.required}>*</span></span>
+                  <input
+                    type="date"
+                    name="payment_date"
+                    value={form.payment_date}
+                    onChange={handleChange}
+                    required
+                    className={styles.input}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.label}>Сумма, ₽<span className={styles.required}>*</span></span>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={form.amount}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    placeholder="0,00"
+                    className={styles.input}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.label}>Категория<span className={styles.required}>*</span></span>
+                  <select
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    required
+                    className={styles.input}
+                  >
+                    <option value="">Выберите категорию</option>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div ref={supplierDropdownRef} className={styles.field}>
+                  <label className={styles.label} htmlFor="finance-supplier">
+                    Поставщик<span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    id="finance-supplier"
+                    type="text"
+                    name="supplier"
+                    value={form.supplier}
+                    onChange={handleChange}
+                    onFocus={() => setSupplierDropdownOpen(true)}
+                    onBlur={handleSupplierBlur}
+                    onKeyDown={handleSupplierKeyDown}
+                    required
+                    placeholder="Организация или ФИО"
+                    autoComplete="off"
+                    className={styles.input}
+                  />
+                  {supplierDropdownOpen && supplierSuggestions.length > 0 && (
+                    <ul className={styles.suggestions}>
+                      {supplierSuggestions.map((s, idx) => (
+                        <li
+                          key={s}
+                          className={`${styles.suggestion} ${idx === supplierHighlightedIndex ? styles.suggestionActive : ''}`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSupplierSelect(s);
+                          }}
+                        >
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <label className={styles.field}>
+                  <span className={styles.label}>Тип документа</span>
+                  <select
+                    name="document_type"
+                    value={form.document_type}
+                    onChange={handleChange}
+                    className={styles.input}
+                  >
+                    {DOCUMENT_TYPES.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span className={styles.label}>Комментарий</span>
+                  <textarea
+                    name="comment"
+                    value={form.comment}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Необязательно"
+                    className={styles.input}
+                  />
+                </label>
+              </div>
+              <div className={styles.formActions}>
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={() => { resetForm(); setFormExpanded(false); }}
+                    className={`${styles.btn} ${styles.btnGhost}`}
+                  >
+                    Отмена
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
                 >
-                  {supplierSuggestions.map((s, idx) => (
-                    <li key={s} className="list-none w-full flex-shrink-0 first:rounded-t-[7px] last:rounded-b-[7px] overflow-hidden">
-                      <button
-                        type="button"
-                        className={`block w-full min-w-full text-left px-3 py-1.5 text-sm transition-colors flex items-center box-border ${
-                          idx === supplierHighlightedIndex
-                            ? 'bg-indigo-500/25'
-                            : 'hover:bg-slate-700/60'
-                        }`}
-                        style={{ color: 'var(--color-text-primary)' }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSupplierSelect(s);
-                        }}
-                      >
-                        {s}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-              Тип документа
-            </label>
-            <select
-              name="document_type"
-              value={form.document_type}
-              onChange={handleChange}
-              className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-600 text-white"
-            >
-              {DOCUMENT_TYPES.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-              Комментарий
-            </label>
-            <textarea
-              name="comment"
-              value={form.comment}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Необязательно"
-              className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-600 text-white resize-none"
-            />
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg font-medium bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50"
-            >
-              {submitting ? 'Сохранение...' : editingId ? 'Сохранить' : 'Добавить'}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => { resetForm(); setFormExpanded(false); }}
-                className="px-4 py-2 rounded-lg font-medium border border-slate-500 text-slate-300 hover:bg-slate-700/50"
-              >
-                Отмена
-              </button>
-            )}
-          </div>
-        </form>
+                  {submitting ? 'Сохранение...' : editingId ? 'Сохранить' : 'Добавить'}
+                </button>
+              </div>
+            </form>
           </>
         )}
-      </div>
+      </section>
 
-      <div className="card animate-slideInRight">
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-          Список записей
-        </h3>
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h3 className={styles.cardTitle}>
+            Список записей
+            {entries.length > 0 && <span className={styles.counter}>{entries.length}</span>}
+          </h3>
+        </div>
+        {!formExpanded && error && <div className={styles.errorBox} style={{ marginBottom: 'var(--spacing-4)' }}>{error}</div>}
         {loading ? (
-          <p className="text-slate-400">Загрузка...</p>
+          <div className={styles.loader}>
+            <span className={styles.spinner} />
+            Загрузка...
+          </div>
         ) : entries.length === 0 ? (
-          <p className="text-slate-400">Нет записей. Добавьте первую запись выше.</p>
+          <div className={styles.empty}>
+            <div className={styles.emptyIcon}>💰</div>
+            <p className={styles.emptyTitle}>Пока нет записей</p>
+            <p>Добавьте первую запись о доходе — она появится здесь.</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
               <thead>
-                <tr style={{ borderColor: 'var(--color-border-muted)' }} className="border-b">
-                  <th className="py-2 pr-4" style={{ color: 'var(--color-text-muted)' }}>Дата</th>
-                  <th className="py-2 pr-4" style={{ color: 'var(--color-text-muted)' }}>Сумма</th>
-                  <th className="py-2 pr-4" style={{ color: 'var(--color-text-muted)' }}>Категория</th>
-                  <th className="py-2 pr-4" style={{ color: 'var(--color-text-muted)' }}>Поставщик</th>
-                  <th className="py-2 pr-4" style={{ color: 'var(--color-text-muted)' }}>Тип док.</th>
-                  <th className="py-2 pr-4" style={{ color: 'var(--color-text-muted)' }}>Комментарий</th>
-                  <th className="py-2" style={{ color: 'var(--color-text-muted)' }}></th>
+                <tr>
+                  <th>Дата</th>
+                  <th>Сумма</th>
+                  <th>Категория</th>
+                  <th>Поставщик</th>
+                  <th>Тип док.</th>
+                  <th>Комментарий</th>
+                  <th aria-label="Действия" />
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry) => (
-                  <tr
-                    key={entry.id}
-                    style={{ borderColor: 'var(--color-border-muted)' }}
-                    className="border-b border-slate-700/50"
-                  >
-                    <td className="py-3 pr-4" style={{ color: 'var(--color-text-primary)' }}>
-                      {entry.payment_date}
+                  <tr key={entry.id}>
+                    <td data-label="Дата">{entry.payment_date}</td>
+                    <td data-label="Сумма" className={styles.amount}>
+                      {Number(entry.amount).toLocaleString('ru-RU')} ₽
                     </td>
-                    <td className="py-3 pr-4" style={{ color: 'var(--color-text-primary)' }}>
-                      {Number(entry.amount).toLocaleString('ru-RU')}
-                    </td>
-                    <td className="py-3 pr-4" style={{ color: 'var(--color-text-primary)' }}>
-                      {entry.category}
-                    </td>
-                    <td className="py-3 pr-4" style={{ color: 'var(--color-text-primary)' }}>
-                      {entry.supplier}
-                    </td>
-                    <td className="py-3 pr-4" style={{ color: 'var(--color-text-primary)' }}>
+                    <td data-label="Категория"><span className={styles.chip}>{entry.category}</span></td>
+                    <td data-label="Поставщик" style={{ color: 'var(--color-text-primary)' }}>{entry.supplier}</td>
+                    <td data-label="Тип док.">
                       {DOCUMENT_TYPES.find((t) => t.value === entry.document_type)?.label || entry.document_type}
                     </td>
-                    <td className="py-3 pr-4 max-w-[200px] truncate" style={{ color: 'var(--color-text-muted)' }}>
+                    <td data-label="Комментарий" className={styles.muted}>
                       {entry.comment || '—'}
                     </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(entry)}
-                          className="px-3 py-1.5 text-sm font-medium rounded-lg border border-indigo-500/50 text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 hover:border-indigo-400/60 transition-colors"
-                        >
-                          Изменить
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(entry.id)}
-                          className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-500/50 text-red-300 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400/60 transition-colors"
-                        >
-                          Удалить
-                        </button>
-                      </div>
+                    <td className={styles.rowActions}>
+                      {confirmDeleteId === entry.id ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(entry.id)}
+                            className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
+                          >
+                            Да, удалить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
+                          >
+                            Нет
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(entry)}
+                            className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
+                          >
+                            Изменить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(entry.id)}
+                            className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}
+                          >
+                            Удалить
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -460,7 +474,7 @@ export default function FinanceTab({ activeTab }) {
             </table>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

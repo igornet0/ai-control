@@ -8,8 +8,9 @@ import {
   canManageDepartments,
 } from './employeePermissions';
 import InviteToolbar from './InviteToolbar';
+import tabStyles from '../ProfileTabs.module.css';
 
-const emptyForm = { name: '', description: '', parent_id: '', manager_id: '', is_support: false };
+const emptyForm = { name: '', description: '', parent_id: '', manager_id: '', is_support: false, is_accounting: false, is_hr: false };
 
 export default function AdminDepartmentsSection({ context }) {
   const [departments, setDepartments] = useState([]);
@@ -58,6 +59,8 @@ export default function AdminDepartmentsSection({ context }) {
       parent_id: dept.parent_id ? String(dept.parent_id) : '',
       manager_id: dept.manager_id ? String(dept.manager_id) : '',
       is_support: Boolean(dept.is_support),
+      is_accounting: Boolean(dept.is_accounting),
+      is_hr: Boolean(dept.is_hr),
     });
     setShowModal(true);
   };
@@ -74,6 +77,8 @@ export default function AdminDepartmentsSection({ context }) {
       if (allowCreate) {
         payload.parent_id = form.parent_id ? Number(form.parent_id) : null;
         payload.is_support = Boolean(form.is_support);
+        payload.is_accounting = Boolean(form.is_accounting);
+        payload.is_hr = Boolean(form.is_hr);
       }
       if (editingId) {
         await employeeService.updateDepartment(editingId, payload);
@@ -99,7 +104,7 @@ export default function AdminDepartmentsSection({ context }) {
     }
   };
 
-  if (loading) return <p className="text-slate-400">Загрузка отделов...</p>;
+  if (loading) return <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка отделов...</div>;
 
   return (
     <div>
@@ -143,10 +148,24 @@ export default function AdminDepartmentsSection({ context }) {
                 <td className="p-3 text-white font-medium">{dept.name}</td>
                 <td className="p-3 text-slate-400 max-w-xs truncate">{dept.description || '—'}</td>
                 <td className="p-3">
-                  {dept.is_support ? (
-                    <span className="text-xs px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700/50">
-                      Поддержка
-                    </span>
+                  {dept.is_support || dept.is_accounting || dept.is_hr ? (
+                    <div className="flex flex-wrap gap-1">
+                      {dept.is_support && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700/50">
+                          Поддержка
+                        </span>
+                      )}
+                      {dept.is_accounting && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 border border-amber-700/50">
+                          Бухгалтерия
+                        </span>
+                      )}
+                      {dept.is_hr && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-sky-900/60 text-sky-300 border border-sky-700/50">
+                          Отдел кадров
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-slate-500">—</span>
                   )}
@@ -257,6 +276,30 @@ export default function AdminDepartmentsSection({ context }) {
                   </label>
                   <p className="text-xs text-slate-500 -mt-1">
                     Вопросы со страницы «Поддержка» будут направляться в этот отдел. Одновременно может быть только один такой отдел.
+                  </p>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.is_accounting)}
+                      onChange={(e) => setForm({ ...form, is_accounting: e.target.checked })}
+                      className="rounded border-slate-600 bg-slate-800"
+                    />
+                    Бухгалтерия
+                  </label>
+                  <p className="text-xs text-slate-500 -mt-1">
+                    Сотрудники этого отдела получают доступ к вкладке «Бухгалтерия». Одновременно может быть только один такой отдел.
+                  </p>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.is_hr)}
+                      onChange={(e) => setForm({ ...form, is_hr: e.target.checked })}
+                      className="rounded border-slate-600 bg-slate-800"
+                    />
+                    Отдел кадров
+                  </label>
+                  <p className="text-xs text-slate-500 -mt-1">
+                    Сотрудники отдела получают полный доступ к вкладке «Сотрудники» и документам сотрудников. Одновременно может быть только один такой отдел.
                   </p>
                 </>
               )}

@@ -6,6 +6,7 @@ import { formatApiError } from '../../../../utils/formatApiError';
 import CreateProjectModal from '../../../task_manager/tabs/projects/components/CreateProjectModal';
 import { canManageAllTeams, canManageProjects } from './employeePermissions';
 import { projectTasksPath } from './taskDeepLinks';
+import tabStyles from '../ProfileTabs.module.css';
 
 const STATUS_LABELS = {
   planning: 'Планирование',
@@ -67,7 +68,7 @@ export default function AdminProjectsSection({ context, departmentId = null }) {
     }
   };
 
-  if (loading) return <p className="text-slate-400">Загрузка проектов...</p>;
+  if (loading) return <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка проектов...</div>;
 
   const effectiveDeptId = departmentId || (filterDept ? Number(filterDept) : null);
 

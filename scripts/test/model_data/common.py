@@ -12,7 +12,7 @@ from typing import Any
 import httpx
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SRC_ROOT = REPO_ROOT / "src"
+SRC_ROOT = REPO_ROOT / "py-worm"
 OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 DEFAULT_CREDENTIALS_PATH = OUTPUT_DIR / "credentials.json"
 
@@ -162,6 +162,14 @@ class ControlPlaneClient:
 
     def compile_preview(self, model_id: int) -> dict[str, Any]:
         resp = self.client.get(self._url(f"/api/data-models/{model_id}/compile-model/preview"))
+        resp.raise_for_status()
+        return resp.json()
+
+    def sqlite_query(self, model_id: int, body: dict[str, Any]) -> dict[str, Any]:
+        resp = self.client.post(
+            self._url(f"/api/data-models/{model_id}/sqlite/query"),
+            json=body,
+        )
         resp.raise_for_status()
         return resp.json()
 

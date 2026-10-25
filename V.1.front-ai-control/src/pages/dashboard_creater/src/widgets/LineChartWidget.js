@@ -66,6 +66,7 @@ import {
     applyResolvedReferenceFormulas,
     normalizeLineReferences,
 } from './line-chart/lineChartReferenceFormula.js';
+import { defaultTextColor, defaultFontFamily } from '../theme/themeRuntime.js';
 
 /** Совпадает с MAX_ROWS в sqlite_dashboard_query.py */
 const LINE_CHART_QUERY_MAX = 5000;
@@ -919,8 +920,8 @@ export class LineChartWidget extends WidgetBase {
 
         const cfg = this._getCfg();
         const typography = this.styles?.typography || {};
-        const fontFamily = typography.fontFamily || 'Inter';
-        const textColor = typography.color || '#E4E6EB';
+        const fontFamily = typography.fontFamily || defaultFontFamily();
+        const textColor = typography.color || defaultTextColor();
         const labelFs = typography.fontSize ? Math.max(10, typography.fontSize * 0.85) : 12;
 
         const sorted = this._sorted;
@@ -1200,8 +1201,8 @@ export class LineChartWidget extends WidgetBase {
         this._lineTeardown();
 
         const typography = this.styles?.typography || {};
-        const fontFamily = typography.fontFamily || 'Inter';
-        const textColor = typography.color || '#E4E6EB';
+        const fontFamily = typography.fontFamily || defaultFontFamily();
+        const textColor = typography.color || defaultTextColor();
 
         if (!hasDataBinding(this)) {
             content.innerHTML = renderWidgetDataPlaceholder(this, typography);

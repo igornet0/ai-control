@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TrashIcon,
   EyeSlashIcon,
@@ -94,6 +94,9 @@ function CommentItem({
           <span className="text-sm font-medium text-slate-200 truncate">
             {comment.author_name || 'Неизвестный пользователь'}
           </span>
+          {comment.is_support_reply && (
+            <span className="text-xs px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/30">{comment.support_signature || 'Служба поддержки'}</span>
+          )}
           {hidden && (
             <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400">Скрыт</span>
           )}
@@ -199,6 +202,10 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
   const [expanded, setExpanded] = useState(false);
 
   const currentUserId = currentUser?.id ?? null;
+  const [replyToReporter, setReplyToReporter] = useState(false);
+  const inputRef = useRef(null);
+  const canReplyToReporter = Boolean(task?.permissions?.is_support_staff)
+    && task?.creator_id != null && task.creator_id !== currentUserId;
 
   useEffect(() => {
     if (taskId) {
@@ -237,6 +244,7 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
       });
       setNewComment('');
       setReplyToId(null);
+      setReplyToReporter(false);
       await loadComments();
       if (totalCount + 1 > COMMENTS_COLLAPSE_LIMIT) {
         setExpanded(true);
@@ -295,7 +303,30 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
         )}
       </h3>
 
+      {canReplyToReporter && (
+        <button
+          type="button"
+          onClick={() => {
+            setReplyToId(null);
+            setReplyToReporter(true);
+            inputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            inputRef.current?.focus({ preventScroll: true });
+          }}
+          className={`mb-3 px-3 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 ${replyToReporter ? 'ring-2 ring-emerald-400/60' : ''}`}
+        >
+          Ответить сотруднику
+        </button>
+      )}
+
       <form onSubmit={handleSubmitComment} className="mb-4">
+        {replyToReporter && !replyToId && (
+          <div className="mb-2 flex items-center justify-between text-xs text-emerald-300 bg-emerald-500/10 px-3 py-2 rounded-lg">
+            <span>Ответ сотруднику {task?.creator_name || `#${task?.creator_id}`} — уведомление придёт ему в чат</span>
+            <button type="button" className="text-slate-400 hover:text-slate-200" onClick={() => setReplyToReporter(false)}>
+              Отмена
+            </button>
+          </div>
+        )}
         {replyToId && (
           <div className="mb-2 flex items-center justify-between text-xs text-blue-300 bg-blue-500/10 px-3 py-2 rounded-lg">
             <span>Ответ на комментарий #{replyToId}</span>
@@ -306,9 +337,10 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
         )}
         <div className="flex gap-2">
           <textarea
+            ref={inputRef}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder={replyToId ? 'Напишите ответ...' : 'Добавьте комментарий...'}
+            placeholder={replyToId ? 'Напишите ответ...' : replyToReporter ? 'Напишите ответ сотруднику...' : 'Добавьте комментарий...'}
             className="flex-1 rounded-lg border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm p-3 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all hover:border-slate-500/50"
             rows={2}
             disabled={submitting}
@@ -322,7 +354,7 @@ export default function TaskComments({ taskId, task, currentUser, canModerate = 
                 : 'bg-slate-700/50 cursor-not-allowed opacity-60'
             }`}
           >
-            {submitting ? 'Отправка...' : replyToId ? 'Ответить' : 'Отправить'}
+            {submitting ? 'Отправка...' : replyToId ? 'Ответить' : replyToReporter ? 'Ответить сотруднику' : 'Отправить'}
           </button>
         </div>
       </form>

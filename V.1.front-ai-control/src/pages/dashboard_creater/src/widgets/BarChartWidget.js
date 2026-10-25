@@ -14,6 +14,7 @@ import { runNamedFormulaBundle } from '../formula/widgetFormulaRuntime.js';
 import { normalizeBarFormulaFields } from './common/widgetFormulaSchema.js';
 import { resolveChartDimension, resolveChartMeasure, mergeChartMeasureFilters, chartMeasureAggColumn, chartMeasureForMatchesDimension } from './common/chartBindingFormula.js';
 import { computeBarCategoryStats, buildBarStatsOverlaySvg } from './bar-chart/barChartStats.js';
+import { defaultTextColor, defaultFontFamily } from '../theme/themeRuntime.js';
 
 const DEFAULT_BAR_PALETTE = [
     '#00E0FF',
@@ -465,8 +466,8 @@ export class BarChartWidget extends WidgetBase {
         this._barTeardown(content);
 
         const typography = this.styles?.typography || {};
-        const fontFamily = typography.fontFamily || 'Inter';
-        const textColor = typography.color || '#E4E6EB';
+        const fontFamily = typography.fontFamily || defaultFontFamily();
+        const textColor = typography.color || defaultTextColor();
 
         if (!hasDataBinding(this)) {
             content.innerHTML = renderWidgetDataPlaceholder(this, typography);

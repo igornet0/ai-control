@@ -6,7 +6,7 @@
   scripts/test/model_data/output/credentials.json (модель создана и желательно скомпилирована)
 
 Пример:
-  cd src && poetry run python ../scripts/test/dashboard/create_dashboard.py --env dev
+  cd py-worm && poetry run python ../scripts/test/dashboard/create_dashboard.py --env dev
 """
 
 from __future__ import annotations
@@ -31,7 +31,10 @@ from common import (  # noqa: E402
     save_json,
 )
 from fixtures import (  # noqa: E402
+    DASHBOARD_THEME,
+    DASHBOARD_VARIABLES,
     SHEET_SPECS,
+    bi_features_widgets,
     catalog_widgets,
     events_widgets,
     operations_widgets,
@@ -56,6 +59,27 @@ def parse_args() -> argparse.Namespace:
 def _default_name() -> str:
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     return f"Commerce demo dashboard {ts}"
+
+
+def _wire_container(
+    cp: ControlPlaneClient, container: dict, child_ids: list[int], tab_labels: list[str] | None = None
+) -> None:
+    """Put already created widgets into a container (one tab per slot group)."""
+    dc = dict(container.get("data_config") or {})
+    settings = dict(dc.get("settings") or {})
+    refs = [f"widget_{i}" for i in child_ids]
+    per_tab = max(1, min(4, int(settings.get("slotsPerTab") or 1)))
+    groups = [refs[i : i + per_tab] for i in range(0, len(refs), per_tab)]
+    settings["containerTabGroups"] = groups
+    # Tab captions are keyed by the first ref of each group.
+    settings["tabLabels"] = {g[0]: lbl for g, lbl in zip(groups, tab_labels or []) if lbl}
+    dc.update(
+        settings=settings,
+        containedWidgets=refs,
+        containedWidgetNumericIds=child_ids,
+        activeTabId=refs[0],
+    )
+    cp.update_dashboard_widget(container["id"], {"data_config": dc})
 
 
 def create_dashboard(args: argparse.Namespace) -> dict:
@@ -94,6 +118,12 @@ def create_dashboard(args: argparse.Namespace) -> dict:
         dashboard_id = dash["id"]
         cp.link_data_model(dashboard_id, model_id)
 
+        # Dashboard variables live in layout_config; merge so server defaults survive.
+        layout = dict(cp.get_dashboard(dashboard_id).get("layout_config") or {})
+        layout["dashboard_variables"] = DASHBOARD_VARIABLES
+        layout["theme"] = DASHBOARD_THEME
+        cp.update_dashboard(dashboard_id, {"layout_config": layout})
+
         for idx, spec in enumerate(SHEET_SPECS):
             sheet = cp.create_sheet(
                 dashboard_id,
@@ -106,19 +136,29 @@ def create_dashboard(args: argparse.Namespace) -> dict:
         sheet_builders = {
             "overview": lambda: overview_widgets(model_id, sheet_ids=sheet_ids),
             "qa": lambda: qa_widgets(model_id),
-            "sales": lambda: sales_widgets(model_id),
-            "operations": lambda: operations_widgets(model_id),
-            "catalog": lambda: catalog_widgets(model_id),
-            "events": lambda: events_widgets(model_id),
+            "sales": lambda: sales_widgets(model_id, sheet_ids=sheet_ids),
+            "operations": lambda: operations_widgets(model_id, sheet_ids=sheet_ids),
+            "catalog": lambda: catalog_widgets(model_id, sheet_ids=sheet_ids),
+            "events": lambda: events_widgets(model_id, sheet_ids=sheet_ids),
+            "bi_features": lambda: bi_features_widgets(model_id),
         }
 
         for key, builder in sheet_builders.items():
             sid = sheet_ids[key]
             created_ids: list[int] = []
+            by_name: dict[str, dict] = {}
+            containers: list[tuple[dict, list[str], list[str]]] = []
             for payload in builder():
-                created = cp.create_dashboard_widget(sid, payload)
+                children = payload.get("_container_children") or []
+                body = {k: v for k, v in payload.items() if not k.startswith("_")}
+                created = cp.create_dashboard_widget(sid, body)
+                by_name[body["name"]] = created
+                if children:
+                    containers.append((created, children, payload.get("_container_tab_labels") or []))
                 created_ids.append(created["id"])
                 widget_types_created.append(created["widget_type"])
+            for created, children, labels in containers:
+                _wire_container(cp, created, [by_name[n]["id"] for n in children], labels)
             widget_ids[key] = created_ids
 
         linked = cp.list_dashboard_models(dashboard_id)

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import styles from '../ProfileTabs.module.css';
 
 export function PanelSection({ sectionId, children }) {
   return children;
@@ -12,31 +13,34 @@ export default function OrgPanelShell({ title, subtitle, teamRole, tabs, default
   );
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">{title}</h2>
-        {subtitle && <p className="text-slate-400 text-sm mt-1">{subtitle}</p>}
-        {teamRole && <p className="text-indigo-300 text-xs mt-1">TeamRole: {teamRole}</p>}
-      </div>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>Сотрудники</span>
+          <h2 className={styles.title}>{title}</h2>
+          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          {teamRole && <span className={styles.roleTag}>TeamRole: {teamRole}</span>}
+        </div>
+      </header>
 
-      <div className="flex flex-wrap gap-2 mb-6 border-b pb-1" style={{ borderColor: 'var(--color-border-muted)' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveSection(tab.id)}
-            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
-              activeSection === tab.id
-                ? 'bg-indigo-600/30 text-white border-b-2 border-indigo-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {tabs.length > 1 && (
+        <nav className={styles.segTabs} role="tablist">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeSection === tab.id}
+              onClick={() => setActiveSection(tab.id)}
+              className={`${styles.segTab} ${activeSection === tab.id ? styles.segTabActive : ''}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
 
-      {activeChild}
+      <div>{activeChild}</div>
     </div>
   );
 }

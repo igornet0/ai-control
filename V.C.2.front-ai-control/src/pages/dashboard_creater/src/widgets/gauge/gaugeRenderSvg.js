@@ -1,6 +1,7 @@
 import { resolveGaugeFillStyle, lightenColor, hexToRgb } from './gaugeColor.js';
 import { buildDashWidgetHeadingHtml } from '../common/widgetTitle.js';
 import { buildGaugeTargetZones } from './gaugeSettingsSchema.js';
+import { defaultFontFamily, adaptTextColor } from '../../theme/themeRuntime.js';
 
 function escGaugeHeading(s) {
   return String(s ?? '')
@@ -220,7 +221,7 @@ function buildProgressBarGaugeMarkup(p) {
 
   const clipW = Math.max(0, innerW * (Math.max(0, Math.min(100, percent)) / 100));
 
-  const fontFamily = typography.fontFamily || 'Inter';
+  const fontFamily = typography.fontFamily || defaultFontFamily();
   const fontSize = typography.fontSize
     ? Math.max(11, Math.round(typography.fontSize * 1.25))
     : Math.max(12, Math.round(Math.min(gw, gh) / 14));
@@ -229,7 +230,7 @@ function buildProgressBarGaugeMarkup(p) {
   const finalGaugeColor = String(settings.gaugeColor || '#ffffff');
   const finalFillBase = String(settings.fillColor || '#00ff80');
   const tc = String(settings.textColor ?? '').trim();
-  const finalTextColor = tc || String(typography.color || '#ffffff');
+  const finalTextColor = adaptTextColor(tc || String(typography.color || '#ffffff'));
 
   const idSafe = String(widgetId).replace(/[^a-zA-Z0-9_-]/g, '_');
   const clipId = `gpb_clip_${idSafe}`;
@@ -450,14 +451,14 @@ export function buildGaugeMarkup(p) {
   const dialTurnDeg = Number.isFinite(dialTurn) ? dialTurn : 0;
   const rotateSvg = dialTurnDeg + (gtype === 'full_circle' ? 90 : startAngle + 90);
 
-  const fontFamily = typography.fontFamily || 'Inter';
+  const fontFamily = typography.fontFamily || defaultFontFamily();
   const fontSize = typography.fontSize ? Math.max(28, typography.fontSize * 2) : Math.max(28, size / 7);
   const fontWeight = typography.fontWeight || '600';
 
   const finalGaugeColor = String(settings.gaugeColor || '#ffffff');
   const finalFillBase = String(settings.fillColor || '#00ff80');
   const tc = String(settings.textColor ?? '').trim();
-  const finalTextColor = tc || String(typography.color || '#ffffff');
+  const finalTextColor = adaptTextColor(tc || String(typography.color || '#ffffff'));
 
   const fillResolved = resolveGaugeFillStyle(normalized01, finalFillBase, settings);
   let fillGradientDef = '';

@@ -383,6 +383,47 @@ def api_source_widget(spec: TableSpec, *, x: int, y: int, order_index: int) -> d
     }
 
 
+# Scalar model variables (interactive data-source, kind=variable). They land in
+# _datacode_variables and are available in dashboard formulas as @name.
+MODEL_VARIABLES: tuple[dict[str, Any], ...] = (
+    {"name": "vat_rate", "type": "float", "value": 1.2,
+     "description": "НДС-множитель для формул дашборда"},
+    {"name": "revenue_target", "type": "int", "value": 250000,
+     "description": "План выручки (используется в gauge и KPI)"},
+    {"name": "focus_region", "type": "string", "value": "r_nw",
+     "description": "Регион в фокусе (пример строковой переменной; в WHERE переменные не поддерживаются)"},
+)
+
+
+def model_variable_datacode(var: dict[str, Any]) -> str:
+    value = var["value"]
+    literal = f'"{value}"' if var["type"] == "string" else str(value)
+    return f"# Interactive data source — auto-generated\n\nglobal {var['name']} = {literal}\n"
+
+
+def model_variable_widget(var: dict[str, Any], *, x: int, y: int, order_index: int) -> dict[str, Any]:
+    return {
+        "widget_type": "data-source",
+        "widget_config": {
+            "settings": {
+                "name": f"Var {var['name']}",
+                "description": var["description"],
+                "sourceType": "interactive",
+                "interactiveConfig": {
+                    "kind": "variable",
+                    "variable": {"name": var["name"], "type": var["type"], "value": var["value"]},
+                },
+            }
+        },
+        "position_x": x,
+        "position_y": y,
+        "width": 250,
+        "order_index": order_index,
+        "is_visible": True,
+        "refresh_interval": 60,
+    }
+
+
 def filter_widget(*, x: int, y: int, order_index: int) -> dict[str, Any]:
     return {
         "widget_type": "processing-block",

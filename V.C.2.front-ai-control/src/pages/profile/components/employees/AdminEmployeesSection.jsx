@@ -3,9 +3,11 @@ import { TrashIcon } from '@heroicons/react/24/outline';
 import { employeeService, TEAM_ROLES as FALLBACK_TEAM_ROLES } from '../../../../services/employeeService';
 import { formatApiError } from '../../../../utils/formatApiError';
 import AddEmployeeModal from './AddEmployeeModal';
+import EmployeeDocumentsModal from './EmployeeDocumentsModal';
 import EmployeeHoverTrigger from './EmployeeHoverTrigger';
 import InviteToolbar from './InviteToolbar';
 import { teamRolesFromContext } from './employeePermissions';
+import tabStyles from '../ProfileTabs.module.css';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -22,6 +24,7 @@ export default function AdminEmployeesSection({ currentUser, context }) {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [docsEmployee, setDocsEmployee] = useState(null);
   const [search, setSearch] = useState('');
 
   const loadEmployees = async () => {
@@ -166,7 +169,7 @@ export default function AdminEmployeesSection({ currentUser, context }) {
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-slate-400">Загрузка...</p>
+        <div className={tabStyles.loader}><span className={tabStyles.spinner} />Загрузка...</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--color-border-muted)' }}>
           <table className="w-full text-sm">
@@ -243,8 +246,17 @@ export default function AdminEmployeesSection({ currentUser, context }) {
                     </span>
                   </td>
                   <td className="p-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDocsEmployee(emp)}
+                        className="text-xs px-2 py-1 rounded bg-sky-500/20 text-sky-200 hover:bg-sky-500/30"
+                        title="Документы сотрудника"
+                      >
+                        Документы
+                      </button>
                     {currentUser?.id !== emp.id && (
-                      <div className="flex gap-2">
+                      <>
                         <button
                           type="button"
                           disabled={actionLoading === emp.id}
@@ -262,8 +274,9 @@ export default function AdminEmployeesSection({ currentUser, context }) {
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
-                      </div>
+                      </>
                     )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -283,6 +296,9 @@ export default function AdminEmployeesSection({ currentUser, context }) {
         onCreated={loadEmployees}
         context={context}
       />
+      {docsEmployee && (
+        <EmployeeDocumentsModal employee={docsEmployee} onClose={() => setDocsEmployee(null)} />
+      )}
     </div>
   );
 }

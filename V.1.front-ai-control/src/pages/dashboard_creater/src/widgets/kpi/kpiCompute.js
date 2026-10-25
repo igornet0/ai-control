@@ -5,6 +5,10 @@ import {
 } from '../../../../../services/dashboardFilterUtils.js';
 import { compileFormulaBundle } from '../../formula/cache.js';
 import { toSqliteAggregations } from '../../formula/compile.js';
+import {
+  buildFiltersForAggGroup,
+  groupAggsByFilterSignature,
+} from '../../formula/formulaAggregateFetch.js';
 import { evaluateAst } from '../../formula/evaluate.js';
 import { formatFormulaError } from '../../formula/errors.js';
 import { makeFormulaVarContext } from '../../formula/formulaVarContext.js';
@@ -132,15 +136,25 @@ export async function computeKpiSnapshot(params, options = {}) {
   const baseFilters = dateCol ? stripDateFieldRangeFilters(globalScoped, table, dateCol) : globalScoped;
 
   const aliases = [...bundle.keyToAlias.values()];
-  const aggs = toSqliteAggregations(bundle.mergedAggs, bundle.keyToAlias, table);
   const ast0 = bundle.asts[0];
+  // WHERE / $[...] change filters per aggregate — one query per filter signature, rows merged.
+  const buckets = [...groupAggsByFilterSignature(bundle.mergedAggs).values()];
 
-  const bodyBase = {
-    mode: 'aggregate',
-    base_table: table,
-    group_by: [],
-    aggregations: aggs,
-    limit: 1,
+  /** @param {object[]} windowFilters */
+  const fetchRow = async (windowFilters) => {
+    const results = await Promise.all(
+      buckets.map((bucket) =>
+        runQuery(engine, modelId, {
+          mode: 'aggregate',
+          base_table: table,
+          group_by: [],
+          aggregations: toSqliteAggregations(bucket, bundle.keyToAlias, table),
+          filters: buildFiltersForAggGroup(windowFilters, bucket[0]),
+          limit: 1,
+        }),
+      ),
+    );
+    return Object.assign({}, ...results.map((r) => r?.rows?.[0] || {}));
   };
 
   const hasCurWindow =
@@ -163,8 +177,7 @@ export async function computeKpiSnapshot(params, options = {}) {
 
   try {
     if (!filtersPrev) {
-      const curRes = await runQuery(engine, modelId, { ...bodyBase, filters: filtersCur });
-      const curRow = curRes?.rows?.[0] || {};
+      const curRow = await fetchRow(filtersCur);
       const curHas = rowHasAggValues(curRow, aliases);
       const evC = safeEvaluate(ast0, curRow, engine);
 
@@ -199,11 +212,7 @@ export async function computeKpiSnapshot(params, options = {}) {
       };
     }
 
-    const [curRes, prevRes] = await Promise.all([
-      runQuery(engine, modelId, { ...bodyBase, filters: filtersCur }),
-      runQuery(engine, modelId, { ...bodyBase, filters: filtersPrev }),
-    ]);
-    const curRow = curRes?.rows?.[0] || {};
+    const [curRow, prevRow] = await Promise.all([fetchRow(filtersCur), fetchRow(filtersPrev)]);
     const curHas = rowHasAggValues(curRow, aliases);
     const evC = safeEvaluate(ast0, curRow, engine);
 
@@ -216,7 +225,6 @@ export async function computeKpiSnapshot(params, options = {}) {
       };
     }
 
-    const prevRow = prevRes?.rows?.[0] || {};
     const prevHas = rowHasAggValues(prevRow, aliases);
     const evP = safeEvaluate(ast0, prevRow, engine);
 

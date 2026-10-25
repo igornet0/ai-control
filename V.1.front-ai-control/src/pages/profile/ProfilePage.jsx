@@ -9,6 +9,7 @@ import Profile from './components/Profile';
 import FinanceTab from './components/FinanceTab';
 import PlanTab from './components/PlanTab';
 import AdminPanel from './components/AdminPanel';
+import AccountingTab from './components/AccountingTab';
 import EmployeesTab from './components/EmployeesTab';
 import StrategyTab from './components/StrategyTab';
 import EmailTab from './components/EmailTab';
@@ -30,6 +31,7 @@ const PROFILE_TAB_TITLES = {
   email: 'Почта',
   strategys: 'Стратегия',
   admin: 'Админ панель',
+  accounting: 'Бухгалтерия',
 };
 
 const ProfilePage = ({ user, onLogout }) => {
@@ -139,7 +141,7 @@ const ProfilePage = ({ user, onLogout }) => {
           />
           <PrivacyTab activeTab={activeTab} user={user} />
           <PlanTab activeTab={activeTab} highlightCode={highlightPlan} initialPeriod={planPeriod} />
-          <FinanceTab activeTab={activeTab} />
+          <FinanceTab activeTab={activeTab} onOpenPlan={() => setActiveTab('plan')} />
           <EmployeesTab activeTab={activeTab} user={user} />
           <EmailTab
             activeTab={activeTab}
@@ -150,6 +152,7 @@ const ProfilePage = ({ user, onLogout }) => {
             onPendingOpenRoomHandled={() => setPendingOpenRoom(null)}
           />
           <AdminPanel activeTab={activeTab} />
+          <AccountingTab activeTab={activeTab} />
           <StrategyTab activeTab={activeTab} user={user} />
         </div>
       </main>

@@ -138,4 +138,33 @@ describe('formula WHERE fetch', () => {
       }),
     ]);
   });
+
+  it('fetchMergedAggregateRow fires WHERE buckets in parallel, merges in bucket order', async () => {
+    const a = compileFormula('SUM([t.v] WHERE [t.id] = 1) + SUM([t.v] WHERE [t.id] = 2)');
+    const merged = mergeAggSpecsInOrder([a.aggs]);
+    const keyToAlias = buildKeyToAliasMap(merged);
+    const resolvers = [];
+    const client = {
+      fetchAggregate: vi.fn(
+        (params) =>
+          new Promise((resolve) => {
+            resolvers.push(() => resolve({ rows: [{ [params.aggregations[0].as]: resolvers.length }] }));
+          }),
+      ),
+    };
+    const pending = fetchMergedAggregateRow(client, {
+      modelId: 1,
+      base_table: 't',
+      mergedAggs: merged,
+      keyToAlias,
+      filters: [],
+    });
+    await Promise.resolve();
+    // оба запроса ушли до того, как первый ответил
+    expect(client.fetchAggregate).toHaveBeenCalledTimes(2);
+    resolvers[1]();
+    resolvers[0]();
+    const row = await pending;
+    expect(Object.keys(row)).toEqual(merged.map((m) => keyToAlias.get(m.key)).filter(Boolean));
+  });
 });

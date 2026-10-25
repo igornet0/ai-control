@@ -103,23 +103,27 @@ export async function fetchMergedAggregateRow(client, opts) {
   const { modelId, base_table, mergedAggs, keyToAlias, filters } = opts;
   const groups = groupAggsByFilterSignature(mergedAggs);
 
+  const buckets = [...groups.values()].filter((b) => b.length);
+  // Bucket'ы независимы — запускаем параллельно (батчер склеит их в один query-batch),
+  // мержим в исходном порядке для детерминизма.
+  const results = await Promise.all(
+    buckets.map((bucket) =>
+      client.fetchAggregate({
+        modelId,
+        base_table,
+        group_by: [],
+        aggregations: toSqliteAggregations(bucket, keyToAlias, base_table),
+        filters: buildFiltersForAggGroup(filters, bucket[0]),
+        limit: 1,
+      }),
+    ),
+  );
+
   /** @type {Record<string, unknown>} */
   const row = {};
-
-  for (const bucket of groups.values()) {
-    if (!bucket.length) continue;
-    const groupFilters = buildFiltersForAggGroup(filters, bucket[0]);
-    const { rows } = await client.fetchAggregate({
-      modelId,
-      base_table,
-      group_by: [],
-      aggregations: toSqliteAggregations(bucket, keyToAlias, base_table),
-      filters: groupFilters,
-      limit: 1,
-    });
+  for (const { rows } of results) {
     Object.assign(row, rows?.[0] || {});
   }
-
   return row;
 }
 
@@ -161,17 +165,22 @@ export async function fetchMergedAggregateRows(client, opts) {
   /** @type {string[]} */
   const keyOrder = [];
 
-  for (const bucket of groups.values()) {
-    if (!bucket.length) continue;
-    const groupFilters = buildFiltersForAggGroup(filters, bucket[0]);
-    const { rows } = await client.fetchAggregate({
-      modelId,
-      base_table,
-      group_by: groupByColumns,
-      aggregations: toSqliteAggregations(bucket, keyToAlias, base_table),
-      filters: groupFilters,
-      limit,
-    });
+  const buckets = [...groups.values()].filter((b) => b.length);
+  const results = await Promise.all(
+    buckets.map((bucket) =>
+      client.fetchAggregate({
+        modelId,
+        base_table,
+        group_by: groupByColumns,
+        aggregations: toSqliteAggregations(bucket, keyToAlias, base_table),
+        filters: buildFiltersForAggGroup(filters, bucket[0]),
+        limit,
+      }),
+    ),
+  );
+
+  buckets.forEach((bucket, ix) => {
+    const { rows } = results[ix];
     for (const r of rows || []) {
       const k = groupedRowKey(r, groupByColumns);
       let acc = byKey.get(k);
@@ -188,7 +197,7 @@ export async function fetchMergedAggregateRows(client, opts) {
         if (al) acc[al] = r[al];
       }
     }
-  }
+  });
 
   return { rows: keyOrder.map((k) => byKey.get(k)), groupByColumns };
 }

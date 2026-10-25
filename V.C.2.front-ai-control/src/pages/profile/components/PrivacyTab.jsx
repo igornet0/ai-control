@@ -9,14 +9,27 @@ import {
 import styles from './PrivacyTab.module.css';
 
 const EXPORT_OPTIONS = [
-  { id: 'account', label: 'Account' },
-  { id: 'projects', label: 'Projects / dashboards' },
-  { id: 'workflows', label: 'Workflows' },
-  { id: 'ai', label: 'AI conversations' },
-  { id: 'files', label: 'Files' },
-  { id: 'logs', label: 'Activity logs' },
-  { id: 'connections', label: 'Connections metadata (без секретов)' },
+  { id: 'account', label: 'Аккаунт' },
+  { id: 'projects', label: 'Проекты и дашборды' },
+  { id: 'workflows', label: 'Рабочие процессы' },
+  { id: 'ai', label: 'Диалоги с ИИ' },
+  { id: 'files', label: 'Файлы' },
+  { id: 'logs', label: 'Журнал активности' },
+  { id: 'connections', label: 'Метаданные подключений (без секретов)' },
 ];
+
+const REQUEST_TYPE_LABELS = {
+  ACCESS: 'Доступ к данным',
+  PORTABILITY: 'Экспорт данных',
+  ERASURE: 'Удаление аккаунта',
+  RECTIFICATION: 'Исправление данных',
+  OBJECTION: 'Возражение против обработки',
+  CONSENT_WITHDRAWAL: 'Отзыв согласия',
+};
+
+const REQUEST_STATUS_LABELS = {
+  QUEUED_LOCAL: 'В локальной очереди',
+};
 
 const PrivacyTab = ({ activeTab, user }) => {
   const [requests, setRequests] = useState(() => listPrivacyRequests());
@@ -40,24 +53,27 @@ const PrivacyTab = ({ activeTab, user }) => {
   const queue = (type, payload) => {
     const item = createPrivacyRequest({ type, payload });
     setRequests(listPrivacyRequests());
-    setMessage(`Запрос ${type} создан (${item.id}). Статус: локальная очередь.`);
+    setMessage(
+      `Запрос «${REQUEST_TYPE_LABELS[type] || type}» создан (${item.id}). Статус: в локальной очереди.`,
+    );
   };
 
   return (
     <section className={styles.wrap} aria-labelledby="privacy-dash-title">
       <header className={styles.header}>
-        <p className={styles.eyebrow}>Privacy & Data</p>
+        <p className={styles.eyebrow}>Конфиденциальность и данные</p>
         <h2 id="privacy-dash-title" className={styles.title}>
-          Your data
+          Ваши данные
         </h2>
         <p className={styles.subtitle}>
-          GDPR-действия в продукте. Пока backend privacy API не готов, запросы пишутся локально —
-          продублируйте на legal@2a.local. Не экспортируем raw credentials.
+          Управление персональными данными по GDPR. Пока серверный API не подключён, запросы
+          сохраняются локально — продублируйте их на legal@2a.local. Учётные данные и секреты не
+          экспортируются.
         </p>
         <div className={styles.links}>
-          <Link to="/legal/privacy">Privacy Policy</Link>
-          <Link to="/legal/data-subject-rights">Your Rights</Link>
-          <Link to="/legal/ai-data">AI & Data</Link>
+          <Link to="/legal/privacy">Политика конфиденциальности</Link>
+          <Link to="/legal/data-subject-rights">Ваши права</Link>
+          <Link to="/legal/ai-data">ИИ и данные</Link>
         </div>
       </header>
 
@@ -65,8 +81,8 @@ const PrivacyTab = ({ activeTab, user }) => {
 
       <div className={styles.grid}>
         <article className={styles.card}>
-          <h3 className={styles.cardTitle}>Download my data</h3>
-          <p className={styles.cardText}>Portability / Access — выберите категории и формат.</p>
+          <h3 className={styles.cardTitle}>Скачать мои данные</h3>
+          <p className={styles.cardText}>Выберите категории данных и формат выгрузки.</p>
           <ul className={styles.checkList}>
             {EXPORT_OPTIONS.map((opt) => (
               <li key={opt.id}>
@@ -107,59 +123,59 @@ const PrivacyTab = ({ activeTab, user }) => {
               })
             }
           >
-            Request export
+            Запросить выгрузку
           </button>
         </article>
 
         <article className={styles.card}>
-          <h3 className={styles.cardTitle}>Personal information</h3>
-          <p className={styles.cardText}>Rectification — правки профиля через раздел «Профиль».</p>
+          <h3 className={styles.cardTitle}>Личная информация</h3>
+          <p className={styles.cardText}>Изменить данные можно в разделе «Профиль» или отправить запрос на проверку.</p>
           <button type="button" className={styles.secondary} onClick={() => queue(PRIVACY_REQUEST_TYPES.RECTIFICATION, { account: email })}>
-            Request correction review
+            Запросить исправление
           </button>
         </article>
 
         <article className={styles.card}>
-          <h3 className={styles.cardTitle}>Privacy preferences</h3>
-          <p className={styles.cardText}>Управление cookie consent (не смешивается с принятием Terms).</p>
+          <h3 className={styles.cardTitle}>Настройки конфиденциальности</h3>
+          <p className={styles.cardText}>Согласие на cookie управляется отдельно от принятия условий использования.</p>
           <button type="button" className={styles.secondary} onClick={() => openCookieSettingsEvent()}>
-            Manage cookies
+            Настроить cookie
           </button>
         </article>
 
         <article className={styles.card}>
-          <h3 className={styles.cardTitle}>AI data</h3>
-          <p className={styles.cardText}>Ограничение AI-контекста и запросы по AI-истории.</p>
+          <h3 className={styles.cardTitle}>Данные ИИ</h3>
+          <p className={styles.cardText}>Ограничение контекста ИИ и запросы по истории диалогов с ИИ.</p>
           <div className={styles.rowActions}>
             <Link className={styles.linkBtn} to="/legal/ai-data">
-              AI & Data policy
+              Политика ИИ и данных
             </Link>
             <button
               type="button"
               className={styles.secondary}
               onClick={() => queue(PRIVACY_REQUEST_TYPES.OBJECTION, { scope: 'ai_optional' })}
             >
-              Object to optional AI analytics
+              Отказаться от доп. аналитики ИИ
             </button>
           </div>
         </article>
 
         <article className={`${styles.card} ${styles.dangerCard}`}>
-          <h3 className={styles.cardTitle}>Delete account</h3>
+          <h3 className={styles.cardTitle}>Удаление аккаунта</h3>
           <p className={styles.cardText}>
-            Удаление профиля, проектов, workflow, AI history, файлов и connections. Часть данных может
-            сохраняться, если требуется законом (billing / security logs).
+            Удаление профиля, проектов, рабочих процессов, истории ИИ, файлов и подключений. Часть
+            данных может сохраняться, если этого требует закон (платёжные данные, журналы безопасности).
           </p>
           {!deleteConfirm ? (
             <button type="button" className={styles.danger} onClick={() => setDeleteConfirm(true)}>
-              Delete account
+              Удалить аккаунт
             </button>
           ) : (
             <div className={styles.deleteBox}>
-              <p>This will permanently remove account data for {email}.</p>
+              <p>Данные аккаунта {email} будут удалены безвозвратно.</p>
               <div className={styles.rowActions}>
                 <button type="button" className={styles.secondary} onClick={() => setDeleteConfirm(false)}>
-                  Cancel
+                  Отмена
                 </button>
                 <button
                   type="button"
@@ -169,7 +185,7 @@ const PrivacyTab = ({ activeTab, user }) => {
                     setDeleteConfirm(false);
                   }}
                 >
-                  Permanently delete
+                  Удалить навсегда
                 </button>
               </div>
             </div>
@@ -177,24 +193,24 @@ const PrivacyTab = ({ activeTab, user }) => {
         </article>
 
         <article className={styles.card}>
-          <h3 className={styles.cardTitle}>Connected services</h3>
-          <p className={styles.cardText}>Управление интеграциями — в настройках источников данных.</p>
+          <h3 className={styles.cardTitle}>Подключённые сервисы</h3>
+          <p className={styles.cardText}>Интеграции настраиваются в разделе источников данных.</p>
           <Link className={styles.linkBtn} to="/data-models">
-            Manage integrations
+            Управлять интеграциями
           </Link>
         </article>
       </div>
 
-      <section className={styles.requests} aria-label="Privacy requests">
-        <h3 className={styles.cardTitle}>Privacy requests</h3>
+      <section className={styles.requests} aria-label="Запросы по данным">
+        <h3 className={styles.cardTitle}>Запросы по данным</h3>
         {requests.length === 0 ? (
           <p className={styles.cardText}>Пока нет запросов.</p>
         ) : (
           <ul className={styles.reqList}>
             {requests.map((r) => (
               <li key={r.id} className={styles.reqItem}>
-                <span className={styles.reqType}>{r.type}</span>
-                <span className={styles.reqStatus}>{r.status}</span>
+                <span className={styles.reqType}>{REQUEST_TYPE_LABELS[r.type] || r.type}</span>
+                <span className={styles.reqStatus}>{REQUEST_STATUS_LABELS[r.status] || r.status}</span>
                 <span className={styles.reqDate}>{new Date(r.createdAt).toLocaleString('ru-RU')}</span>
               </li>
             ))}

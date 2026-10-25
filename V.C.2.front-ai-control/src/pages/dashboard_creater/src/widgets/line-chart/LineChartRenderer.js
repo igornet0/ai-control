@@ -3,6 +3,7 @@
  */
 
 import { createLinearScale, formatDateByPattern, formatTimeAuto, niceTicks } from './lineChartScales.js';
+import { defaultTextColor, defaultFontFamily } from '../../theme/themeRuntime.js';
 
 /**
  * @typedef {{ plotLeft: number, plotTop: number, plotWidth: number, plotHeight: number }} PlotLayout
@@ -125,14 +126,14 @@ export function drawGrid(ctx, layout, cfg, scaleX, scaleY, xTicks, yTicks) {
  */
 export function drawAxes(ctx, layout, cfg, scaleX, scaleY, xType, xTicks, xTickLabels, yTicks, typo) {
     const { plotLeft, plotTop, plotWidth, plotHeight } = layout;
-    const axisColor = typo.textColor || '#E4E6EB';
+    const axisColor = typo.textColor || defaultTextColor();
     const fs = typo.labelFs || 11;
     ctx.save();
     ctx.strokeStyle = axisColor;
     ctx.fillStyle = axisColor;
     ctx.globalAlpha = 0.9;
     ctx.lineWidth = 1;
-    ctx.font = `${fs}px ${typo.fontFamily || 'Inter'}, sans-serif`;
+    ctx.font = `${fs}px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
 
     if (cfg.axis.x.enabled) {
         ctx.beginPath();
@@ -371,7 +372,7 @@ export function drawReferenceLines(ctx, layout, refs, scaleY, typo, statsVals = 
             ctx.fillRect(plotLeft, top, plotWidth, h);
             if (ref.label) {
                 ctx.fillStyle = ref.color || '#34d399';
-                ctx.font = `600 10px ${typo.fontFamily || 'Inter'}, sans-serif`;
+                ctx.font = `600 10px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'bottom';
                 ctx.fillText(ref.label, plotLeft + 4, top - 2);
@@ -398,7 +399,7 @@ export function drawReferenceLines(ctx, layout, refs, scaleY, typo, statsVals = 
         const lab = ref.label || (ref.type === 'target' ? `Target ${y}` : String(y));
         ctx.setLineDash([]);
         ctx.fillStyle = ref.color || '#f59e0b';
-        ctx.font = `600 10px ${typo.fontFamily || 'Inter'}, sans-serif`;
+        ctx.font = `600 10px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
         ctx.fillText(lab, plotLeft + 4, py - 2);
@@ -428,7 +429,7 @@ export function drawStatsOverlays(ctx, layout, stats, cfg, scaleX, scaleY, typo,
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.fillStyle = col;
-        ctx.font = `600 10px ${typo.fontFamily || 'Inter'}, sans-serif`;
+        ctx.font = `600 10px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
         ctx.fillText(label, plotLeft + plotWidth - 4, py - 2);
@@ -440,7 +441,7 @@ export function drawStatsOverlays(ctx, layout, stats, cfg, scaleX, scaleY, typo,
     }
     if (cfg.stats.showSum && stats.sum != null) {
         ctx.fillStyle = col;
-        ctx.font = `600 10px ${typo.fontFamily || 'Inter'}, sans-serif`;
+        ctx.font = `600 10px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText(`Σ ${formatNumberPlain(stats.sum, 'compact')}`, plotLeft + 4, plotTop + 4);
@@ -455,7 +456,7 @@ export function drawStatsOverlays(ctx, layout, stats, cfg, scaleX, scaleY, typo,
         ctx.fillStyle = col;
         ctx.fill();
         ctx.fillStyle = typo.textColor || '#fff';
-        ctx.font = `600 10px ${typo.fontFamily || 'Inter'}, sans-serif`;
+        ctx.font = `600 10px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillText(`${tag} ${formatNumberPlain(p.y, 'compact')}`, px, py - 6);
@@ -595,7 +596,7 @@ export function drawValueLabels(ctx, layout, points, fullSorted, cfg, scaleX, sc
 
     const mode = cfg.labels.mode || 'last_point';
     const fs = cfg.labels.fontSize || typo.labelFs || 11;
-    const col = cfg.labels.color || typo.textColor || '#E4E6EB';
+    const col = cfg.labels.color || typo.textColor || defaultTextColor();
     const pos = cfg.labels.position || 'auto';
     const gap = 4;
 
@@ -617,7 +618,7 @@ export function drawValueLabels(ctx, layout, points, fullSorted, cfg, scaleX, sc
 
     const { plotLeft, plotTop, plotWidth, plotHeight } = layout;
     ctx.save();
-    ctx.font = `600 ${fs}px ${typo.fontFamily || 'Inter'}, sans-serif`;
+    ctx.font = `600 ${fs}px ${typo.fontFamily || defaultFontFamily()}, sans-serif`;
     ctx.fillStyle = col;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -701,7 +702,7 @@ export function drawHoverTooltip(ctx, layout, lines, anchorX, anchorY, typo) {
     if (!lines?.length) return;
     const { plotLeft, plotTop, plotWidth, plotHeight } = layout;
     const fs = Math.max(11, typo.labelFs || 12);
-    const fontFamily = typo.fontFamily || 'Inter';
+    const fontFamily = typo.fontFamily || defaultFontFamily();
     const padX = 10;
     const padY = 8;
     const lineH = Math.round(fs * 1.35);

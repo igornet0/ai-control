@@ -276,18 +276,7 @@ const TaskApp = ({ user, onLogout }) => {
       // Загружаем только задачи
       const tasksData = await getTasks();
             
-      // Фильтруем тестовые задачи
-      const filteredTasks = tasksData.filter(task => {
-        const isTestTask = 
-          task.title?.includes('Test Task') ||
-          task.title?.includes('Test') ||
-          task.description?.includes('test') ||
-          task.description?.includes('Test');
-        
-        return !isTestTask;
-      });
-      
-                  setTasks(filteredTasks);
+      setTasks(tasksData);
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Не удалось загрузить данные. Пожалуйста, обновите страницу.');
@@ -362,15 +351,9 @@ const TaskApp = ({ user, onLogout }) => {
       const allTasks = await getTasks();
       
       // Находим тестовые задачи
-      const testTasks = allTasks.filter(task => {
-        const isTestTask = 
-          task.title?.includes('Test Task') ||
-          task.title?.includes('Test') ||
-          task.description?.includes('test') ||
-          task.description?.includes('Test');
-        
-        return isTestTask;
-      });
+      // Только по названию и только отдельное слово «test»: описание
+      // реальных задач может содержать логины вида test_member.
+      const testTasks = allTasks.filter((task) => /(^|[^\p{L}\d_])test([^\p{L}\d_]|$)/iu.test(task.title || ''));
       
       // Удаляем тестовые задачи
       for (const task of testTasks) {

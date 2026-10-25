@@ -35,7 +35,7 @@ from pathlib import Path
 import httpx
 
 ROOT = Path(__file__).resolve().parents[3]
-SRC = ROOT / "src"
+SRC = ROOT / "py-worm"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 

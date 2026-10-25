@@ -33,6 +33,8 @@ export class DashboardDataModelClient {
     this._cache = new Map();
     this._meta = new Map();
     this._inflight = new Map();
+    /** Поколение кэша: ответы, начатые до invalidate, не пишутся в кэш. */
+    this._gen = 0;
     this._subs = new Set();
     this._aggBatcher = new AggregationBatcher({
       runAggregate: ({ modelId, body }) => runDashboardModelQuery(this.engine, modelId, body),
@@ -76,6 +78,7 @@ export class DashboardDataModelClient {
   }
 
   invalidate(modelIds = null) {
+    this._gen += 1;
     if (!Array.isArray(modelIds) || !modelIds.length) {
       this._cache.clear();
       this._meta.clear();
@@ -88,6 +91,10 @@ export class DashboardDataModelClient {
         this._cache.delete(key);
         this._meta.delete(key);
       }
+    });
+    // In-flight запросы по этим моделям начаты со старыми фильтрами — не переиспользуем.
+    [...this._inflight.entries()].forEach(([key, entry]) => {
+      if (idSet.has(String(entry.modelId))) this._inflight.delete(key);
     });
   }
 
@@ -127,21 +134,28 @@ export class DashboardDataModelClient {
     const now = Date.now();
     const hit = this._cache.get(key);
     if (hit && now - hit.at < TTL_MS) return hit.data;
-    if (this._inflight.has(key)) return this._inflight.get(key);
+    const pending = this._inflight.get(key);
+    if (pending) return pending.promise ?? pending;
+    const gen = this._gen;
+    const release = () => {
+      if (this._inflight.get(key)?.promise === p) this._inflight.delete(key);
+    };
     const p = Promise.resolve()
       .then(runner)
       .then((data) => {
-        this._cache.set(key, { at: Date.now(), data });
-        this._meta.set(key, { modelId: intent.modelId });
-        trimCache(this._cache, this._meta);
-        this._inflight.delete(key);
+        if (gen === this._gen) {
+          this._cache.set(key, { at: Date.now(), data });
+          this._meta.set(key, { modelId: intent.modelId });
+          trimCache(this._cache, this._meta);
+        }
+        release();
         return data;
       })
       .catch((e) => {
-        this._inflight.delete(key);
+        release();
         throw e;
       });
-    this._inflight.set(key, p);
+    this._inflight.set(key, { promise: p, modelId: intent.modelId });
     return p;
   }
 

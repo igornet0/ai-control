@@ -3,7 +3,7 @@
 Полный интеграционный прогон: create → stream → verify.
 
 Пример:
-  cd src && poetry run python ../scripts/test/model_data/run_full_test.py --env dev
+  cd py-worm && poetry run python ../scripts/test/model_data/run_full_test.py --env dev
 
 Предусловия:
   - run_app.py (control-plane :8000)
@@ -35,7 +35,7 @@ def parse_args() -> argparse.Namespace:
 def _run_step(name: str, cmd: list[str]) -> int:
     print(f"\n=== {name} ===")
     print(" ".join(cmd))
-    result = subprocess.run(cmd, cwd=SCRIPT_DIR.parents[2] / "src")
+    result = subprocess.run(cmd, cwd=SCRIPT_DIR.parents[2] / "py-worm")
     if result.returncode != 0:
         print(f"\nrun_full_test: step {name!r} failed (exit {result.returncode})", file=sys.stderr)
     return result.returncode

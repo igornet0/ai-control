@@ -10,8 +10,8 @@
   --append     циклически добавляет events
 
 Пример:
-  cd src && poetry run python ../scripts/test/model_data/stream_data.py --env dev
-  cd src && poetry run python ../scripts/test/model_data/stream_data.py --stream --iterations 5
+  cd py-worm && poetry run python ../scripts/test/model_data/stream_data.py --env dev
+  cd py-worm && poetry run python ../scripts/test/model_data/stream_data.py --stream --iterations 5
 """
 
 from __future__ import annotations

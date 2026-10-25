@@ -8,7 +8,7 @@
 2. Модель данных создана и (желательно) скомпилирована:
 
 ```bash
-cd src
+cd py-worm
 poetry run python ../scripts/test/model_data/create_model.py --env dev
 # из корня репо:
 ./scripts/test/model_data/compile_and_stream.sh
@@ -23,7 +23,7 @@ poetry run python ../scripts/test/model_data/create_model.py --env dev
 ./scripts/test/dashboard/create_dashboard.sh --env dev
 ./scripts/test/dashboard/create_dashboard.sh --env dev --verify
 
-cd src
+cd py-worm
 
 # Только дашборд (модель уже есть)
 poetry run python ../scripts/test/dashboard/create_dashboard.py --env dev
@@ -35,14 +35,49 @@ poetry run python ../scripts/test/dashboard/run_full_test.py --env dev --with-mo
 
 ## Что создаётся
 
-| Лист | Виджеты |
-|------|---------|
-| **Overview** | `text`, `html`×2, `kpi`×4, `gauge`×2, `filter`, `button-widget` |
-| **QA Expected** | guide `html`, `filter` (order_status / region_id / channel), `kpi`×4, recipe `html`, `table`×5 |
-| **Sales** | `bar-chart`×3 (palette/solid/gradient), `line-chart`×2 (area+gradient / spline+points), `pie-chart`×3 (classic + donut) |
-| **Operations** | time `line-chart`, `kpi`×2, warehouse `bar-chart`, payments charts + `table` |
-| **Catalog** | `table`×4 (products / order_items / orders / customers), `data_input`, `container` |
-| **Events** | `text`, `html`, event `pie`/`bar`, `table`×2 |
+Дашборд из 7 листов и ~95 виджетов, тема `ocean` (`DASHBOARD_THEME` в `fixtures.py`). На каждом листе есть шапка: заголовок `text`, подзаголовок `html` и кнопки навигации и обновления (`button-widget`). У фильтра на каждом листе свой `filterStyle`.
+
+| Лист | Виджеты | Особенности |
+|------|---------|-------------|
+| **Overview** | `text`, `html`, `button-widget`, `filter`, `kpi`×4, `gauge`×2, `image`, `line-chart`, `pie-chart` | 3 простых KPI и 1 formula KPI с фоном по rules; area line; donut; фильтр **glass** |
+| **QA Expected** | `text`, `html`×2, `filter`, `kpi`×4, `table`×5 | эталонные значения (см. ниже) |
+| **Sales** | `text`, `html`, `button-widget`, `filter`, `kpi`×4, `bar-chart`×3, `line-chart`×2, `pie-chart`×2 | bar: palette / solid / gradient; line: area / spline; pie: classic / donut; фильтр **outline** |
+| **Operations** | `text`, `html`, `button-widget`, `filter`, `kpi`×4, `line-chart`, `bar-chart`×2, `pie-chart`, `table` | time series line (zoom + crosshair); фильтр **filled** |
+| **Catalog** | `text`, `html`×2, `button-widget`, `filter`, `kpi`×4, `table`, `data_input`, `container`, `bar-chart`, `pie-chart` | `container` с реальными детьми во вкладках; gradient bar с сортировкой `value_desc`; фильтр **underline** (lg) |
+| **Events** | `text`, `html`, `button-widget`, `filter`, `kpi`×4, `line-chart`, `pie-chart`, `bar-chart`×2 | spline line; donut; фильтр **pill** (sm) |
+| **BI Features** | `text`, formula `kpi`×8, `gauge` (цели из переменных), `bar-chart`×2, `filter`, explainer `html` | формулы, переменные модели и дашборда, rules |
+
+Какие возможности платформы покрыты:
+
+- **KPI**: простой (`kpiMode: simple`), формульный (`formula`) и с условным фоном по `rules`.
+- **Gauge**: цели и пороги, в том числе из переменных.
+- **Filter**: варианты `filterStyle` glass / outline / filled / underline / pill.
+- **Bar**: palette / solid / gradient.
+- **Line**: area / spline / time series.
+- **Pie**: classic / donut.
+- **Таблицы и ввод данных**: `table`, `data_input`.
+- **Контент**: `text`, `html`, `image`.
+- **Кнопки**: `navigate` и `refresh`.
+- **Container** с дочерними виджетами.
+- **Переменные** модели и дашборда.
+- **Тема**: `ocean`.
+
+### Вкладка BI Features
+
+Показывает язык формул и переменные. Переменные модели (`create_model.py`): `vat_rate=1.2`, `revenue_target=250000`, `focus_region="r_nw"`. Переменные дашборда (`layout_config.dashboard_variables`): `target_margin=15`, `revenue_target=220000` — перекрывает одноимённую переменную модели.
+
+| KPI | Формула | Что демонстрирует |
+|-----|---------|-------------------|
+| Revenue incl. VAT | `SUM([orders.amount]) * @vat_rate` | переменная модели |
+| SUM WHERE r_nw | `SUM([orders.amount] WHERE [orders.region_id] = 'r_nw')` | локальный WHERE (24454.83 без фильтров) |
+| Share, % | `SUM([orders.amount]) / SUM($[orders.amount]) * 100` | `$[...]` — игнор фильтров дашборда |
+| Total (ignore filters) | `SUM($[orders.amount])` | не меняется при фильтрах |
+| Margin | `SUM([orders.amount]) * @target_margin / 100` | переменная дашборда |
+| Revenue vs target | `SUM([orders.amount])` + rules | условные цвета от `@revenue_target` |
+| IF progress | `IF(SUM >= @revenue_target, 100, SUM / @revenue_target * 100)` | `IF`, сравнения |
+| COUNT web + r_nw | `COUNT([orders.id] WHERE channel = 'web' AND region_id = 'r_nw')` | WHERE с `AND` |
+
+Ограничения языка (на момент написания): `$[...]` принимает только поле; значения в WHERE — только литералы (не `@var`); серия bar/line — один агрегат; деление на 0 роняет всю формулу; неустановленная переменная → «—»; оператора `NOT` нет.
 
 Привязки к **скомпилированным** колонкам: `orders.order_status` (не `status`), `orders.amount_vat`, `customers.email_address` (не `email`). Таблицы: `orders`, `customers`, `products`, `payments`, `order_items`, `warehouses`, `events`, `regions`, `orders_by_region`, `orders_by_customer`.
 
@@ -66,7 +101,9 @@ AVG amount = 1213.55, SUM amount_vat = 253388.95. Если перед compile г
 ```
 scripts/test/dashboard/
   common.py
-  fixtures.py            # листы + payload виджетов (styles / chart modes)
+  widget_kit.py          # сетка (X0/CONTENT_W/GAP, col()) + билдеры payload виджетов
+  demo_sheets.py         # листы Overview / Sales / Operations / Catalog / Events
+  fixtures.py            # тема, переменные, листы QA + BI, сборка всех листов
   create_dashboard.py
   create_dashboard.sh
   verify_dashboard.py

@@ -25,6 +25,7 @@ import {
 } from './data-input/dataInputApi.js';
 import { invalidateDashboardTransportCaches } from '../../../../services/dashboardFilterTransport.js';
 import { fingerprintDataInputPayload } from './data-input/dataInputPayloadFingerprint.js';
+import { defaultFontFamily } from '../theme/themeRuntime.js';
 
 const PK_CHECK_DEBOUNCE_MS = 320;
 
@@ -259,7 +260,7 @@ export class DataInputWidget extends WidgetBase {
     const buttonLabel = this._submitInFlight ? 'Сохранение…' : submitLabel;
 
     return `
-      <div class="dash-widget-shell dash-widget-shell--column data-input-widget-root" style="font-family:${typography.fontFamily || 'Inter'},sans-serif;">
+      <div class="dash-widget-shell dash-widget-shell--column data-input-widget-root" style="font-family:${typography.fontFamily || defaultFontFamily()},sans-serif;">
         ${title ? buildDashWidgetHeadingHtml({ ...this.settings, showTitle: true, title }, escHtml) : ''}
         <form class="data-input-form" style="--di-cols:${cols}" novalidate>
           <div class="data-input-fields">${fieldBlocks}${formulaBlocks}</div>
@@ -282,7 +283,7 @@ export class DataInputWidget extends WidgetBase {
     const visibleFields = this._visibleFields().filter((f) => f.type !== 'formula' || !f.hidden);
     if (!visibleFields.length) {
       content.innerHTML = `
-        <div class="dash-widget-shell dash-widget-shell--column data-input-widget-root" style="font-family:${typography.fontFamily || 'Inter'},sans-serif;">
+        <div class="dash-widget-shell dash-widget-shell--column data-input-widget-root" style="font-family:${typography.fontFamily || defaultFontFamily()},sans-serif;">
           <div class="dash-widget-empty dash-widget-empty--hint">
             <p>Добавьте поля в панели справа или перетащите колонки из панели «Данные».</p>
           </div>

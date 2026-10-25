@@ -21,11 +21,12 @@ import {
   allowsExportToProfile,
   parseEngineWidgetDbId,
 } from '../../services/profileWidgetCatalog.js';
-import { showTaskToast } from '../../components/shared/taskToast';
+import { showTaskToast } from '../task_manager/components/taskToast';
 import {
   dashboardModelsSupportAutoRefresh,
   getDashboardAutoRefreshEnabled,
   getDashboardAutoRefreshIntervalSec,
+  normalizeLayoutConfig,
 } from '../../utils/dashboardAutoRefresh.js';
 import { canEditDashboard } from '../../utils/dashboardUtils';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -62,6 +63,8 @@ import {
 } from '../../utils/dashboardVariables.js';
 import { setupActiveFiltersBar } from './activeFiltersBar.js';
 import DataPanel from './components/DataPanel.jsx';
+import DashboardThemeModal from './components/DashboardThemeModal.jsx';
+import { applyDashboardTheme, isDefaultTheme } from './src/theme/dashboardThemes.js';
 import DashboardPresenceBar from './components/DashboardPresenceBar.jsx';
 import DashboardRemoteCursors from './components/DashboardRemoteCursors.jsx';
 import {
@@ -187,6 +190,11 @@ function parseDataConfigFromDB(raw) {
 
 const BUTTON_NAVIGATION_STORAGE_PREFIX = 'dashboard-creater:button-nav';
 
+
+/** Перерисовка виджетов после смены стиля (canvas/SVG берут цвета при рендере). */
+function rerenderAllWidgets(engine) {
+  engine?.widgetManager?.getAllWidgets?.().forEach((w) => w.update?.());
+}
 
 function makeButtonNavigationStorageKey(dashboardId, sheetId) {
   return `${BUTTON_NAVIGATION_STORAGE_PREFIX}:${String(dashboardId ?? '')}:${String(sheetId ?? '')}`;
@@ -486,6 +494,7 @@ const DashboardCreaterApp = ({ user, onLogout, shareContext = null }) => {
   const coarsePointer = useCoarsePointer();
   const [widgetPanelOpen, setWidgetPanelOpen] = useState(false);
   const [toolbarMoreOpen, setToolbarMoreOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const [stylePanelOpen, setStylePanelOpen] = useState(false);
   const [presenceSelfId, setPresenceSelfId] = useState(null);
   const [presencePeers, setPresencePeers] = useState([]);
@@ -1753,6 +1762,17 @@ const DashboardCreaterApp = ({ user, onLogout, shareContext = null }) => {
         <div className="toolbar-section toolbar-section--secondary">
           <button id="btn-load" className="btn">Загрузить</button>
           <button id="btn-export" className="btn">Экспорт JSON</button>
+          {!viewOnly && (
+            <button
+              type="button"
+              id="btn-dashboard-theme"
+              className="btn"
+              title="Стиль дашборда"
+              onClick={() => setThemeOpen(true)}
+            >
+              Стиль
+            </button>
+          )}
         </div>
         <div className="toolbar-overflow">
           <button
@@ -1791,6 +1811,18 @@ const DashboardCreaterApp = ({ user, onLogout, shareContext = null }) => {
             >
               Экспорт JSON
             </button>
+            {!viewOnly && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setThemeOpen(true);
+                  setToolbarMoreOpen(false);
+                }}
+              >
+                Стиль дашборда
+              </button>
+            )}
           </div>
         </div>
         <div className="toolbar-section">
@@ -2059,6 +2091,15 @@ const DashboardCreaterApp = ({ user, onLogout, shareContext = null }) => {
           if (typeof flush === 'function') await flush();
         }}
       />
+      {!viewOnly && (
+        <DashboardThemeModal
+          open={themeOpen}
+          onClose={() => setThemeOpen(false)}
+          dashboardId={dashboardId}
+          getViewport={() => document.getElementById('viewport')}
+          onRerender={() => rerenderAllWidgets(engineRef.current)}
+        />
+      )}
     </div>
   );
 };
@@ -2141,7 +2182,23 @@ async function reloadWidgetsFromDataModelInBatches(widgets, engine) {
   });
 }
 
+/** Стиль дашборда применяется сразу, не дожидаясь загрузки виджетов и переменных. */
+async function applyStoredDashboardTheme(engine) {
+  if (engine.dashboardId == null || engine.dashboardId === '') return;
+  try {
+    const dashMeta = await dashboardService.getDashboard(engine.dashboardId);
+    if (engine._destroyed) return;
+    const dashTheme = normalizeLayoutConfig(dashMeta?.layout_config).theme;
+    applyDashboardTheme(document.getElementById('viewport'), dashTheme, {
+      rerender: isDefaultTheme(dashTheme) ? undefined : () => rerenderAllWidgets(engine),
+    });
+  } catch (e) {
+    console.warn('[dashboard] failed to load dashboard theme', e);
+  }
+}
+
 async function loadWidgetsFromDB(engine, sheetId, onLoaded, shareCtx = null, flowCtx = null) {
+  void applyStoredDashboardTheme(engine);
   try {
     let dbWidgets = [];
     /** @type {Record<string, unknown>} */

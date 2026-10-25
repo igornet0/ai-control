@@ -99,6 +99,38 @@ export const employeeService = {
     return response.data;
   },
 
+  async getEmployeeDocuments(employeeId, params = {}) {
+    const response = await api.get(`/api/employees/${employeeId}/documents`, { params });
+    return response.data;
+  },
+
+  async uploadEmployeeDocuments(employeeId, files, { title = '', category = 'other' } = {}) {
+    const form = new FormData();
+    Array.from(files).forEach((file) => form.append('files', file));
+    if (title) form.append('title', title);
+    form.append('category', category);
+    const response = await api.post(`/api/employees/${employeeId}/documents`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async linkEmployeeDocument(employeeId, data) {
+    const response = await api.post(`/api/employees/${employeeId}/documents/link`, data);
+    return response.data;
+  },
+
+  async downloadEmployeeDocument(employeeId, docId) {
+    const response = await api.get(`/api/employees/${employeeId}/documents/${docId}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async deleteEmployeeDocument(employeeId, docId) {
+    await api.delete(`/api/employees/${employeeId}/documents/${docId}`);
+  },
+
   async addTeamMember(teamId, userId, membershipRole = 'member') {
     const response = await api.post(`/api/employees/teams/${teamId}/members`, {
       user_id: userId,

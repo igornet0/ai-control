@@ -24,6 +24,7 @@ import { normalizeKpiBackgroundSettings, resolveKpiBackgroundCss } from './kpi/k
 import { resolveKpiDataSourceFromFormula } from '../formula/formulaInference.js';
 import { runNamedFormulaBundle } from '../formula/widgetFormulaRuntime.js';
 import { resolveColorSettingSync } from './common/resolveColorSetting.js';
+import { defaultTextColor, defaultFontFamily, adaptTextColor } from '../theme/themeRuntime.js';
 
 function escHtml(s) {
     return String(s ?? '')
@@ -345,7 +346,7 @@ export class KpiWidget extends WidgetBase {
         const deltaDisplay = String(this.settings.deltaDisplay || 'below').toLowerCase();
         if (deltaDisplay === 'hidden') return '';
 
-        const fontFamily = opts.fontFamily || 'Inter';
+        const fontFamily = opts.fontFamily || defaultFontFamily();
         const trendFontSize = opts.trendFontSize ?? 16;
         const deltaFontSize = opts.deltaFontSize ?? 14;
         const inline = deltaDisplay === 'inline';
@@ -445,7 +446,7 @@ export class KpiWidget extends WidgetBase {
             const n = Math.min(48, Math.max(8, parseInt(ts, 10)));
             fs = ` font-size: ${n}px`;
         }
-        return `<div class="dash-widget-heading" style="color: ${finalTitleColor};${fs}">${escHtml(title)}</div>`;
+        return `<div class="dash-widget-heading" style="color: ${adaptTextColor(finalTitleColor)};${fs}">${escHtml(title)}</div>`;
     }
 
     render() {
@@ -468,8 +469,8 @@ export class KpiWidget extends WidgetBase {
 
         const typeFontSize = coerceKpiTypeFontSize(typography.fontSize);
         const baseFontSize = typeFontSize || Math.max(12, Math.min(this.width, this.height) / 8);
-        const fontFamily = typography.fontFamily || 'Inter';
-        const textColor = typography.color || '#E4E6EB';
+        const fontFamily = typography.fontFamily || defaultFontFamily();
+        const textColor = adaptTextColor(typography.color) || defaultTextColor();
         const lineHeight = typography.lineHeight || 1.2;
         const textShadow = typography.textShadow || '';
 
@@ -478,7 +479,7 @@ export class KpiWidget extends WidgetBase {
         const trendFontSize = typeFontSize ? Math.max(16, typeFontSize * 0.8) : Math.max(16, baseFontSize * 0.8);
         const deltaFontSize = typeFontSize ? Math.max(14, typeFontSize * 0.75) : Math.max(14, baseFontSize * 0.75);
 
-        const finalValueColor = typography.color || valueColor;
+        const finalValueColor = adaptTextColor(typography.color || valueColor);
 
         const snap = this._kpiSnapshot;
         const formulaMode = this._kpiFormulaMode && snap;

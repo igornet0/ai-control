@@ -3,7 +3,7 @@
 Проверяет модель данных: ingest status, compile, sqlite schema, rows.
 
 Пример:
-  cd src && poetry run python ../scripts/test/model_data/verify_model.py --env dev
+  cd py-worm && poetry run python ../scripts/test/model_data/verify_model.py --env dev
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from common import (  # noqa: E402
 from fixtures import (  # noqa: E402
     COMPILED_CUSTOMERS_COLUMNS,
     COMPILED_ORDERS_COLUMNS,
+    MODEL_VARIABLES,
     TABLES,
     expected_compiled_snapshot,
 )
@@ -158,6 +159,26 @@ def verify_model(args: argparse.Namespace) -> list[str]:
             if optional in table_names:
                 checks.append(f"sqlite_optional[{optional}]=ok")
         checks.append(f"sqlite_tables={sorted(table_names)}")
+
+        var_resp = cp.sqlite_query(
+            model_id,
+            {
+                "mode": "select",
+                "base_table": "_datacode_variables",
+                "columns": ["variable_name", "variable_type", "value"],
+                "filters": [],
+                "limit": 200,
+            },
+        )
+        var_rows = var_resp.get("rows") or var_resp.get("data") or []
+        scalars = {r.get("variable_name"): r.get("value") for r in var_rows if r.get("variable_type") != "Table"}
+        for var in MODEL_VARIABLES:
+            _assert(var["name"] in scalars, f"scalar variable {var['name']!r} missing in _datacode_variables")
+            _assert(
+                str(scalars[var["name"]]) == str(var["value"]),
+                f"variable {var['name']!r}={scalars[var['name']]!r}, expected {var['value']!r}",
+            )
+        checks.append(f"model_variables={dict(sorted(scalars.items()))}")
 
         export = cp.export_model(model_id)
         code_widgets = (export.get("code") or {}).get("widgets") or {}

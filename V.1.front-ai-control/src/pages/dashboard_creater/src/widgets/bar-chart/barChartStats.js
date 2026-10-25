@@ -1,3 +1,4 @@
+import { defaultTextColor, defaultFontFamily } from '../../theme/themeRuntime.js';
 /**
  * Статистика по высотам столбцов и SVG-оверлей (среднее / медиана / сумма).
  */
@@ -85,8 +86,8 @@ export function buildBarStatsOverlaySvg(stats, flags, geom, valueFmt, fontFamily
     } = geom;
     const max = Number(maxV) > 0 ? Number(maxV) : 1;
     const fs = 10;
-    const fam = escXml(fontFamily || 'Inter');
-    const fill = escXml(textColor || '#E4E6EB');
+    const fam = escXml(fontFamily || defaultFontFamily());
+    const fill = escXml(textColor || defaultTextColor());
 
     const valueToPx = (val) => {
         const frac = Math.max(0, Math.min(1, Number(val) / max));

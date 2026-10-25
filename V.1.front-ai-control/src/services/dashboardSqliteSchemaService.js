@@ -1,5 +1,6 @@
 import axios from 'axios';
 import api from './api';
+import { dashboardService } from './dashboardService';
 import { getDashboardShareContext } from './shareLinkContext';
 import { getApiBaseUrl } from './apiBaseUrl';
 
@@ -49,8 +50,8 @@ async function fetchDashboardSchema(dashboardId) {
       )
     );
   } else {
-    dmRes = await api.get(`/api/dashboards/${dashboardId}/data-models`);
-    dataModels = Array.isArray(dmRes.data) ? dmRes.data : dmRes.data?.data_models || [];
+    const dm = await dashboardService.getDashboardDataModels(dashboardId);
+    dataModels = Array.isArray(dm) ? dm : dm?.data_models || [];
     settled = await Promise.allSettled(
       dataModels.map((m) => api.get(`/api/data-models/${m.id}/sqlite-db/schema`))
     );

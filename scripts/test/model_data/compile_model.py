@@ -5,7 +5,7 @@
 Использует credentials.json из create_model.py.
 
 Пример:
-  cd src && poetry run python ../scripts/test/model_data/compile_model.py --env dev
+  cd py-worm && poetry run python ../scripts/test/model_data/compile_model.py --env dev
 """
 
 from __future__ import annotations

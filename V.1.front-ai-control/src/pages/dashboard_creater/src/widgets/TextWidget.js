@@ -10,6 +10,7 @@ import { runNamedFormulaBundle } from '../formula/widgetFormulaRuntime.js';
 import { normalizeTextStyleFormulas } from './common/widgetFormulaSchema.js';
 import { resolveColorSetting } from './common/resolveColorSetting.js';
 import { snapshotEngineModelVariables } from '../formula/formulaVarContext.js';
+import { defaultTextColor, defaultFontFamily, adaptTextColor } from '../theme/themeRuntime.js';
 
 function escHtml(s) {
   return String(s ?? '')
@@ -43,7 +44,7 @@ export class TextWidget extends WidgetBase {
     this.settings = {
       text: s.text ?? '',
       fontSize: s.fontSize || 16,
-      fontFamily: s.fontFamily || 'Inter',
+      fontFamily: s.fontFamily || defaultFontFamily(),
       color: s.color || '#FFFFFF',
       align: s.align || 'left',
       mode: s.mode === 'dynamic' ? 'dynamic' : 'static',
@@ -224,8 +225,8 @@ export class TextWidget extends WidgetBase {
   _renderTextInner(content, typography, escapedInnerHtml) {
     const adaptiveFontSize = Math.max(10, Math.min(this.width, this.height) / 15);
     const fontSize = typography.fontSize || this.settings.fontSize || adaptiveFontSize;
-    const fontFamily = typography.fontFamily || this.settings.fontFamily || 'Inter';
-    const color = typography.color || this.settings.color || '#E4E6EB';
+    const fontFamily = typography.fontFamily || this.settings.fontFamily || defaultFontFamily();
+    const color = adaptTextColor(typography.color || this.settings.color) || defaultTextColor();
     const fontWeight = typography.fontWeight || '400';
     const letterSpacing =
       typography.letterSpacing !== undefined ? `${typography.letterSpacing}px` : 'normal';

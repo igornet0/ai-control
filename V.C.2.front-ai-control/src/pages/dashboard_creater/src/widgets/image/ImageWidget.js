@@ -13,6 +13,7 @@ import {
   resolveHttpOrStaticUrl,
   resolveMediaPresentation,
 } from './imageResolve.js';
+import { defaultTextColor, defaultFontFamily } from '../../theme/themeRuntime.js';
 
 const SELECT_LIMIT = 500;
 
@@ -275,8 +276,8 @@ export class ImageWidget extends WidgetBase {
     const hasStatic = !!(this.settings.staticSrc || '').trim();
     const waitingText = (this.settings.waitingText || '').trim();
     const typography = this.styles?.typography || {};
-    const color = typography.color || '#E4E6EB';
-    const fontFamily = typography.fontFamily || 'Inter';
+    const color = typography.color || defaultTextColor();
+    const fontFamily = typography.fontFamily || defaultFontFamily();
 
     if (this._error && this._mode === 'error') {
       this._teardownAudioPlayer();

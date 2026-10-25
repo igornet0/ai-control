@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { employeeService } from '../../../services/employeeService';
 import StrategyWorkspace from './strategy/StrategyWorkspace';
 import styles from './strategy/Strategy.module.css';
+import tabStyles from './ProfileTabs.module.css';
 
 /**
  * Strategy tab router — Goal-centric workspace with AI Strategy Agent.
@@ -25,11 +26,16 @@ export default function StrategyTab({ activeTab }) {
   if (activeTab !== 'strategys') return null;
 
   if (loading) {
-    return <div className={styles.loading}>Загрузка...</div>;
+    return (
+      <div className={tabStyles.loader}>
+        <span className={tabStyles.spinner} />
+        Загрузка...
+      </div>
+    );
   }
 
   if (error) {
-    return <div className={styles.errorBox}>{error}</div>;
+    return <div className={tabStyles.errorBox}>{error}</div>;
   }
 
   const tier = context?.tier;

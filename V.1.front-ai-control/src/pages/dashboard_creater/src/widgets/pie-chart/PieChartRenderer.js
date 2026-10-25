@@ -8,6 +8,7 @@ import { buildPieModel } from './pieChartDataModel.js';
 import { donutSlicePathRounded, polar } from './pieChartMath.js';
 import { computeSegmentStats, buildCenterLabel, buildPieCenterTooltip } from './pieChartCenterUtils.js';
 import { evaluateSliceColorAst, tryCompileColorFormula } from '../../formula/colorExpr.js';
+import { defaultTextColor, defaultFontFamily } from '../../theme/themeRuntime.js';
 
 export { buildPieModel };
 
@@ -185,9 +186,9 @@ export function renderPieChartSvg(params) {
 
     let angle = -Math.PI / 2 + (n > 0 ? padBetween / 2 : 0);
     const sliceMetas = [];
-    const fontFam = typography.fontFamily || 'Inter';
+    const fontFam = typography.fontFamily || defaultFontFamily();
     const typoSizes = resolvePieTypographySizes(typography, { outerR, innerR });
-    const labelColor = typography.color || '#E4E6EB';
+    const labelColor = typography.color || defaultTextColor();
     const minRad = ((cfg.labels.minAngleDeg || 6) * Math.PI) / 180;
 
     const labelsG = el('g', { class: 'pie-labels', fill: labelColor, 'font-family': `${fontFam}, sans-serif` }, ownerDoc);

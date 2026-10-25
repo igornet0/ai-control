@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getMessagingBaseUrl, getAttachmentUrl, getMailAttachmentUrl } from './messagingBaseUrl';
 import { refreshAccessToken, getAccessToken } from './tokenRefresh';
+import { dedupeGet, invalidateDedupe } from './requestDedupe';
 
 const messagingApi = axios.create({
   baseURL: getMessagingBaseUrl(),
@@ -43,8 +44,10 @@ export const messagingService = {
   },
 
   async getRooms() {
-    const { data } = await messagingApi.get(`${prefix}/rooms`);
-    return data.rooms || [];
+    return dedupeGet('messaging:rooms', async () => {
+      const { data } = await messagingApi.get(`${prefix}/rooms`);
+      return data.rooms || [];
+    }, { ttlMs: 1000 });
   },
 
   async createRoom(name, memberIds = []) {
@@ -52,6 +55,7 @@ export const messagingService = {
       name,
       member_ids: memberIds,
     });
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -59,6 +63,7 @@ export const messagingService = {
     const { data } = await messagingApi.post(`${prefix}/rooms/direct`, {
       user_id: userId,
     });
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -69,11 +74,13 @@ export const messagingService = {
 
   async updateRoom(roomId, { name }) {
     const { data } = await messagingApi.patch(`${prefix}/rooms/${roomId}`, { name });
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
   async deleteRoom(roomId) {
     const { data } = await messagingApi.delete(`${prefix}/rooms/${roomId}`);
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -81,11 +88,13 @@ export const messagingService = {
     const { data } = await messagingApi.post(`${prefix}/rooms/${roomId}/members`, {
       user_ids: userIds,
     });
+    invalidateDedupe('messaging:rooms');
     return data.members || [];
   },
 
   async removeRoomMember(roomId, userId) {
     const { data } = await messagingApi.delete(`${prefix}/rooms/${roomId}/members/${userId}`);
+    invalidateDedupe('messaging:rooms');
     return data.members || [];
   },
 
@@ -93,6 +102,7 @@ export const messagingService = {
     const { data } = await messagingApi.patch(`${prefix}/rooms/${roomId}/members/${userId}`, {
       role,
     });
+    invalidateDedupe('messaging:rooms');
     return data.members || [];
   },
 
@@ -110,6 +120,7 @@ export const messagingService = {
     const { data } = await messagingApi.post(`${prefix}/rooms/${roomId}/read`, {
       message_id: messageId,
     });
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -119,6 +130,7 @@ export const messagingService = {
     if (attachmentIds?.length) body.attachment_ids = attachmentIds;
     if (entityRefs?.length) body.entity_refs = entityRefs;
     const { data } = await messagingApi.post(`${prefix}/rooms/${roomId}/messages`, body);
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -134,6 +146,7 @@ export const messagingService = {
         maxContentLength: Infinity,
       }
     );
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -147,6 +160,7 @@ export const messagingService = {
       `${prefix}/rooms/${roomId}/messages/${messageId}`,
       body
     );
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -154,6 +168,7 @@ export const messagingService = {
     const { data } = await messagingApi.delete(
       `${prefix}/rooms/${roomId}/messages/${messageId}`
     );
+    invalidateDedupe('messaging:rooms');
     return data;
   },
 
@@ -163,6 +178,7 @@ export const messagingService = {
       `${prefix}/rooms/${targetRoomId}/attachments/copy`,
       { attachment_ids: attachmentIds }
     );
+    invalidateDedupe('messaging:rooms');
     return data.attachments || [];
   },
 
@@ -183,6 +199,7 @@ export const messagingService = {
       body,
       attachment_ids: attachmentIds,
     });
+    invalidateDedupe('mail:inbox:');
     return data;
   },
 
@@ -200,8 +217,10 @@ export const messagingService = {
   async getInboxMail({ cursor, limit = 50 } = {}) {
     const params = { limit };
     if (cursor != null) params.cursor = cursor;
-    const { data } = await messagingApi.get(`${prefix}/mail/inbox`, { params });
-    return data.items || [];
+    return dedupeGet(`mail:inbox:${cursor ?? ''}:${limit}`, async () => {
+      const { data } = await messagingApi.get(`${prefix}/mail/inbox`, { params });
+      return data.items || [];
+    }, { ttlMs: 1500 });
   },
 
   async getSentMail({ cursor, limit = 50 } = {}) {
@@ -220,6 +239,7 @@ export const messagingService = {
 
   async markInboxRead(messageId) {
     const { data } = await messagingApi.patch(`${prefix}/mail/inbox/${messageId}/read`);
+    invalidateDedupe('mail:inbox:');
     return data;
   },
 

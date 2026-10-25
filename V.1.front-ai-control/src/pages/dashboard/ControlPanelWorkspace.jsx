@@ -23,11 +23,13 @@ import {
   CircleStackIcon,
   DocumentDuplicateIcon,
   EyeIcon,
+  MagnifyingGlassIcon,
   PencilIcon,
   PlusIcon,
   SparklesIcon,
   TrashIcon,
   WrenchScrewdriverIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 function modelAuthorName(model, user) {
@@ -65,6 +67,7 @@ const ControlPanelWorkspace = ({ defaultSection = 'panels', initialFlowId = null
   const [panelsFilter, setPanelsFilter] = useState('Мои');
   const [flowsFilter, setFlowsFilter] = useState(initialFlowId ? String(initialFlowId) : null);
   const [modelsFilter, setModelsFilter] = useState('Мои');
+  const [modelSearch, setModelSearch] = useState('');
   const [recentItems, setRecentItems] = useState(() => getRecentItems());
 
   const [dashboards, setDashboards] = useState([]);
@@ -298,7 +301,12 @@ const ControlPanelWorkspace = ({ defaultSection = 'panels', initialFlowId = null
   };
   const currentDashboards = filteredDashboards[panelsFilter] || [];
   const currentFlowDashboards = flowDashboards;
-  const currentModels = dataModels[modelsFilter] || [];
+  const modelQuery = modelSearch.trim().toLowerCase();
+  const currentModels = useMemo(() => {
+    const list = dataModels[modelsFilter] || [];
+    if (!modelQuery) return list;
+    return list.filter((m) => String(m?.name || '').toLowerCase().includes(modelQuery));
+  }, [dataModels, modelsFilter, modelQuery]);
   const coverBatchItems = useMemo(() => {
     const list = [...dashboards, ...flowDashboards];
     const seen = new Set();
@@ -754,6 +762,23 @@ const ControlPanelWorkspace = ({ defaultSection = 'panels', initialFlowId = null
                   </div>
                 </div>
 
+                <div className={workspaceStyles.searchBar}>
+                  <MagnifyingGlassIcon className={workspaceStyles.searchIcon} aria-hidden />
+                  <input
+                    type="search"
+                    value={modelSearch}
+                    onChange={(e) => setModelSearch(e.target.value)}
+                    placeholder="Поиск по названию модели"
+                    className={workspaceStyles.searchInput}
+                    aria-label="Поиск по названию модели данных"
+                  />
+                  {modelSearch && (
+                    <button type="button" className={workspaceStyles.searchClear} onClick={() => setModelSearch('')} aria-label="Очистить поиск">
+                      <XMarkIcon style={{ width: '1rem', height: '1rem' }} />
+                    </button>
+                  )}
+                </div>
+
                 {error && (
                   <div className="bg-gradient-to-r from-red-500/20 to-rose-600/20 border border-red-500/30 text-red-300 p-4 rounded-lg mb-6 backdrop-blur-sm">
                     <div className="flex items-center justify-between">
@@ -869,13 +894,15 @@ const ControlPanelWorkspace = ({ defaultSection = 'panels', initialFlowId = null
                   <div className="text-center py-12">
                     <CircleStackIcon style={{ width: '4rem', height: '4rem', margin: '0 auto 1rem', opacity: 0.5 }} />
                     <p className="text-lg text-slate-400">
-                      {modelsFilter === 'Доступные'
+                      {modelQuery
+                        ? `По запросу «${modelSearch.trim()}» ничего не найдено.`
+                        : modelsFilter === 'Доступные'
                         ? 'Нет моделей, к которым вам выдали доступ.'
                         : modelsFilter === 'Публичные'
                           ? 'Публичные модели не найдены.'
                           : 'Модели данных не найдены.'}
                     </p>
-                    {modelsFilter === 'Мои' && (
+                    {modelsFilter === 'Мои' && !modelQuery && (
                       <button type="button" onClick={() => navigate('/data-models/create')} className="btn btn-primary mt-4">
                         <PlusIcon style={{ width: '1.25rem', height: '1.25rem' }} />
                         Создать первую модель

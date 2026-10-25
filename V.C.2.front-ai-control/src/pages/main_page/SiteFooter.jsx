@@ -5,24 +5,13 @@ import styles from './SiteFooter.module.css';
 const PRODUCT_LINKS = [
   { label: 'Дашборды', to: '/dashboard' },
   { label: 'Источники данных', to: '/data-models' },
-  { label: 'AI Analytics', to: '/pricing' },
-  { label: 'Автоматизация', to: '/pricing' },
   { label: 'API', to: '/developer-api-docs' },
-  { label: 'Тарифы', to: '/pricing' },
-];
-
-const SOLUTION_LINKS = [
-  { label: 'Для себя', to: '/pricing' },
-  { label: 'Для бизнеса', to: '/pricing' },
-  { label: 'Для аналитиков', to: '/pricing' },
-  { label: 'Для команд', to: '/pricing' },
-  { label: 'Enterprise', to: '/pricing' },
 ];
 
 const RESOURCE_LINKS = [
   { label: 'Документация', to: '/datacode-docs' },
   { label: 'API Documentation', to: '/developer-api-docs' },
-  { label: 'FAQ', to: '/pricing' },
+  { label: 'FAQ', to: '/legal' },
   { label: 'Поддержка', to: '/support' },
 ];
 
@@ -78,7 +67,6 @@ const SiteFooter = () => {
 
           <nav className={styles.nav} aria-label="Навигация в подвале">
             <FooterColumn title="Продукт" links={PRODUCT_LINKS} />
-            <FooterColumn title="Решения" links={SOLUTION_LINKS} />
             <FooterColumn title="Ресурсы" links={RESOURCE_LINKS} />
             <FooterColumn title="Компания" links={COMPANY_LINKS} />
           </nav>
@@ -94,10 +82,6 @@ const SiteFooter = () => {
           <div className={styles.helpActions}>
             <Link to="/support" className={styles.helpPrimary}>
               Открыть поддержку
-              <span aria-hidden="true">→</span>
-            </Link>
-            <Link to="/pricing" className={styles.helpSecondary}>
-              Связаться с отделом продаж
               <span aria-hidden="true">→</span>
             </Link>
           </div>

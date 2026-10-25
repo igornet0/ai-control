@@ -3,7 +3,7 @@
 Проверяет демо-дашборд: листы, типы виджетов, связь с моделью, sample sqlite query.
 
 Пример:
-  cd src && poetry run python ../scripts/test/dashboard/verify_dashboard.py --env dev
+  cd py-worm && poetry run python ../scripts/test/dashboard/verify_dashboard.py --env dev
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ class VerificationError(Exception):
     pass
 
 
-EXPECTED_SHEET_KEYS = ("overview", "qa", "sales", "operations", "catalog", "events")
+EXPECTED_SHEET_KEYS = ("overview", "qa", "sales", "operations", "catalog", "events", "bi_features")
 
 
 def parse_args() -> argparse.Namespace:
@@ -69,6 +69,10 @@ def verify(args: argparse.Namespace) -> list[str]:
         dash = cp.get_dashboard(dashboard_id)
         _assert(dash.get("id") == dashboard_id, "dashboard id mismatch")
         checks.append(f"dashboard={dash.get('name')}")
+        dvars = {v.get("name"): v for v in (dash.get("layout_config") or {}).get("dashboard_variables") or []}
+        for name in ("target_margin", "revenue_target"):
+            _assert(name in dvars, f"dashboard variable {name} missing")
+        checks.append(f"dashboard_variables={sorted(dvars)}")
 
         linked = cp.list_dashboard_models(dashboard_id)
         linked_ids = {m.get("id") for m in linked}
@@ -76,7 +80,7 @@ def verify(args: argparse.Namespace) -> list[str]:
         checks.append(f"linked_models={sorted(linked_ids)}")
 
         sheets = cp.list_sheets(dashboard_id)
-        _assert(len(sheets) >= 6, f"expected >=6 sheets, got {len(sheets)}")
+        _assert(len(sheets) >= 7, f"expected >=7 sheets, got {len(sheets)}")
         checks.append(f"sheets={len(sheets)}")
 
         for key in EXPECTED_SHEET_KEYS:
@@ -95,7 +99,7 @@ def verify(args: argparse.Namespace) -> list[str]:
         missing = expected - all_types
         _assert(not missing, f"missing widget types: {sorted(missing)}")
         checks.append(f"widget_types={sorted(all_types)}")
-        _assert(total_widgets >= 25, f"expected >=25 widgets, got {total_widgets}")
+        _assert(total_widgets >= 35, f"expected >=35 widgets, got {total_widgets}")
         checks.append(f"widget_count={total_widgets}")
 
         if not args.skip_query:

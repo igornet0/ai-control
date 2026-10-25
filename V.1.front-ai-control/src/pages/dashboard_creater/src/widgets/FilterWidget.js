@@ -40,6 +40,10 @@ export {
   normalizeFilterSelection,
   resolveFilterAppearance,
 } from './filter/filterAppearance.js';
+import { adaptTextColor, defaultFontFamily, defaultTextColor } from '../theme/themeRuntime.js';
+import { filterStyleClasses, filterStyleCssVars, normalizeFilterStyle } from './filter/filterStyle.js';
+
+export { DEFAULT_FILTER_STYLE, normalizeFilterStyle } from './filter/filterStyle.js';
 
 function esc(s) {
   return String(s ?? '')
@@ -91,7 +95,8 @@ function _filterFieldCaption(f) {
   return c || String(f.field ?? '');
 }
 
-const DEFAULT_FILTER_TEXT_COLOR = '#000000';
+/** Цвет заголовка по умолчанию: при нём заголовок берёт акцент темы дашборда. */
+const DEFAULT_FILTER_TITLE_COLOR = '#8B5CF6';
 
 /**
  * Глобальные фильтры: у каждого поля свой Appearance (Select / Segmented / Chips / Checkbox / Slider / Auto).
@@ -113,6 +118,7 @@ export class FilterWidget extends WidgetBase {
       this.settings.showTitle = true;
     }
     this.settings.buttonStyle = normalizeFilterButtonStyle(this.settings.buttonStyle);
+    this.settings.filterStyle = normalizeFilterStyle(this.settings.filterStyle);
     (this.settings.filters || []).forEach(_normalizeFilterRow);
     this._debounceEmit = null;
     this._debounceFetch = null;
@@ -215,6 +221,9 @@ export class FilterWidget extends WidgetBase {
   }
 
   _layoutClass() {
+    const forced = this.settings?.filterStyle?.layout;
+    if (forced === 'row') return 'filter-widget--layout-row';
+    if (forced === 'column') return 'filter-widget--layout-col';
     const w = this.width || 300;
     const h = this.height || 200;
     const wide = w >= Math.max(360, h * 1.15);
@@ -1078,15 +1087,23 @@ export class FilterWidget extends WidgetBase {
 
     const { title, filters } = this.settings;
     const typography = this.styles?.typography || {};
-    const fontFamily = typography.fontFamily || 'Inter';
-    const textColor = typography.color || DEFAULT_FILTER_TEXT_COLOR;
+    const fontFamily = typography.fontFamily || defaultFontFamily();
+    const textColor = adaptTextColor(typography.color) || defaultTextColor();
     const layoutClass = this._layoutClass();
     const viewerMode = this._isViewerMode();
     const showTitle = this.settings.showTitle !== false;
     const titleColorRaw = String(
-      this.resolvedColor('titleColor', this.settings.titleColor || '#8B5CF6') || '#8B5CF6',
+      this.resolvedColor('titleColor', this.settings.titleColor || DEFAULT_FILTER_TITLE_COLOR) ||
+        DEFAULT_FILTER_TITLE_COLOR,
     ).trim();
-    const titleColor = /^#[0-9a-fA-F]{6}$/i.test(titleColorRaw) ? titleColorRaw : '#8B5CF6';
+    const titleFollowsTheme =
+      !this.settings.titleColorFormula &&
+      titleColorRaw.toUpperCase() === DEFAULT_FILTER_TITLE_COLOR;
+    const titleColor = titleFollowsTheme
+      ? `var(--filter-accent, var(--dash-accent, ${DEFAULT_FILTER_TITLE_COLOR}))`
+      : /^#[0-9a-fA-F]{6}$/i.test(titleColorRaw)
+        ? titleColorRaw
+        : DEFAULT_FILTER_TITLE_COLOR;
     const titleHtml = showTitle
       ? `<div class="dash-widget-heading filter-widget-title" style="color:${esc(titleColor)}">${esc(title)}</div>`
       : '';
@@ -1119,13 +1136,14 @@ export class FilterWidget extends WidgetBase {
     const shellStyle = [
       `font-family:'${esc(fontFamily)}',sans-serif`,
       `color:${esc(textColor)}`,
+      filterStyleCssVars(this.settings.filterStyle),
       btnVars,
     ]
       .filter(Boolean)
       .join(';');
 
     content.innerHTML = `
-      <div class="dash-widget-shell filter-widget ${layoutClass}${styledBtnsClass}" style="${shellStyle}">
+      <div class="dash-widget-shell filter-widget ${layoutClass} ${filterStyleClasses(this.settings.filterStyle)}${styledBtnsClass}" style="${shellStyle}">
         ${titleHtml}
         <div class="filter-widget-fields">${fieldsHtml}</div>
       </div>
@@ -1202,6 +1220,7 @@ export class FilterWidget extends WidgetBase {
       this.settings.showTitle = true;
     }
     this.settings.buttonStyle = normalizeFilterButtonStyle(this.settings.buttonStyle);
+    this.settings.filterStyle = normalizeFilterStyle(this.settings.filterStyle);
     (this.settings.filters || []).forEach(_normalizeFilterRow);
     this._expandedFilterId = null;
     this._inlinePendingById = new Map();

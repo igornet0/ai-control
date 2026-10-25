@@ -5,6 +5,7 @@ import ExecutiveEmployeesPanel from './employees/ExecutiveEmployeesPanel';
 import ManagerEmployeesPanel from './employees/ManagerEmployeesPanel';
 import ColleaguesView from './employees/ColleaguesView';
 import GuestEmptyState from './employees/GuestEmptyState';
+import styles from './ProfileTabs.module.css';
 
 export default function EmployeesTab({ activeTab, user }) {
   const [context, setContext] = useState(null);
@@ -24,11 +25,16 @@ export default function EmployeesTab({ activeTab, user }) {
   if (activeTab !== 'employees') return null;
 
   if (loading) {
-    return <p className="text-slate-400">Загрузка...</p>;
+    return (
+      <div className={styles.loader}>
+        <span className={styles.spinner} />
+        Загрузка...
+      </div>
+    );
   }
 
   if (error) {
-    return <p className="text-red-400">{error}</p>;
+    return <div className={styles.errorBox}>{error}</div>;
   }
 
   if (context?.tier === 'guest') {
@@ -38,7 +44,8 @@ export default function EmployeesTab({ activeTab, user }) {
   const isAdmin =
     user?.is_superuser ||
     user?.role === 'admin' ||
-    context?.tier === 'platform_admin';
+    context?.tier === 'platform_admin' ||
+    Boolean(context?.is_hr_member);
 
   if (isAdmin) {
     return <AdminEmployeesPanel currentUser={user} context={context} />;

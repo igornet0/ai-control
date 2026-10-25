@@ -97,6 +97,11 @@ class ControlPlaneClient(_ModelControlPlaneClient):
         resp.raise_for_status()
         return resp.json()
 
+    def update_dashboard(self, dashboard_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        resp = self.client.put(self._url(f"/api/dashboards/{dashboard_id}"), json=payload)
+        resp.raise_for_status()
+        return resp.json()
+
     def list_sheets(self, dashboard_id: int) -> list[dict[str, Any]]:
         resp = self.client.get(self._url(f"/api/dashboards/{dashboard_id}/sheets"))
         resp.raise_for_status()
@@ -108,6 +113,11 @@ class ControlPlaneClient(_ModelControlPlaneClient):
             self._url(f"/api/dashboard-widgets/sheet/{sheet_id}/widgets"),
             json=body,
         )
+        resp.raise_for_status()
+        return resp.json()
+
+    def update_dashboard_widget(self, widget_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        resp = self.client.put(self._url(f"/api/dashboard-widgets/{widget_id}"), json=payload)
         resp.raise_for_status()
         return resp.json()
 

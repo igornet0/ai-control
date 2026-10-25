@@ -54,7 +54,7 @@ N:M в настройках виджета: левый PK, правый PK, пр
 ## Быстрый старт
 
 ```bash
-cd src
+cd py-worm
 
 # Полный прогон: create → ingest → verify
 poetry run python ../scripts/test/model_data/run_full_test.py --env dev
